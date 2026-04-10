@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs -I {} find {} -name \"*.java\")",
+      "Bash(find:*)",
+      "Bash(mvn dependency:tree -Dincludes=org.apache.rocketmq)",
+      "mcp__ide__getDiagnostics",
+      "Bash(mvn compile:*)",
+      "Bash(mvn dependency:resolve -Dclassifier=sources)",
+      "Bash(jar -tf ~/.m2/repository/io/milvus/milvus-sdk-java/2.6.6/milvus-sdk-java-2.6.6.jar)",
+      "Bash(grep -E \"\\\\.class$\")"
+    ]
+  }
+}

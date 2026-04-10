@@ -1,0 +1,96 @@
+spring:
+  application:
+    name: simple-rag
+
+  # 数据库配置
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://127.0.0.1:5432/simple_rag
+    username: postgres
+    password: postgres
+
+  # Redis 配置
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+
+  # Jackson 配置
+  jackson:
+    time-zone: Asia/Shanghai
+    date-format: yyyy-MM-dd HH:mm:ss
+
+# Embedding 服务配置
+embedding:
+  provider: siliconflow  # 支持：siliconflow, bailian, ollama
+  siliconflow-api-key: ${SILICONFLOW_API_KEY:}
+  siliconflow-model: BAAI/bge-large-zh-v1.5
+  siliconflow-base-url: https://api.siliconflow.cn/v1
+  bailian-api-key: ${BAILIAN_API_KEY:}
+  bailian-model: text-embedding-v2
+  ollama-base-url: http://localhost:11434
+  ollama-model: bge-large-zh
+
+# Milvus 向量数据库配置
+milvus:
+  host: 127.0.0.1
+  port: 19530
+  vector-dimension: 1536
+
+# RustFS 对象存储配置
+rustfs:
+  endpoint: http://127.0.0.1:9000
+  access-key: rustfsadmin
+  secret-key: rustfsadmin
+  bucket: simple-rag
+
+# RocketMQ 配置
+rocketmq:
+  name-server: 127.0.0.1:9876
+
+  producer:
+    group: simple-rag-producer
+    send-message-timeout: 3000
+
+  consumer-group: simple-rag-consumer  # ← 必填，只能用字母/数字/下划线/中划线
+  consumer-tag: '*'                    # 可选，默认 '*'
+
+  chunk-topic: knowledge-chunk-topic
+
+# 服务器配置
+server:
+  port: 9092
+  servlet:
+    context-path: /api/simple-rag
+
+# MyBatis Plus 配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: assign_id
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.nageoffer.ai.simple_rag: DEBUG
+
+# AI 模型配置
+ai:
+  providers:
+    bailian:
+      api-key: ${BAILIAN_API_KEY:}
+    siliconflow:
+      api-key: ${SILICONFLOW_API_KEY:}
+
+# 文件上传配置
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
