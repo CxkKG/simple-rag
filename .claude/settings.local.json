@@ -8,7 +8,11 @@
       "Bash(mvn compile:*)",
       "Bash(mvn dependency:resolve -Dclassifier=sources)",
       "Bash(jar -tf ~/.m2/repository/io/milvus/milvus-sdk-java/2.6.6/milvus-sdk-java-2.6.6.jar)",
-      "Bash(grep -E \"\\\\.class$\")"
+      "Bash(grep -E \"\\\\.class$\")",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm run:*)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :5173)"
     ]
   }
 }
