@@ -33,7 +33,11 @@
       "Bash(kill -9 14041)",
       "Bash(mvn spring-boot:run -pl bootstrap)",
       "Bash(kill -9 19414)",
-      "Bash(kill -9 20804)"
+      "Bash(kill -9 20804)",
+      "Bash(mvn dependency:resolve -pl bootstrap)",
+      "WebSearch",
+      "Bash(mvn dependency:tree -pl bootstrap)",
+      "Bash(psql:*)"
     ]
   }
 }

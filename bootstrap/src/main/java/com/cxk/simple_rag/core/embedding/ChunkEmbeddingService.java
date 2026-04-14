@@ -90,9 +90,8 @@ public class ChunkEmbeddingService {
         headers.set("Authorization", "Bearer " + embeddingConfig.getSiliconflowApiKey());
 
         Map<String, Object> body = Map.of(
-                "model", embeddingConfig.getSiliconflowModel(),
-                "input", texts,
-                "encoding_format", "float"
+                "model", modelName,
+                "input", texts
         );
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
@@ -100,6 +99,17 @@ public class ChunkEmbeddingService {
 
         try {
             JsonNode root = objectMapper.readTree(response.getBody());
+
+            // 检查 API 是否返回错误
+            if (root.has("code")) {
+                int code = root.get("code").asInt();
+                String message = root.has("message") ? root.get("message").asText() : "Unknown error";
+                if (code != 0) {
+                    log.error("SiliconFlow API returned error: code={}, message={}", code, message);
+                    throw new RuntimeException("SiliconFlow API error: " + message);
+                }
+            }
+
             JsonNode dataNode = root.get("data");
 
             List<float[]> embeddings = new ArrayList<>();
@@ -115,8 +125,8 @@ public class ChunkEmbeddingService {
             log.info("SiliconFlow API called successfully, texts={}, embeddings={}", texts.size(), embeddings.size());
             return embeddings;
         } catch (Exception e) {
-            log.error("Failed to parse SiliconFlow response", e);
-            throw new RuntimeException("Failed to parse SiliconFlow response", e);
+            log.error("Failed to call SiliconFlow API, url={}, model={}, texts={}", url, modelName, texts.size(), e);
+            throw new RuntimeException("Failed to call SiliconFlow API: " + e.getMessage(), e);
         }
     }
 
@@ -213,7 +223,7 @@ public class ChunkEmbeddingService {
     }
 
     private float[] generateDummyEmbedding(String content) {
-        float[] embedding = new float[1536];
+        float[] embedding = new float[1024];
         int hash = content.hashCode();
         for (int i = 0; i < embedding.length; i++) {
             embedding[i] = (float) Math.sin(hash + i) * 0.1f;

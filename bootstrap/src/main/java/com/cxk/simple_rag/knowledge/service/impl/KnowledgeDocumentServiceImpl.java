@@ -201,11 +201,29 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
     }
 
     private String extractText(KnowledgeDocumentDO documentDO) {
-        try (InputStream is = getFileInputStream(documentDO.getFileUrl())) {
-            return parserSelector
+        String fileUrl = documentDO.getFileUrl();
+        log.debug("Extracting text from file: fileUrl={}, docName={}", fileUrl, documentDO.getDocName());
+
+        try (InputStream is = getFileInputStream(fileUrl)) {
+            String text = parserSelector
                     .select(ParserType.TIKA.getType())
                     .extractText(is, documentDO.getDocName());
+
+            log.debug("Raw extracted text length: {}", text.length());
+
+            // 检查提取的文本是否为空或太短
+            if (StrUtil.isBlank(text)) {
+                log.warn("Extracted text is empty or blank! docId={}", documentDO.getId());
+                throw new RuntimeException("Failed to extract text from document: extracted text is empty");
+            }
+
+            if (text.length() < 10) {
+                log.warn("Extracted text is too short ({} chars)! docId={}", text.length(), documentDO.getId());
+            }
+
+            return text;
         } catch (Exception e) {
+            log.error("Failed to extract text from document: docId={}, fileUrl={}", documentDO.getId(), fileUrl, e);
             throw new RuntimeException("Failed to extract text from document: " + documentDO.getId(), e);
         }
     }
@@ -246,13 +264,21 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
         String docId = documentDO.getId();
         String kbId = documentDO.getKbId();
 
+        // Milvus 集合名称必须以字母或下划线开头，不能以数字开头
+        // 如果 kbId 以数字开头，添加前缀
+        String collectionName = kbId;
+        if (kbId != null && kbId.length() > 0 && !Character.isLetter(kbId.charAt(0)) && kbId.charAt(0) != '_') {
+            collectionName = "kb_" + kbId;
+            log.debug("Converted kbId to collection name: {} -> {}", kbId, collectionName);
+        }
+
         // 删除旧的分块数据
         LambdaQueryWrapper<KnowledgeChunkDO> deleteWrapper = new LambdaQueryWrapper<>();
         deleteWrapper.eq(KnowledgeChunkDO::getDocId, docId);
         chunkMapper.delete(deleteWrapper);
 
         // 删除 Milvus 中的旧向量数据
-        milvusService.deleteByDocId(kbId, docId);
+        milvusService.deleteByDocId(collectionName, docId);
 
         List<KnowledgeChunkDO> chunkDOs = new ArrayList<>();
         List<MilvusService.VectorData> vectorDataList = new ArrayList<>();
@@ -287,7 +313,7 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
         }
 
         // 批量插入向量到 Milvus
-        milvusService.batchInsertVectors(kbId, docId, vectorDataList);
+        milvusService.batchInsertVectors(collectionName, docId, vectorDataList);
 
         documentDO.setStatus("success");
         documentDO.setChunkCount(chunks.size());
@@ -302,7 +328,7 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
     }
 
     private String getEmbeddingModel(String kbId) {
-        return "bge-large-zh-v1.5";
+        return "BAAI/bge-large-zh-v1.5";
     }
 
     private String generateDocId() {

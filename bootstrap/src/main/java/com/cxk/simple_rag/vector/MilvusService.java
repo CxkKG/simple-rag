@@ -4,21 +4,23 @@ import com.cxk.simple_rag.config.MilvusConfig;
 import com.google.gson.JsonObject;
 import io.milvus.v2.client.ConnectConfig;
 import io.milvus.v2.client.MilvusClientV2;
-import io.milvus.v2.service.collection.request.HasCollectionReq;
+import io.milvus.v2.common.ConsistencyLevel;
+import io.milvus.v2.common.DataType;
+import io.milvus.v2.service.collection.request.CreateCollectionReq;
 import io.milvus.v2.service.collection.request.DropCollectionReq;
+import io.milvus.v2.service.collection.request.HasCollectionReq;
 import io.milvus.v2.service.vector.request.DeleteReq;
 import io.milvus.v2.service.vector.request.InsertReq;
 import io.milvus.v2.service.vector.request.SearchReq;
 import io.milvus.v2.service.vector.request.data.FloatVec;
+import io.milvus.v2.service.vector.response.InsertResp;
 import io.milvus.v2.service.vector.response.SearchResp;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Milvus 向量数据库服务 (v2 API - 2.6.6 版本)
@@ -66,7 +68,52 @@ public class MilvusService {
                 return;
             }
 
-            log.info("Collection created (schema setup required): {}", collectionName);
+            log.info("Creating collection: {}", collectionName);
+
+            // 使用Milvus v2 API创建集合
+            // 定义字段
+            CreateCollectionReq.FieldSchema idField = CreateCollectionReq.FieldSchema.builder()
+                    .name("id")
+                    .dataType(DataType.VarChar)
+                    .maxLength(36)
+                    .isPrimaryKey(true)
+                    .autoID(false)
+                    .build();
+
+            CreateCollectionReq.FieldSchema docIdField = CreateCollectionReq.FieldSchema.builder()
+                    .name("doc_id")
+                    .dataType(DataType.VarChar)
+                    .maxLength(36)
+                    .build();
+
+            CreateCollectionReq.FieldSchema contentField = CreateCollectionReq.FieldSchema.builder()
+                    .name("content")
+                    .dataType(DataType.VarChar)
+                    .maxLength(65535)
+                    .build();
+
+            CreateCollectionReq.FieldSchema embeddingField = CreateCollectionReq.FieldSchema.builder()
+                    .name("embedding")
+                    .dataType(DataType.FloatVector)
+                    .dimension(1024)
+                    .build();
+
+            // 构建schema
+            CreateCollectionReq.CollectionSchema collectionSchema = CreateCollectionReq.CollectionSchema.builder()
+                    .fieldSchemaList(List.of(idField, docIdField, contentField, embeddingField))
+                    .build();
+
+            // 构建创建请求
+            CreateCollectionReq createReq = CreateCollectionReq.builder()
+                    .collectionName(collectionName)
+                    .collectionSchema(collectionSchema)
+                    .primaryFieldName("id")
+                    .vectorFieldName("embedding")
+                    .consistencyLevel(ConsistencyLevel.BOUNDED)
+                    .build();
+
+            milvusClient.createCollection(createReq);
+            log.info("Collection created successfully: {}", collectionName);
         } catch (Exception e) {
             log.error("Failed to create collection: {}", collectionName, e);
             throw new RuntimeException("Failed to create Milvus collection", e);
@@ -125,10 +172,10 @@ public class MilvusService {
                     .data(rows)
                     .build();
 
-            milvusClient.insert(insertReq);
+            InsertResp insertResp = milvusClient.insert(insertReq);
 
-            log.info("Batch vectors inserted: collection={}, docId={}, count={}",
-                    collectionName, docId, vectors.size());
+            log.info("Batch vectors inserted: collection={}, docId={}, count={}, insertCnt={}",
+                    collectionName, docId, vectors.size(), insertResp.getInsertCnt());
         } catch (Exception e) {
             log.error("Failed to batch insert vectors: collection={}, docId={}",
                     collectionName, docId, e);
