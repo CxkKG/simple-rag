@@ -90,7 +90,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
           </div>
           <div>
             <Label>角色</Label>
-            <RadioGroup value={role} onValueChange={(v) => setRole(v as UserRole)} className="mt-2">
+            <RadioGroup value={role} onValueChange={(v) => setRole(v as UserRole | '')} className="mt-2">
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="user" id="user" />
                 <Label htmlFor="user">普通用户</Label>
