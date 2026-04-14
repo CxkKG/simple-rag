@@ -15,10 +15,7 @@ import {
   MoreHorizontal,
   Edit,
   Trash2,
-  Play,
-  Pause,
   FileText,
-  RefreshCw,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -26,9 +23,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { formatFileSize, formatDate } from '@/lib/utils'
+import { formatDate } from '@/lib/utils'
 import { useNavigate } from 'react-router-dom'
 import { KnowledgeBaseDialog } from './KnowledgeBaseDialog'
+import type { KnowledgeBase } from '@/types'
 
 export function KnowledgeBaseTable() {
   const [search, setSearch] = useState('')

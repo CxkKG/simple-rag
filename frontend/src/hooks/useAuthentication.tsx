@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useAuthStore } from '@/stores/auth'
-import { UserRole } from '@/types'
+import { UserRole, User } from '@/types'
 
 interface AuthenticationContextType {
   user: User | null

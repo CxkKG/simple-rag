@@ -10,6 +10,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import type { KnowledgeBase } from '@/types'
 
 interface KnowledgeBaseDialogProps {
   open: boolean

@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
-import { API_CONFIG, Message } from '../types'
+import { API_CONFIG, Message, KnowledgeBase, User, SystemConfig } from '../types'
 
 // 创建 axios 实例
 const service: AxiosInstance = axios.create({
@@ -189,6 +189,13 @@ export class ApiService {
         method: 'get',
         url: '/user/page',
         params: { pageNum, pageSize },
+      }),
+
+    // 获取用户详情
+    getById: (id: string) =>
+      request<{ data: User }>({
+        method: 'get',
+        url: `/user/${id}`,
       }),
 
     // 创建用户

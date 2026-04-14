@@ -13,6 +13,13 @@ interface SystemStore {
   clearError: () => void
 }
 
+const normalizeSystemConfig = (config: any): SystemConfig => ({
+  key: config.key || '',
+  value: config.value || '',
+  description: config.description || '',
+  category: config.category || '',
+})
+
 export const useSystemStore = create<SystemStore>((set, get) => ({
   config: [],
   isLoading: false,
@@ -22,7 +29,7 @@ export const useSystemStore = create<SystemStore>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const response = await ApiService.system.getConfig(category || '')
-      set({ config: response.data || [] })
+      set({ config: (response.data ? [response.data] : []) as SystemConfig[] })
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to fetch system config' })
     } finally {
@@ -35,7 +42,7 @@ export const useSystemStore = create<SystemStore>((set, get) => ({
     try {
       const response = await ApiService.system.updateConfig(key, value)
       set({
-        config: get().config.map((c) => (c.key === key ? response.data : c)),
+        config: get().config.map((c) => (c.key === key ? normalizeSystemConfig(response.data) : c)),
       })
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to update config' })

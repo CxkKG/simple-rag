@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import type { User, UserRole } from '@/types'
 
 interface UserDialogProps {
   open: boolean
@@ -21,7 +22,7 @@ interface UserDialogProps {
 export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState('user')
+  const [role, setRole] = useState<UserRole | ''>('user')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -31,12 +32,12 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
   useEffect(() => {
     if (open && user) {
       setUsername(user.username || '')
-      setRole(user.role || 'user')
+      setRole(user.role || '')
       setPassword('')
     } else if (open) {
       setUsername('')
       setPassword('')
-      setRole('user')
+      setRole('user' as UserRole)
     }
   }, [open, user])
 
@@ -47,9 +48,9 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
 
     try {
       if (user) {
-        await updateUser(user.id, { username, role, password: password || undefined })
+        await updateUser(user.id, { username, role: role as UserRole, password: password || undefined })
       } else {
-        await createUser({ username, password, role })
+        await createUser({ username, password, role: role as UserRole })
       }
       onOpenChange(false)
     } catch (err) {
@@ -89,7 +90,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
           </div>
           <div>
             <Label>角色</Label>
-            <RadioGroup value={role} onValueChange={setRole} className="mt-2">
+            <RadioGroup value={role} onValueChange={(v) => setRole(v as UserRole)} className="mt-2">
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="user" id="user" />
                 <Label htmlFor="user">普通用户</Label>

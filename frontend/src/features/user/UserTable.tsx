@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useAuthentication } from '@/hooks/useAuthentication'
-import { Layout } from '@/components/layout'
 import { useUserStore } from '@/stores/user'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,9 +17,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, Edit, Trash2, User } from 'lucide-react'
+import { MoreHorizontal, Edit, Trash2, User as UserIcon } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { UserDialog } from './UserDialog'
+import type { User, UserRole } from '@/types'
+import { Input } from '@/components/ui/input'
 
 export function UserTable() {
   const [search, setSearch] = useState('')
@@ -45,6 +46,14 @@ export function UserTable() {
     e.stopPropagation()
     setEditingUser(user)
     setIsDialogOpen(true)
+  }
+
+  const getRoleDisplay = (role: UserRole) => {
+    return role === 'admin' ? '管理员' : '普通用户'
+  }
+
+  const getRoleVariant = (role: UserRole) => {
+    return role === 'admin' ? 'default' : 'secondary'
   }
 
   return (
@@ -98,15 +107,15 @@ export function UserTable() {
                     >
                       <TableCell>
                         <div className="flex items-center gap-2 font-medium">
-                          <User className="w-4 h-4 text-muted-foreground" />
+                          <UserIcon className="w-4 h-4 text-muted-foreground" />
                           {user.username}
                         </div>
                       </TableCell>
                       <TableCell>
                         <Badge
-                          variant={user.role === 'admin' ? 'default' : 'secondary'}
+                          variant={getRoleVariant(user.role)}
                         >
-                          {user.role === 'admin' ? '管理员' : '普通用户'}
+                          {getRoleDisplay(user.role)}
                         </Badge>
                       </TableCell>
                       <TableCell>{formatDate(user.createdAt)}</TableCell>

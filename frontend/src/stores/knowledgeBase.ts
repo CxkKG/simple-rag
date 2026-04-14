@@ -12,12 +12,22 @@ interface KnowledgeBaseStore {
   // Actions
   fetchKnowledgeBases: (pageNum?: number, pageSize?: number) => Promise<void>
   fetchKnowledgeBaseById: (id: string) => Promise<void>
-  createKnowledgeBase: (data: Partial<KnowledgeBase>) => Promise<void>
-  updateKnowledgeBase: (id: string, data: Partial<KnowledgeBase>) => Promise<void>
+  createKnowledgeBase: (data: Pick<KnowledgeBase, 'name' | 'embeddingModel'> & { createdBy?: string }) => Promise<void>
+  updateKnowledgeBase: (id: string, data: Pick<KnowledgeBase, 'name'>) => Promise<void>
   deleteKnowledgeBase: (id: string) => Promise<void>
   setSelectedKnowledgeBase: (kb: KnowledgeBase | null) => void
   clearError: () => void
 }
+
+const normalizeKnowledgeBase = (kb: any): KnowledgeBase => ({
+  id: kb.id || '',
+  name: kb.name || '',
+  embeddingModel: kb.embeddingModel || '',
+  collectionName: kb.collectionName || '',
+  createdBy: kb.createdBy || '',
+  createdAt: kb.createdAt || new Date().toISOString(),
+  updatedAt: kb.updatedAt || new Date().toISOString(),
+})
 
 export const useKnowledgeBaseStore = create<KnowledgeBaseStore>((set, get) => ({
   knowledgeBases: [],
@@ -30,7 +40,10 @@ export const useKnowledgeBaseStore = create<KnowledgeBaseStore>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const response = await ApiService.knowledgeBase.list(pageNum, pageSize)
-      set({ knowledgeBases: response.data || [], total: response.total || 0 })
+      set({
+        knowledgeBases: (response.data || []).map(normalizeKnowledgeBase),
+        total: response.total || 0
+      })
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to fetch knowledge bases' })
     } finally {
@@ -42,7 +55,7 @@ export const useKnowledgeBaseStore = create<KnowledgeBaseStore>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const response = await ApiService.knowledgeBase.getById(id)
-      set({ selectedKnowledgeBase: response.data })
+      set({ selectedKnowledgeBase: normalizeKnowledgeBase(response.data) })
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to fetch knowledge base' })
     } finally {
@@ -54,7 +67,7 @@ export const useKnowledgeBaseStore = create<KnowledgeBaseStore>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const response = await ApiService.knowledgeBase.create(data)
-      set({ knowledgeBases: [...get().knowledgeBases, response.data] })
+      set({ knowledgeBases: [...get().knowledgeBases, normalizeKnowledgeBase(response.data)] })
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to create knowledge base' })
     } finally {
@@ -68,9 +81,9 @@ export const useKnowledgeBaseStore = create<KnowledgeBaseStore>((set, get) => ({
       const response = await ApiService.knowledgeBase.update(id, data)
       set({
         knowledgeBases: get().knowledgeBases.map((kb) =>
-          kb.id === id ? response.data : kb
+          kb.id === id ? normalizeKnowledgeBase(response.data) : kb
         ),
-        selectedKnowledgeBase: response.data,
+        selectedKnowledgeBase: normalizeKnowledgeBase(response.data),
       })
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to update knowledge base' })

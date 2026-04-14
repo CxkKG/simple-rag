@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { Document } from '@/types'
+import { Document, DocumentStatus } from '@/types'
 import { ApiService } from '@/services/api'
 
 interface DocumentStore {
@@ -19,6 +19,22 @@ interface DocumentStore {
   clearError: () => void
 }
 
+const normalizeDocument = (doc: any): Document => ({
+  id: doc.id || '',
+  kbId: doc.kbId || '',
+  docName: doc.docName || '',
+  enabled: doc.enabled ?? 0,
+  chunkCount: doc.chunkCount ?? 0,
+  fileUrl: doc.fileUrl || '',
+  fileType: doc.fileType || '',
+  fileSize: doc.fileSize ?? 0,
+  processMode: doc.processMode || '',
+  status: (doc.status as DocumentStatus) || DocumentStatus.Pending,
+  sourceType: doc.sourceType || '',
+  createdAt: doc.createdAt || new Date().toISOString(),
+  updatedAt: doc.updatedAt || new Date().toISOString(),
+})
+
 export const useDocumentStore = create<DocumentStore>((set, get) => ({
   documents: [],
   selectedDocument: null,
@@ -30,7 +46,10 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const response = await ApiService.document.list(kbId, pageNum, pageSize)
-      set({ documents: response.data || [], total: response.total || 0 })
+      set({
+        documents: (response.data || []).map(normalizeDocument),
+        total: response.total || 0
+      })
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to fetch documents' })
     } finally {
@@ -42,7 +61,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const response = await ApiService.document.getById(id)
-      set({ selectedDocument: response.data })
+      set({ selectedDocument: normalizeDocument(response.data) })
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to fetch document' })
     } finally {
@@ -58,7 +77,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
       formData.append('file', file)
       if (docName) formData.append('docName', docName)
       const response = await ApiService.document.upload(formData)
-      set({ documents: [...get().documents, response.data] })
+      set({ documents: [...get().documents, normalizeDocument(response.data)] })
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to upload document' })
     } finally {
@@ -84,7 +103,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
       await ApiService.document.chunk(id)
       set({
         documents: get().documents.map((doc) =>
-          doc.id === id ? { ...doc, status: 'running' } : doc
+          doc.id === id ? { ...doc, status: DocumentStatus.Running } : doc
         ),
       })
     } catch (error) {

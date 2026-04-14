@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { BookOpen } from 'lucide-react'
+import { UserRole } from '@/types'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('admin')
@@ -30,14 +31,14 @@ export default function LoginPage() {
       login({
         id: '1',
         username: username,
-        role: 'admin',
+        role: UserRole.Admin,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       })
       localStorage.setItem('ra_admin_user', JSON.stringify({
         id: '1',
         username: username,
-        role: 'admin' as const,
+        role: UserRole.Admin,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }))

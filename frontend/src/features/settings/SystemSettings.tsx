@@ -1,6 +1,5 @@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -9,10 +8,10 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { useSystemStore } from '@/stores/system'
-import { Gear } from 'lucide-react'
+import { Settings } from 'lucide-react'
 
 export function SystemSettings() {
-  const { config, isLoading, updateConfig } = useSystemStore()
+  const { config, isLoading: isLoadingConfig, updateConfig } = useSystemStore()
 
   const handleSave = async (key: string, value: string) => {
     await updateConfig(key, value)

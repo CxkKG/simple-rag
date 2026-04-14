@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useAuthentication } from '@/hooks/useAuthentication'
 import { Layout } from '@/components/layout'
 import { useUserStore } from '@/stores/user'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
   Table,
@@ -20,7 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, Edit, Trash2, User, Group, Plus } from 'lucide-react'
+import { MoreHorizontal, Edit, Trash2, User, Plus } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { UserDialog } from '@/features/user/UserDialog'
 

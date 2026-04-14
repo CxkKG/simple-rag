@@ -23,15 +23,11 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
   MoreHorizontal,
-  Edit,
-  Trash2,
-  Play,
-  Pause,
   FileText,
-  RefreshCw,
   Upload,
-  Plus,
-  Backward,
+  Play,
+  Trash2,
+  RefreshCw,
 } from 'lucide-react'
 import { formatFileSize, formatDate } from '@/lib/utils'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -82,7 +78,7 @@ export default function DocumentPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" onClick={() => navigate('/knowledge-bases')}>
-              <Backward className="w-4 h-4" />
+              <Play className="w-4 h-4 rotate-180" />
             </Button>
             <div>
               <h2 className="text-2xl font-bold">文档管理</h2>

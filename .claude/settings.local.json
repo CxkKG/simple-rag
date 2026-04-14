@@ -12,7 +12,12 @@
       "Bash(pnpm install:*)",
       "Bash(pnpm run:*)",
       "Bash(netstat -ano)",
-      "Bash(findstr :5173)"
+      "Bash(findstr :5173)",
+      "Bash(pnpm dev:*)",
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(curl -s http://localhost:5175)",
+      "Bash(curl -s http://localhost:5175/src/main.tsx)",
+      "Bash(curl:*)"
     ]
   }
 }
