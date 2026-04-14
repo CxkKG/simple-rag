@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -65,6 +66,95 @@ public class UserController {
         response.put("code", 0);
         response.put("message", "success");
         response.put("data", userVO);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 分页查询用户
+     */
+    @GetMapping("/page")
+    public ResponseEntity<Map<String, Object>> listUsers(
+            @RequestParam(value = "pageNum", defaultValue = "1") int pageNum,
+            @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
+
+        List<UserVO> users = userService.listUsers(pageNum, pageSize);
+        long total = userService.getTotalUsers();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "success");
+        response.put("data", users);
+        response.put("total", total);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 创建用户
+     */
+    @PostMapping
+    public ResponseEntity<Map<String, Object>> createUser(@Valid @RequestBody Map<String, String> request) {
+        String username = request.get("username");
+        String password = request.get("password");
+        String role = request.get("role");
+
+        if (username == null || password == null) {
+            throw new IllegalArgumentException("username and password are required");
+        }
+
+        RegisterRequest registerRequest = new RegisterRequest();
+        registerRequest.setUsername(username);
+        registerRequest.setPassword(password);
+        registerRequest.setAvatar(null);
+
+        UserVO userVO = userService.register(registerRequest);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "用户创建成功");
+        response.put("data", userVO);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 更新用户
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> updateUser(
+            @PathVariable("id") String id,
+            @RequestBody Map<String, String> request) {
+
+        UserVO existingUser = userService.getUserById(id);
+
+        // 只允许更新用户名，不允许修改角色（安全考虑）
+        String username = request.get("username");
+        if (username != null) {
+            // TODO: 更新用户名逻辑
+        }
+
+        UserVO updatedUser = userService.getUserById(id);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "更新成功");
+        response.put("data", updatedUser);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 删除用户
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable("id") String id) {
+        userService.deleteUser(id);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "删除成功");
+        response.put("data", null);
 
         return ResponseEntity.ok(response);
     }

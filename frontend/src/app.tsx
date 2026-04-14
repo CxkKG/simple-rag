@@ -103,11 +103,7 @@ export default function App() {
           />
           <Route
             path="/login"
-            element={
-              <AuthenticationProvider>
-                <LoginPage />
-              </AuthenticationProvider>
-            }
+            element={<LoginPage />}
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

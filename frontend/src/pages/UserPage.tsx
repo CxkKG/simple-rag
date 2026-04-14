@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useAuthentication } from '@/hooks/useAuthentication'
-import { Layout } from '@/components/layout'
 import { useUserStore } from '@/stores/user'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,15 +18,25 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, Edit, Trash2, User, Plus } from 'lucide-react'
+import {
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  User,
+  Plus,
+  Search,
+  RefreshCw,
+} from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { UserDialog } from '@/features/user/UserDialog'
 
 export default function UserPage() {
   const [search, setSearch] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [pageNum, setPageNum] = useState(1)
+  const [pageSize, setPageLength] = useState(10)
 
-  const { users, isLoading, deleteUser } = useUserStore()
+  const { users, isLoading, deleteUser, total } = useUserStore()
   const { user: currentUser } = useAuthentication()
 
   const filteredUsers = users.filter((u) =>
@@ -41,103 +50,153 @@ export default function UserPage() {
     }
   }
 
-  return (
-    <Layout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold">用户管理</h2>
-            <p className="text-muted-foreground">管理系统用户和权限</p>
-          </div>
-          <Button onClick={() => setIsDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            添加用户
-          </Button>
-        </div>
+  const totalPages = Math.ceil(total / pageSize)
 
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Input
-              placeholder="搜索用户..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-64"
-            />
-            <span className="text-sm text-muted-foreground">
+  const handlePageChange = (page: number) => {
+    setPageNum(page)
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900">用户管理</h2>
+          <p className="text-sm text-slate-500">管理系统用户和权限</p>
+        </div>
+        <Button onClick={() => setIsDialogOpen(true)} className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700">
+          <Plus className="w-4 h-4 mr-2" />
+          添加用户
+        </Button>
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 flex-1">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="搜索用户..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10 h-10"
+              />
+            </div>
+            <span className="text-sm text-slate-500">
               共 {filteredUsers.length} 个用户
             </span>
           </div>
+        </div>
 
-          <div className="card">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-slate-50">
+                <TableRow>
+                  <TableHead>用户名</TableHead>
+                  <TableHead>角色</TableHead>
+                  <TableHead>创建时间</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
                   <TableRow>
-                    <TableHead>用户名</TableHead>
-                    <TableHead>角色</TableHead>
-                    <TableHead>创建时间</TableHead>
-                    <TableHead className="text-right">操作</TableHead>
+                    <TableCell colSpan={4} className="h-24 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <RefreshCw className="h-4 w-4 animate-spin text-slate-400" />
+                        <span className="text-sm text-slate-500">加载中...</span>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8">
-                        加载中...
-                      </TableCell>
-                    </TableRow>
-                  ) : filteredUsers.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8">
-                        暂无用户
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-2 font-medium">
-                            <User className="w-4 h-4 text-muted-foreground" />
-                            {user.username}
+                ) : filteredUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="h-24 text-center">
+                      <div className="flex flex-col items-center justify-center gap-2 text-slate-500">
+                        <User className="h-8 w-8 text-slate-300" />
+                        <span className="text-sm">暂无用户</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredUsers.map((user) => (
+                    <TableRow key={user.id} className="hover:bg-slate-50 transition-colors">
+                      <TableCell>
+                        <div className="flex items-center gap-3 font-medium">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-600 font-medium">
+                            {user.username?.[0]?.toUpperCase() || 'U'}
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={user.role === 'admin' ? 'default' : 'secondary'}
-                          >
-                            {user.role === 'admin' ? '管理员' : '普通用户'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{formatDate(user.createdAt)}</TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onSelect={() => {}}>
-                                <Edit className="w-4 h-4 mr-2" />
-                                编辑
-                              </DropdownMenuItem>
+                          <span className="text-slate-900">{user.username}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={user.role === 'admin' ? 'default' : 'secondary'}
+                          className={user.role === 'admin' ? 'bg-indigo-600 hover:bg-indigo-700' : ''}
+                        >
+                          {user.role === 'admin' ? '管理员' : '普通用户'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-slate-500">
+                        {formatDate(user.createdAt)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="iconSm" className="h-8 w-8">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-32">
+                            <DropdownMenuItem>
+                              <Edit className="w-4 h-4 mr-2" />
+                              编辑
+                            </DropdownMenuItem>
+                            <DropdownMenuContent sideOffset={4} className="w-32">
                               <DropdownMenuItem
                                 onSelect={(e) => handleDelete(user.id, e as any)}
                                 disabled={user.id === currentUser?.id}
+                                className={user.id === currentUser?.id ? 'opacity-50 cursor-not-allowed' : 'text-red-600 focus:text-red-600'}
                               >
                                 <Trash2 className="w-4 h-4 mr-2" />
                                 删除
                               </DropdownMenuItem>
                             </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
+
+          {/* 分页 */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-slate-200 p-4">
+              <div className="text-sm text-slate-500">
+                第 {pageNum} / {totalPages} 页
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pageNum - 1)}
+                  disabled={pageNum === 1 || isLoading}
+                >
+                  上一页
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pageNum + 1)}
+                  disabled={pageNum === totalPages || isLoading}
+                >
+                  下一页
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -146,6 +205,6 @@ export default function UserPage() {
         onOpenChange={setIsDialogOpen}
         user={null}
       />
-    </Layout>
+    </div>
   )
 }

@@ -25,12 +25,6 @@ export enum DocumentStatus {
   Failed = 'failed',
 }
 
-// 分块策略
-export enum ChunkStrategy {
-  FixedSize = 'fixed_size',
-  StructureAware = 'structure_aware',
-}
-
 // 请求结果类型
 export interface ApiResponse<T = any> {
   code: number
@@ -70,16 +64,16 @@ export interface Document {
   id: string
   kbId: string
   docName: string
-  enabled: number
-  chunkCount: number
-  fileUrl: string
+  enabled?: number
+  chunkCount?: number
+  fileUrl?: string
   fileType: string
-  fileSize: number
-  processMode: string
+  fileSize?: number
+  processMode?: string
   status: DocumentStatus
-  sourceType: string
+  sourceType?: string
   createdAt: string
-  updatedAt: string
+  updatedAt?: string
 }
 
 // 用户类型
@@ -89,7 +83,7 @@ export interface User {
   role: UserRole
   avatar?: string
   createdAt: string
-  updatedAt: string
+  updatedAt?: string
 }
 
 // 系统配置类型

@@ -17,7 +17,11 @@
       "Bash(curl -s http://localhost:5173)",
       "Bash(curl -s http://localhost:5175)",
       "Bash(curl -s http://localhost:5175/src/main.tsx)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(mvn clean:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node:*)"
     ]
   }
 }

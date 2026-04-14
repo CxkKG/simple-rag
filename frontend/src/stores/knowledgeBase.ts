@@ -25,8 +25,8 @@ const normalizeKnowledgeBase = (kb: any): KnowledgeBase => ({
   embeddingModel: kb.embeddingModel || '',
   collectionName: kb.collectionName || '',
   createdBy: kb.createdBy || '',
-  createdAt: kb.createdAt || new Date().toISOString(),
-  updatedAt: kb.updatedAt || new Date().toISOString(),
+  createdAt: kb.createTime || kb.createdAt || new Date().toISOString(),
+  updatedAt: kb.updateTime || kb.updatedAt || new Date().toISOString(),
 })
 
 export const useKnowledgeBaseStore = create<KnowledgeBaseStore>((set, get) => ({

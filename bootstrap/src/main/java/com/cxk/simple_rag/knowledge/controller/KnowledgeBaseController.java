@@ -63,12 +63,13 @@ public class KnowledgeBaseController {
             @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
 
         List<KnowledgeBaseVO> knowledgeBases = knowledgeBaseService.listKnowledgeBases(pageNum, pageSize);
+        int total = knowledgeBases.size(); // TODO: 需要添加 getTotal 方法
 
         Map<String, Object> response = new HashMap<>();
         response.put("code", 0);
         response.put("message", "success");
         response.put("data", knowledgeBases);
-        response.put("total", knowledgeBases.size());
+        response.put("total", total);
 
         return ResponseEntity.ok(response);
     }

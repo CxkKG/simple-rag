@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 用户服务实现类
@@ -91,6 +92,31 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("用户不存在");
         }
         return convertToVO(user);
+    }
+
+    @Override
+    public List<UserVO> listUsers(int pageNum, int pageSize) {
+        int startRow = (pageNum - 1) * pageSize;
+        LambdaQueryWrapper<UserDO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(UserDO::getDeleted, 0);
+        queryWrapper.last("LIMIT " + startRow + ", " + pageSize);
+        List<UserDO> users = userMapper.selectList(queryWrapper);
+        return users.stream().map(this::convertToVO).toList();
+    }
+
+    @Override
+    public long getTotalUsers() {
+        LambdaQueryWrapper<UserDO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(UserDO::getDeleted, 0);
+        return userMapper.selectCount(queryWrapper);
+    }
+
+    @Override
+    public void deleteUser(String userId) {
+        UserDO user = new UserDO();
+        user.setId(userId);
+        user.setDeleted(1);
+        userMapper.updateById(user);
     }
 
     /**

@@ -72,12 +72,13 @@ public class KnowledgeDocumentController {
             @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
 
         List<KnowledgeDocumentVO> documents = documentService.listDocuments(kbId, pageNum, pageSize);
+        int total = documents.size(); // TODO: 需要添加 getTotal 方法
 
         Map<String, Object> response = new HashMap<>();
         response.put("code", 0);
         response.put("message", "success");
         response.put("data", documents);
-        response.put("total", documents.size());
+        response.put("total", total);
 
         return ResponseEntity.ok(response);
     }

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { BookOpen } from 'lucide-react'
+import { BookOpen, Loader2 } from 'lucide-react'
 import { UserRole } from '@/types'
 
 export default function LoginPage() {
@@ -51,53 +51,99 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-2 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <BookOpen className="h-6 w-6" />
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+      <div className="w-full max-w-md space-y-8">
+        {/* Logo 区域 */}
+        <div className="text-center space-y-4">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 shadow-lg shadow-indigo-500/30">
+            <BookOpen className="h-8 w-8 text-white" />
           </div>
-          <CardTitle className="text-2xl font-bold">Simple RAG</CardTitle>
-          <CardDescription>欢迎使用 Simple RAG 管理后台</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
-                {error}
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+              Simple RAG
+            </h1>
+            <p className="mt-2 text-sm text-slate-600">
+              智能知识库问答系统
+            </p>
+          </div>
+        </div>
+
+        {/* 登录卡片 */}
+        <Card className="border-0 shadow-xl shadow-slate-200/50">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-xl font-semibold text-slate-900">
+              欢迎登录
+            </CardTitle>
+            <CardDescription className="text-slate-500">
+              请输入您的账号信息访问系统
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="rounded-lg bg-red-50 border border-red-200 p-3 flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-red-500" />
+                  <p className="text-sm text-red-600">{error}</p>
+                </div>
+              )}
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label htmlFor="username" className="text-sm font-medium text-slate-700">
+                    用户名
+                  </Label>
+                  <Input
+                    id="username"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                    placeholder="请输入用户名"
+                    disabled={isLoading}
+                    className="h-11 transition-all duration-200 focus-visible:ring-indigo-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="password" className="text-sm font-medium text-slate-700">
+                    密码
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    placeholder="请输入密码"
+                    disabled={isLoading}
+                    className="h-11 transition-all duration-200 focus-visible:ring-indigo-500"
+                  />
+                </div>
               </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="username">用户名</Label>
-              <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                placeholder="请输入用户名"
-              />
+              <Button
+                type="submit"
+                className="w-full h-11 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-md"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    登录中...
+                  </>
+                ) : (
+                  '登 录'
+                )}
+              </Button>
+            </form>
+            <div className="mt-4 text-center text-xs text-slate-500">
+              默认账号: <span className="font-medium text-slate-700">admin</span> / <span className="font-medium text-slate-700">admin</span>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">密码</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="请输入密码"
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? '登录中...' : '登录'}
-            </Button>
-          </form>
-          <div className="mt-4 text-center text-sm text-muted-foreground">
-            默认账号: admin / admin
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        {/* 底部信息 */}
+        <div className="text-center text-sm text-slate-500">
+          <p>© 2024 Simple RAG. All rights reserved.</p>
+        </div>
+      </div>
     </div>
   )
 }

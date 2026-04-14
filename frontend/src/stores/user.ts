@@ -24,8 +24,8 @@ const normalizeUser = (user: any): User => ({
   username: user.username || '',
   role: (user.role as UserRole) || UserRole.User,
   avatar: user.avatar,
-  createdAt: user.createdAt || new Date().toISOString(),
-  updatedAt: user.updatedAt || new Date().toISOString(),
+  createdAt: user.createTime || user.createdAt || new Date().toISOString(),
+  updatedAt: user.updateTime || user.updatedAt,
 })
 
 export const useUserStore = create<UserStore>((set, get) => ({

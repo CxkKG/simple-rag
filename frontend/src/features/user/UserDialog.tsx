@@ -11,7 +11,8 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import type { User, UserRole } from '@/types'
+import type { User } from '@/types'
+import { UserRole } from '@/types'
 
 interface UserDialogProps {
   open: boolean
@@ -22,7 +23,7 @@ interface UserDialogProps {
 export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState<UserRole | ''>('user')
+  const [role, setRole] = useState<UserRole | ''>(UserRole.User)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -32,12 +33,12 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
   useEffect(() => {
     if (open && user) {
       setUsername(user.username || '')
-      setRole(user.role || '')
+      setRole(user.role || UserRole.User)
       setPassword('')
     } else if (open) {
       setUsername('')
       setPassword('')
-      setRole('user' as UserRole)
+      setRole(UserRole.User)
     }
   }, [open, user])
 
@@ -67,9 +68,16 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
           <DialogTitle>{user ? '编辑用户' : '创建用户'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && <div className="text-red-500 text-sm">{error}</div>}
-          <div>
-            <Label htmlFor="username">用户名</Label>
+          {error && (
+            <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-red-500" />
+              {error}
+            </div>
+          )}
+          <div className="space-y-2">
+            <Label htmlFor="username" className="text-sm font-medium">
+              用户名
+            </Label>
             <Input
               id="username"
               value={username}
@@ -78,8 +86,10 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
               placeholder="请输入用户名"
             />
           </div>
-          <div>
-            <Label htmlFor="password">密码 {user && '(留空则不修改)'}</Label>
+          <div className="space-y-2">
+            <Label htmlFor="password" className="text-sm font-medium">
+              密码 {user && '(留空则不修改)'}
+            </Label>
             <Input
               id="password"
               type="password"
@@ -88,21 +98,21 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
               placeholder={user ? '留空则不修改' : '请输入密码'}
             />
           </div>
-          <div>
-            <Label>角色</Label>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">角色</Label>
             <RadioGroup value={role} onValueChange={(v) => setRole(v as UserRole | '')} className="mt-2">
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="user" id="user" />
+                <RadioGroupItem value={UserRole.User} id="user" />
                 <Label htmlFor="user">普通用户</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="admin" id="admin" />
+                <RadioGroupItem value={UserRole.Admin} id="admin" />
                 <Label htmlFor="admin">管理员</Label>
               </div>
             </RadioGroup>
           </div>
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               取消
             </Button>
             <Button type="submit" disabled={isLoading}>

@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
-import { API_CONFIG, Message, KnowledgeBase, User, SystemConfig } from '../types'
+import { API_CONFIG, Message, KnowledgeBase, Document, User, SystemConfig } from '../types'
 
 // 创建 axios 实例
 const service: AxiosInstance = axios.create({

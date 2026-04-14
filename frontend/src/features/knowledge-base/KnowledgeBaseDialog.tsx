@@ -61,14 +61,21 @@ export function KnowledgeBaseDialog({ open, onOpenChange, kb }: KnowledgeBaseDia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{kb ? '编辑知识库' : '创建知识库'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && <div className="text-red-500 text-sm">{error}</div>}
-          <div>
-            <Label htmlFor="name">知识库名称</Label>
+          {error && (
+            <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-red-500" />
+              {error}
+            </div>
+          )}
+          <div className="space-y-2">
+            <Label htmlFor="name" className="text-sm font-medium">
+              知识库名称
+            </Label>
             <Input
               id="name"
               value={name}
@@ -77,8 +84,10 @@ export function KnowledgeBaseDialog({ open, onOpenChange, kb }: KnowledgeBaseDia
               placeholder="请输入知识库名称"
             />
           </div>
-          <div>
-            <Label htmlFor="model">Embedding 模型</Label>
+          <div className="space-y-2">
+            <Label htmlFor="model" className="text-sm font-medium">
+              Embedding 模型
+            </Label>
             <Input
               id="model"
               value={embeddingModel}
@@ -87,8 +96,10 @@ export function KnowledgeBaseDialog({ open, onOpenChange, kb }: KnowledgeBaseDia
               placeholder="text-embedding-ada-002"
             />
           </div>
-          <div>
-            <Label htmlFor="createdBy">创建人</Label>
+          <div className="space-y-2">
+            <Label htmlFor="createdBy" className="text-sm font-medium">
+              创建人
+            </Label>
             <Input
               id="createdBy"
               value={createdBy}
@@ -98,7 +109,7 @@ export function KnowledgeBaseDialog({ open, onOpenChange, kb }: KnowledgeBaseDia
             />
           </div>
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               取消
             </Button>
             <Button type="submit" disabled={isLoading}>
