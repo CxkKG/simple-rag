@@ -1,53 +1,50 @@
-.DS_Store
+```
+# Java/Maven build artifacts
 target/
-!.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+*.class
+*.jar
+*.war
+*.ear
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-
-### IntelliJ IDEA ###
-.idea
-*.iws
+# IDE files
+.idea/
 *.iml
 *.ipr
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
+*.iws
 .vscode/
 
-### Node ###
-node_modules/
-npm-debug.log
-yarn-error.log
-pnpm-debug.log
+# Dependencies
+lib/
+libs/
 
-### IDE ###
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-### Logs ###
+# Logs
 *.log
-logs/
 
-### OS ###
+# Environment
+.env
+.env.local
+*.env.*
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# OS files
+.DS_Store
 Thumbs.db
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# Gradle
+.gradle/
+build/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+```
