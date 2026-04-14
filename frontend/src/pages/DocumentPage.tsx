@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuthentication } from '@/hooks/useAuthentication'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
 import { useDocumentStore } from '@/stores/document'
@@ -53,10 +53,16 @@ export default function DocumentPage() {
   const [error, setError] = useState('')
 
   const { knowledgeBases, fetchKnowledgeBaseById } = useKnowledgeBaseStore()
-  const { documents, isLoading, fetchDocuments, deleteDocument, total, uploadDocument } = useDocumentStore()
+  const { documents, isLoading, fetchDocuments, deleteDocument, total, uploadDocument, triggerChunking } = useDocumentStore()
 
   const navigate = useNavigate()
   const { user } = useAuthentication()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // 点击上传按钮时触发隐藏的文件输入框
+  const handleButtonClick = () => {
+    fileInputRef.current?.click()
+  }
 
   const kb = knowledgeBases.find((k) => k.id === kbId)
   const filteredDocuments = documents.filter((doc) =>
@@ -77,18 +83,28 @@ export default function DocumentPage() {
     }
   }
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
     if (selectedFile && kbId) {
       setFile(selectedFile)
       setDocName(selectedFile.name)
       setIsUploadDialogOpen(true)
     }
+    // Reset the input value so the same file can be selected again
+    e.target.value = ''
   }
 
   const handleRemoveFile = () => {
     setFile(null)
     setDocName('')
+  }
+
+  const handleTriggerChunking = async (id: string) => {
+    await triggerChunking(id)
+    // Refresh document list after triggering chunking
+    if (kbId) {
+      fetchDocuments(kbId, pageNum, pageSize)
+    }
   }
 
   const handleSubmitUpload = async (e: React.FormEvent) => {
@@ -126,19 +142,18 @@ export default function DocumentPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Label htmlFor="upload-file" className="cursor-pointer">
-              <Button className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700">
-                <Upload className="w-4 h-4 mr-2" />
-                上传文档
-              </Button>
-              <input
-                  id="upload-file"
-                  type="file"
-                  className="hidden"
-                  onChange={handleUpload}
-                  accept=".pdf,.doc,.docx,.md,.txt,.csv,.xlsx"
-              />
-            </Label>
+            <input
+                id="upload-file"
+                type="file"
+                className="hidden"
+                onChange={handleUpload}
+                accept=".pdf,.doc,.docx,.md,.txt,.csv,.xlsx"
+                ref={fileInputRef}
+            />
+            <Button onClick={handleButtonClick} className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700">
+              <Upload className="w-4 h-4 mr-2" />
+              上传文档
+            </Button>
           </div>
         </div>
 
@@ -269,14 +284,17 @@ export default function DocumentPage() {
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-32">
+                              <DropdownMenuContent align="end" className="w-40">
+                                <DropdownMenuItem
+                                  onClick={() => handleTriggerChunking(doc.id)}
+                                  disabled={doc.status === 'success'}
+                                >
+                                  <RefreshCw className="mr-2 h-4 w-4" />
+                                  {doc.status === 'success' ? '已解析' : '解析向量'}
+                                </DropdownMenuItem>
                                 <DropdownMenuItem>
                                   <Play className="mr-2 h-4 w-4" />
                                   查看
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                  <RefreshCw className="mr-2 h-4 w-4" />
-                                  重建向量
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem

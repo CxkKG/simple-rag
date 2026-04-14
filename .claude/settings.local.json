@@ -21,7 +21,19 @@
       "WebFetch(domain:github.com)",
       "Bash(mvn clean:*)",
       "Bash(npx tsc:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "WebFetch(domain:docs.siliconflow.cn)",
+      "Bash(mvn package:*)",
+      "Bash(./mvnw clean:*)",
+      "Bash(mvn test-compile:*)",
+      "Bash(mvn dependency:build-classpath -pl bootstrap -q -DincludeScope=runtime -Dmdep.outputFile=/dev/stdout)",
+      "Bash(java -cp \"bootstrap/target/classes:$\\(mvn dependency:build-classpath -pl bootstrap -q -DincludeScope=runtime -Dmdep.outputFile=/dev/stdout \\)\" org.springframework.boot.loader.PropertiesLauncher)",
+      "Bash(mvn spring-boot:run -pl bootstrap -q)",
+      "Bash(kill %1)",
+      "Bash(kill -9 14041)",
+      "Bash(mvn spring-boot:run -pl bootstrap)",
+      "Bash(kill -9 19414)",
+      "Bash(kill -9 20804)"
     ]
   }
 }
