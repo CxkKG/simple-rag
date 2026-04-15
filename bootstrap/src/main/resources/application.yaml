@@ -20,6 +20,12 @@ spring:
     time-zone: Asia/Shanghai
     date-format: yyyy-MM-dd HH:mm:ss
 
+  # 文件上传配置
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
 # Embedding 服务配置
 embedding:
   provider: siliconflow  # 支持：siliconflow, bailian, ollama
@@ -35,7 +41,7 @@ embedding:
 milvus:
   host: 127.0.0.1
   port: 19530
-  vector-dimension: 1536
+  vector-dimension: 1024
 
 # RustFS 对象存储配置
 rustfs:
@@ -88,9 +94,3 @@ ai:
       api-key: ${BAILIAN_API_KEY:}
     siliconflow:
       api-key: ${SILICONFLOW_API_KEY:}
-
-# 文件上传配置
-  servlet:
-    multipart:
-      max-file-size: 100MB
-      max-request-size: 100MB

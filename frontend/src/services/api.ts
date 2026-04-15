@@ -260,7 +260,7 @@ export class ApiService {
 
     // 获取会话历史
     getMessages: (conversationId: string) =>
-      request<Message[]>({
+      request<{ data: Message[] }>({
         method: 'get',
         url: `/api/conversations/${conversationId}/messages`,
       }),

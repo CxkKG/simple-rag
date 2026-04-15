@@ -19,7 +19,7 @@ import {
   Plus,
   Trash2,
   Settings,
-  BookOpen,
+  BookOpen, 
   MoreVertical,
   X,
   User,
@@ -198,14 +198,21 @@ export default function ChatPage() {
       </div>
 
       {/* 主内容区 */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col h-full">
         {/* 顶部导航栏 */}
-        <div className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-6">
+        <div className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-6 flex-shrink-0">
+          {/* 移动端：显示菜单按钮 */}
           <Button variant="ghost" size="icon" onClick={() => setIsSessionsOpen(true)} className="md:hidden h-8 w-8">
             <MoreVertical className="h-5 w-5" />
           </Button>
-          <div className="flex items-center gap-4 flex-1 justify-center">
-            <div className="relative">
+
+          {/* 桌面端：显示知识库选择和菜单按钮 */}
+          <div className="hidden md:flex items-center gap-3 w-full">
+            <Button variant="ghost" size="icon" onClick={() => setIsSessionsOpen(true)} className="h-8 w-8">
+              <MoreVertical className="h-5 w-5" />
+            </Button>
+            <div className="flex-1 max-w-md">
+              <div className="relative">
               <Button
                 variant="outline"
                 onClick={() => setIsKBSelectOpen(!isKBSelectOpen)}
@@ -244,15 +251,26 @@ export default function ChatPage() {
                   </div>
                 </>
               )}
+              </div>
             </div>
           </div>
           <div className="hidden md:flex items-center gap-2">
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/')}>
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Settings className="w-4 h-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Settings className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => navigate('/')}>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  返回管理后台
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="h-8 w-8 rounded-full p-0">
@@ -280,9 +298,9 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* 消息列表 */}
+        {/* 消息列表 - 可滚动区域 */}
         <div className="flex-1 overflow-y-auto p-6 bg-white">
-          <div className="max-w-3xl mx-auto space-y-6">
+          <div className="max-w-3xl mx-auto space-y-6 pb-4">
             {messages.length === 0 ? (
               <div className="text-center py-12">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 mb-6">
@@ -359,7 +377,7 @@ export default function ChatPage() {
         </div>
 
         {/* 输入区域 */}
-        <div className="border-t border-slate-200 bg-white p-6">
+        <div className="border-t border-slate-200 bg-white p-4 flex-shrink-0">
           <div className="max-w-3xl mx-auto relative">
             <Input
               ref={inputRef}

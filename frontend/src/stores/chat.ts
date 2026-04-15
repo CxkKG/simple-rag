@@ -47,8 +47,13 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const response = await ApiService.chat.getMessages(sessionId)
-      set({ currentSessionId: sessionId, messages: response || [] })
+      console.log('getMessages response:', response)
+      // 响应拦截器返回的是 {code, message, data}
+      // response.data 就是 {data: Message[]}，所以 response.data.data 是消息数组
+      const messages = (response as any).data?.data || (response as any).data || []
+      set({ currentSessionId: sessionId, messages: messages })
     } catch (error) {
+      console.error('Failed to load session:', error)
       set({ error: error instanceof Error ? error.message : 'Failed to load session' })
       throw error
     } finally {
@@ -61,6 +66,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     try {
       const userId = 'admin'
       const response = await ApiService.chat.listConversations(userId)
+      // 响应拦截器返回的是 {code, message, data, total}
+      // 所以 response.data 就是会话数组
       const sessions = (response.data || []).map((session: any) => ({
         id: session.conversationId,
         title: session.title || '新会话',
@@ -70,6 +77,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       }))
       set({ sessions })
     } catch (error) {
+      console.error('Failed to fetch sessions:', error)
       set({ error: error instanceof Error ? error.message : 'Failed to fetch sessions' })
     } finally {
       set({ isLoading: false })
