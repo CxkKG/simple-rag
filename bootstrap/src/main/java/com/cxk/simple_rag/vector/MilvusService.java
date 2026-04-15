@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Milvus 向量数据库服务 (v2 API - 2.6.6 版本)
@@ -326,36 +327,22 @@ public class MilvusService {
 
             SearchResp searchResp = milvusClient.search(searchReq);
 
-            // 使用反射或 JsonObject 来获取搜索结果
             List<SearchResultWrapper> searchResults = new ArrayList<>();
 
-            // SearchResp 的 getSearchResults() 返回 List<List<JsonObject>>
-            // 我们需要遍历结果并提取数据
+            // ✅ 正确解析：getSearchResults() 返回 List<List<SearchResult>>
             Object resultsObj = searchResp.getSearchResults();
 
             if (resultsObj instanceof List) {
                 List<?> resultsList = (List<?>) resultsObj;
+
                 for (Object item : resultsList) {
                     if (item instanceof List) {
                         List<?> innerList = (List<?>) item;
+
                         for (Object innerItem : innerList) {
-                            if (innerItem instanceof JsonObject) {
-                                JsonObject json = (JsonObject) innerItem;
-                                SearchResultWrapper wrapper = new SearchResultWrapper();
-
-                                if (json.has("id")) {
-                                    wrapper.setChunkId(json.get("id").getAsString());
-                                }
-                                if (json.has("doc_id")) {
-                                    wrapper.setDocId(json.get("doc_id").getAsString());
-                                }
-                                if (json.has("content")) {
-                                    wrapper.setContent(json.get("content").getAsString());
-                                }
-                                if (json.has("score")) {
-                                    wrapper.setScore(json.get("score").getAsFloat());
-                                }
-
+                            // ✅ 不要判断 JsonObject，直接解析 SearchResult 对象
+                            SearchResultWrapper wrapper = parseSearchResult(innerItem);
+                            if (wrapper != null) {
                                 searchResults.add(wrapper);
                             }
                         }
@@ -363,11 +350,120 @@ public class MilvusService {
                 }
             }
 
+            log.info("Vector search completed: collection={}, results={}", collectionName, searchResults.size());
             return searchResults;
+
         } catch (Exception e) {
             log.error("Vector search failed: collection={}", collectionName, e);
             throw new RuntimeException("Vector search failed", e);
         }
+    }
+
+    /**
+     * 解析单个搜索结果（兼容不同 SDK 版本）
+     */
+    private SearchResultWrapper parseSearchResult(Object resultObj) {
+        if (resultObj == null) {
+            return null;
+        }
+
+        SearchResultWrapper wrapper = new SearchResultWrapper();
+
+        try {
+            // ✅ 方式 1: 如果是 SearchResult 对象（推荐）
+            if (resultObj.getClass().getSimpleName().equals("SearchResult")) {
+                // 获取 id
+                if (hasMethod(resultObj, "getId")) {
+                    wrapper.setChunkId((String) invokeMethod(resultObj, "getId"));
+                }
+
+                // 获取 score（注意大小写）
+                if (hasMethod(resultObj, "getScore")) {
+                    wrapper.setScore((Float) invokeMethod(resultObj, "getScore"));
+                }
+
+                // 获取 entity（包含 doc_id, content）
+                if (hasMethod(resultObj, "getEntity")) {
+                    Object entity = invokeMethod(resultObj, "getEntity");
+                    if (entity != null) {
+                        // entity 是 Map<String, Object>
+                        if (entity instanceof Map) {
+                            Map<?, ?> entityMap = (Map<?, ?>) entity;
+
+                            // 获取 doc_id
+                            if (entityMap.containsKey("doc_id")) {
+                                wrapper.setDocId(String.valueOf(entityMap.get("doc_id")));
+                            }
+
+                            // 获取 content
+                            if (entityMap.containsKey("content")) {
+                                wrapper.setContent(String.valueOf(entityMap.get("content")));
+                            }
+
+                            // 如果 id 还没获取，尝试从 entity 中获取
+                            if (wrapper.getChunkId() == null && entityMap.containsKey("id")) {
+                                wrapper.setChunkId(String.valueOf(entityMap.get("id")));
+                            }
+                        }
+                    }
+                }
+
+                return wrapper;
+            }
+
+            // ✅ 方式 2: 如果是 JsonObject（兼容旧版本）
+            if (resultObj instanceof com.google.gson.JsonObject) {
+                com.google.gson.JsonObject json = (com.google.gson.JsonObject) resultObj;
+
+                if (json.has("id")) {
+                    wrapper.setChunkId(json.get("id").getAsString());
+                }
+                if (json.has("doc_id")) {
+                    wrapper.setDocId(json.get("doc_id").getAsString());
+                }
+                if (json.has("content")) {
+                    wrapper.setContent(json.get("content").getAsString());
+                }
+                if (json.has("score")) {
+                    wrapper.setScore(json.get("score").getAsFloat());
+                } else if (json.has("Score")) {
+                    wrapper.setScore(json.get("Score").getAsFloat());
+                }
+
+                // 尝试从 OutputFields 获取
+                if (json.has("OutputFields")) {
+                    com.google.gson.JsonObject outputFields = json.getAsJsonObject("OutputFields");
+                    if (outputFields.has("doc_id") && wrapper.getDocId() == null) {
+                        wrapper.setDocId(outputFields.get("doc_id").getAsString());
+                    }
+                    if (outputFields.has("content") && wrapper.getContent() == null) {
+                        wrapper.setContent(outputFields.get("content").getAsString());
+                    }
+                }
+
+                return wrapper;
+            }
+
+        } catch (Exception e) {
+            log.warn("Failed to parse search result: {}", resultObj.getClass().getName(), e);
+        }
+
+        return null;
+    }
+
+    // 辅助方法：检查对象是否有某个方法
+    private boolean hasMethod(Object obj, String methodName) {
+        try {
+            obj.getClass().getMethod(methodName);
+            return true;
+        } catch (NoSuchMethodException e) {
+            return false;
+        }
+    }
+
+    // 辅助方法：调用对象的方法
+    private Object invokeMethod(Object obj, String methodName) throws Exception {
+        return obj.getClass().getMethod(methodName).invoke(obj);
     }
 
     /**

@@ -42,5 +42,5 @@ public class MilvusConfig {
     /**
      * 向量维度
      */
-    private Integer vectorDimension = 1536;
+    private Integer vectorDimension = 1024;
 }
