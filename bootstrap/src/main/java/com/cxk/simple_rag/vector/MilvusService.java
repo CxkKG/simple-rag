@@ -1,14 +1,19 @@
 package com.cxk.simple_rag.vector;
 
+import cn.hutool.db.meta.IndexInfo;
 import com.cxk.simple_rag.config.MilvusConfig;
 import com.google.gson.JsonObject;
 import io.milvus.v2.client.ConnectConfig;
 import io.milvus.v2.client.MilvusClientV2;
 import io.milvus.v2.common.ConsistencyLevel;
 import io.milvus.v2.common.DataType;
+import io.milvus.v2.common.IndexParam;
 import io.milvus.v2.service.collection.request.CreateCollectionReq;
 import io.milvus.v2.service.collection.request.DropCollectionReq;
 import io.milvus.v2.service.collection.request.HasCollectionReq;
+import io.milvus.v2.service.collection.request.LoadCollectionReq;
+import io.milvus.v2.service.collection.request.ReleaseCollectionReq;
+import io.milvus.v2.service.index.request.CreateIndexReq;
 import io.milvus.v2.service.vector.request.DeleteReq;
 import io.milvus.v2.service.vector.request.InsertReq;
 import io.milvus.v2.service.vector.request.SearchReq;
@@ -20,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -52,11 +58,12 @@ public class MilvusService {
     }
 
     /**
-     * 创建知识库集合
+     * 创建知识库集合（自动创建索引并加载）
      *
      * @param collectionName 集合名称（通常为 kbId）
+     * @param description  集合描述（知识库名称）
      */
-    public void createCollection(String collectionName) {
+    public void createCollection(String collectionName, String description) {
         try {
             // 检查集合是否存在
             HasCollectionReq hasReq = HasCollectionReq.builder()
@@ -68,7 +75,7 @@ public class MilvusService {
                 return;
             }
 
-            log.info("Creating collection: {}", collectionName);
+            log.info("Creating collection: {}, description: {}", collectionName, description);
 
             // 使用Milvus v2 API创建集合
             // 定义字段
@@ -110,13 +117,73 @@ public class MilvusService {
                     .primaryFieldName("id")
                     .vectorFieldName("embedding")
                     .consistencyLevel(ConsistencyLevel.BOUNDED)
+                    .description(description)
                     .build();
 
             milvusClient.createCollection(createReq);
             log.info("Collection created successfully: {}", collectionName);
+
+            // 创建向量索引（如果不存在）
+            createVectorIndex(collectionName);
+
+            // 加载集合到内存
+            loadCollection(collectionName);
         } catch (Exception e) {
             log.error("Failed to create collection: {}", collectionName, e);
             throw new RuntimeException("Failed to create Milvus collection", e);
+        }
+    }
+
+    /**
+     * 创建向量索引（如果不存在）
+     *
+     * @param collectionName 集合名称
+     */
+    private void createVectorIndex(String collectionName) {
+        try {
+            log.info("Creating vector index for collection: {}", collectionName);
+
+            IndexParam indexParam = IndexParam.builder()
+                    .fieldName("embedding")
+                    .indexType(IndexParam.IndexType.AUTOINDEX)  // 枚举类型
+                    .metricType(IndexParam.MetricType.COSINE)    // 枚举类型
+                    .build();
+
+            CreateIndexReq createIndexReq = CreateIndexReq.builder()
+                    .collectionName(collectionName)
+                    .indexParams(Collections.singletonList(indexParam))  // ✅ 关键
+                    .build();
+
+            milvusClient.createIndex(createIndexReq);
+            log.info("Vector index created/confirmed for collection: {}", collectionName);
+        } catch (Exception e) {
+            // 过滤"索引已存在"的警告（幂等性保护）
+            if (e.getMessage() != null && e.getMessage().contains("already exists")) {
+                log.info("Index already exists: {}", collectionName);
+                return;
+            }
+            log.error("Failed to create vector index for collection: {}", collectionName, e);
+        }
+    }
+
+    /**
+     * 加载集合到内存
+     *
+     * @param collectionName 集合名称
+     */
+    private void loadCollection(String collectionName) {
+        try {
+            log.info("Loading collection to memory: {}", collectionName);
+
+            LoadCollectionReq loadReq = LoadCollectionReq.builder()
+                    .collectionName(collectionName)
+                    .build();
+
+            milvusClient.loadCollection(loadReq);
+            log.info("Collection loaded successfully: {}", collectionName);
+        } catch (Exception e) {
+            log.error("Failed to load collection: {}", collectionName, e);
+            // 加载失败不抛出异常，允许集合以未加载状态存在
         }
     }
 
@@ -127,6 +194,9 @@ public class MilvusService {
      */
     public void dropCollection(String collectionName) {
         try {
+            // 先释放集合
+            releaseCollection(collectionName);
+
             DropCollectionReq dropReq = DropCollectionReq.builder()
                     .collectionName(collectionName)
                     .build();
@@ -138,6 +208,23 @@ public class MilvusService {
     }
 
     /**
+     * 释放集合内存
+     *
+     * @param collectionName 集合名称
+     */
+    private void releaseCollection(String collectionName) {
+        try {
+            ReleaseCollectionReq releaseReq = ReleaseCollectionReq.builder()
+                    .collectionName(collectionName)
+                    .build();
+            milvusClient.releaseCollection(releaseReq);
+            log.info("Collection released: {}", collectionName);
+        } catch (Exception e) {
+            log.error("Failed to release collection: {}", collectionName, e);
+        }
+    }
+
+    /**
      * 批量插入向量数据
      *
      * @param collectionName 集合名称
@@ -145,9 +232,25 @@ public class MilvusService {
      * @param vectors 向量数据列表
      */
     public void batchInsertVectors(String collectionName, String docId, List<VectorData> vectors) {
+        batchInsertVectors(collectionName, docId, vectors, null);
+    }
+
+    /**
+     * 批量插入向量数据
+     *
+     * @param collectionName 集合名称
+     * @param docId 文档 ID
+     * @param vectors 向量数据列表
+     * @param description 集合描述（可选）
+     */
+    public void batchInsertVectors(String collectionName, String docId, List<VectorData> vectors, String description) {
         try {
             // 确保集合存在
-            createCollection(collectionName);
+            if (description != null) {
+                createCollection(collectionName, description);
+            } else {
+                createCollection(collectionName, "");
+            }
 
             List<JsonObject> rows = new ArrayList<>();
 

@@ -19,6 +19,7 @@ import com.cxk.simple_rag.knowledge.mapper.KnowledgeChunkMapper;
 import com.cxk.simple_rag.knowledge.mapper.KnowledgeDocumentChunkLogMapper;
 import com.cxk.simple_rag.knowledge.mapper.KnowledgeDocumentMapper;
 import com.cxk.simple_rag.knowledge.mq.KnowledgeDocumentChunkProducer;
+import com.cxk.simple_rag.knowledge.service.KnowledgeBaseService;
 import com.cxk.simple_rag.knowledge.service.KnowledgeDocumentService;
 import com.cxk.simple_rag.knowledge.vo.KnowledgeDocumentVO;
 import com.cxk.simple_rag.storage.RustFsStorageService;
@@ -59,6 +60,7 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
     private final RustFsStorageService rustFsStorageService;
     private final MilvusService milvusService;
     private final KnowledgeDocumentChunkProducer chunkProducer;
+    private final KnowledgeBaseService knowledgeBaseService;
 
     private final Map<String, ChunkingStrategy> strategyCache = Map.of(
             "structure_aware", new StructureAwareTextChunker()
@@ -272,6 +274,18 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
             log.debug("Converted kbId to collection name: {} -> {}", kbId, collectionName);
         }
 
+        // 确保 Milvus 集合存在（自动创建索引并加载）
+        try {
+            // 获取知识库以获取描述
+            var knowledgeBase = knowledgeBaseService.getKnowledgeBase(kbId);
+            String description = knowledgeBase.getName();
+            milvusService.createCollection(collectionName, description);
+            log.info("Collection ensured: collectionName={}, description={}", collectionName, description);
+        } catch (Exception e) {
+            log.error("Failed to ensure collection: collectionName={}", collectionName, e);
+            throw new RuntimeException("Failed to ensure Milvus collection: " + collectionName, e);
+        }
+
         // 删除旧的分块数据
         LambdaQueryWrapper<KnowledgeChunkDO> deleteWrapper = new LambdaQueryWrapper<>();
         deleteWrapper.eq(KnowledgeChunkDO::getDocId, docId);
@@ -313,7 +327,9 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
         }
 
         // 批量插入向量到 Milvus
-        milvusService.batchInsertVectors(collectionName, docId, vectorDataList);
+        var knowledgeBase = knowledgeBaseService.getKnowledgeBase(kbId);
+        String description = knowledgeBase.getName();
+        milvusService.batchInsertVectors(collectionName, docId, vectorDataList, description);
 
         documentDO.setStatus("success");
         documentDO.setChunkCount(chunks.size());
@@ -328,6 +344,7 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
     }
 
     private String getEmbeddingModel(String kbId) {
+        // 使用默认的 Embedding 模型
         return "BAAI/bge-large-zh-v1.5";
     }
 
