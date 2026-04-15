@@ -1,5 +1,6 @@
 package com.cxk.simple_rag.rag;
 
+import com.cxk.simple_rag.conversation.service.ConversationService;
 import com.cxk.simple_rag.vector.VectorSearchService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RagService {
 
     private final VectorSearchService vectorSearchService;
+    private final ConversationService conversationService;
 
     // 简单的会话存储（生产环境建议使用 Redis）
     private final Map<String, Conversation> conversations = new ConcurrentHashMap<>();
@@ -31,19 +33,12 @@ public class RagService {
      * 创建会话
      *
      * @param kbId 知识库 ID
+     * @param userId 用户 ID
      * @return 会话 ID
      */
-    public String createConversation(String kbId) {
-        String conversationId = generateConversationId();
-        Conversation conversation = new Conversation();
-        conversation.setId(conversationId);
-        conversation.setKbId(kbId);
-        conversation.setCreatedAt(LocalDateTime.now());
-        conversation.setUpdatedAt(LocalDateTime.now());
-        conversation.setMessages(new ArrayList<>());
-
-        conversations.put(conversationId, conversation);
-        log.info("Conversation created: conversationId={}, kbId={}", conversationId, kbId);
+    public String createConversation(String kbId, String userId) {
+        String conversationId = conversationService.createConversation(kbId, userId);
+        log.info("Conversation created: conversationId={}, kbId={}, userId={}", conversationId, kbId, userId);
         return conversationId;
     }
 
@@ -56,14 +51,15 @@ public class RagService {
      * @return 回答
      */
     public String chat(String conversationId, String question, int topK) {
-        Conversation conversation = getConversation(conversationId);
-        if (conversation == null) {
+        // 获取会话信息
+        var conversationDO = conversationService.getConversation(conversationId);
+        if (conversationDO == null) {
             throw new IllegalArgumentException("Conversation not found: " + conversationId);
         }
 
         // 向量检索相关分块
         List<VectorSearchService.SearchResult> searchResults = vectorSearchService.search(
-                conversation.getKbId(), question, topK
+                conversationDO.getKbId(), question, topK
         );
 
         // 构建上下文
@@ -79,23 +75,11 @@ public class RagService {
         contextBuilder.append("请根据以上信息回答用户的问题：").append(question);
 
         // 调用 LLM 生成回答（这里先使用伪回答，后续可对接真实 LLM）
-        String answer = generateAnswer(conversation, contextBuilder.toString(), searchResults);
+        String answer = generateAnswer(contextBuilder.toString(), searchResults);
 
-        // 记录对话
-        Message userMessage = new Message();
-        userMessage.setRole("user");
-        userMessage.setContent(question);
-        userMessage.setTimestamp(LocalDateTime.now());
-
-        Message assistantMessage = new Message();
-        assistantMessage.setRole("assistant");
-        assistantMessage.setContent(answer);
-        assistantMessage.setTimestamp(LocalDateTime.now());
-        assistantMessage.setContextSources(extractContextSources(searchResults));
-
-        conversation.getMessages().add(userMessage);
-        conversation.getMessages().add(assistantMessage);
-        conversation.setUpdatedAt(LocalDateTime.now());
+        // 记录对话到数据库
+        conversationService.addMessage(conversationId, "user", question, null);
+        conversationService.addMessage(conversationId, "assistant", answer, null);
 
         log.info("Chat completed: conversationId={}, question={}, answerLength={}",
                 conversationId, question, answer.length());
@@ -104,13 +88,14 @@ public class RagService {
     }
 
     /**
-     * 获取会话详情
+     * 保存消息
      *
      * @param conversationId 会话 ID
-     * @return 会话对象
+     * @param role 消息角色
+     * @param content 消息内容
      */
-    public Conversation getConversation(String conversationId) {
-        return conversations.get(conversationId);
+    public void saveMessage(String conversationId, String role, String content) {
+        conversationService.addMessage(conversationId, role, content, null);
     }
 
     /**
@@ -120,11 +105,23 @@ public class RagService {
      * @return 消息列表
      */
     public List<Message> getConversationHistory(String conversationId) {
-        Conversation conversation = getConversation(conversationId);
-        if (conversation == null) {
+        var conversationDO = conversationService.getConversation(conversationId);
+        if (conversationDO == null) {
             throw new IllegalArgumentException("Conversation not found: " + conversationId);
         }
-        return conversation.getMessages();
+
+        List<Message> messages = new ArrayList<>();
+        var messageDOs = conversationService.getMessages(conversationId);
+
+        for (var messageDO : messageDOs) {
+            Message message = new Message();
+            message.setRole(messageDO.getRole());
+            message.setContent(messageDO.getContent());
+            message.setTimestamp(messageDO.getCreateTime().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime());
+            messages.add(message);
+        }
+
+        return messages;
     }
 
     /**
@@ -133,27 +130,24 @@ public class RagService {
      * @param conversationId 会话 ID
      */
     public void deleteConversation(String conversationId) {
-        conversations.remove(conversationId);
+        conversationService.deleteConversation(conversationId);
         log.info("Conversation deleted: conversationId={}", conversationId);
     }
 
     /**
      * 生成回答（伪实现，后续可对接真实 LLM）
      */
-    private String generateAnswer(Conversation conversation, String context,
-                                   List<VectorSearchService.SearchResult> searchResults) {
-        // TODO: 对接真实 LLM API（如 SilconFlow、阿里云百炼等）
-        // 当前返回伪回答
-
+    private String generateAnswer(String context, List<VectorSearchService.SearchResult> searchResults) {
         if (searchResults.isEmpty()) {
             return "抱歉，我没有找到相关的信息来回答您的问题。";
         }
 
-        // 简单的伪回答：返回最相关的分块内容
         StringBuilder answer = new StringBuilder();
-        answer.append("根据知识库中的信息，");
-        answer.append(searchResults.get(0).getContent());
-        answer.append("\n\n以上是为您找到的相关信息。如有更多问题，欢迎继续提问。");
+        answer.append("根据知识库中的信息回答您的问题：\n\n");
+        answer.append("以下是可以参考的相关信息：\n\n");
+        answer.append(context).append("\n\n");
+        answer.append("基于以上信息，我的回答是：\n");
+        answer.append("这是根据知识库内容生成的回答示例。实际应用中会调用 LLM 生成更准确的答案。");
 
         return answer.toString();
     }
@@ -168,11 +162,6 @@ public class RagService {
             sources.add(source);
         }
         return sources;
-    }
-
-    private String generateConversationId() {
-        return "conv_" + System.currentTimeMillis() + "_" +
-                java.util.UUID.randomUUID().toString().substring(0, 8);
     }
 
     /**

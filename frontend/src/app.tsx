@@ -4,6 +4,7 @@ import KnowledgeBasePage from '@/pages/KnowledgeBasePage'
 import UserPage from '@/pages/UserPage'
 import SystemSettingsPage from '@/pages/SystemSettingsPage'
 import DocumentPage from '@/pages/DocumentPage'
+import ChatPage from '@/pages/ChatPage'
 import LoginPage from '@/pages/LoginPage'
 import { Layout } from '@/components/layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -100,6 +101,10 @@ export default function App() {
                 <SystemSettingsPage />
               </Layout>
             }
+          />
+          <Route
+            path="/chat"
+            element={<ChatPage />}
           />
           <Route
             path="/login"

@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
-import { API_CONFIG, Message, KnowledgeBase, Document, User, SystemConfig } from '../types'
+import { API_CONFIG, Message, KnowledgeBase, Document, User, SystemConfig, ChatSession } from '../types'
 
 // 创建 axios 实例
 const service: AxiosInstance = axios.create({
@@ -30,7 +30,7 @@ service.interceptors.response.use(
   (response: AxiosResponse) => {
     const res = response.data
     // 统一的响应处理
-    if (res.code !== 0) {
+    if (res.code !== 0 && res.code !== undefined) {
       return Promise.reject(new Error(res.message || 'Error'))
     }
     return res
@@ -237,6 +237,47 @@ export class ApiService {
         method: 'put',
         url: `/system/config/${key}`,
         data: { value },
+      }),
+  }
+
+  // 聊天 API
+  static chat = {
+    // 创建会话
+    createSession: (data: { kbId: string; userId: string }) =>
+      request<{ conversationId: string }>({
+        method: 'post',
+        url: '/rag/conversation',
+        params: { kbId: data.kbId, userId: data.userId },
+      }),
+
+    // 问答
+    chat: (conversationId: string, question: string, topK: number = 3) =>
+      request<{ answer: string }>({
+        method: 'post',
+        url: '/rag/chat',
+        params: { conversationId, question, topK },
+      }),
+
+    // 获取会话历史
+    getMessages: (conversationId: string) =>
+      request<Message[]>({
+        method: 'get',
+        url: `/api/conversations/${conversationId}/messages`,
+      }),
+
+    // 删除会话
+    delete: (conversationId: string) =>
+      request<void>({
+        method: 'delete',
+        url: `/api/conversations/${conversationId}`,
+      }),
+
+    // 获取会话列表
+    listConversations: (userId: string) =>
+      request<{ data: ChatSession[]; total: number }>({
+        method: 'get',
+        url: '/api/conversations',
+        params: { userId },
       }),
   }
 }

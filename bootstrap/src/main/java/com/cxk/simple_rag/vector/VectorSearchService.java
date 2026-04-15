@@ -40,7 +40,7 @@ public class VectorSearchService {
             queryChunk.setContent(query);
             queryChunks.add(queryChunk);
 
-            chunkEmbeddingService.embed(queryChunks, "default");
+            chunkEmbeddingService.embed(queryChunks, "BAAI/bge-large-zh-v1.5");
             float[] queryVector = queryChunks.get(0).getEmbedding();
 
             // 在 Milvus 中搜索

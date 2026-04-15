@@ -102,3 +102,15 @@ export interface Message {
   content: string
   createdAt?: string
 }
+
+// 聊天会话类型
+export interface ChatSession {
+  id: string
+  conversationId: string
+  userId: string
+  kbId: string
+  title: string
+  lastTime: string
+  createTime: string
+  updateTime: string
+}
