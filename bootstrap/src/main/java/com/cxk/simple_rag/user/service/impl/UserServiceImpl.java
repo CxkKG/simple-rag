@@ -99,7 +99,7 @@ public class UserServiceImpl implements UserService {
         int startRow = (pageNum - 1) * pageSize;
         LambdaQueryWrapper<UserDO> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(UserDO::getDeleted, 0);
-        queryWrapper.last("LIMIT " + startRow + ", " + pageSize);
+        queryWrapper.last("LIMIT " + pageSize + " OFFSET " + startRow);
         List<UserDO> users = userMapper.selectList(queryWrapper);
         return users.stream().map(this::convertToVO).toList();
     }

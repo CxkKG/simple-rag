@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuthentication } from '@/hooks/useAuthentication'
 import { useUserStore } from '@/stores/user'
 import { Button } from '@/components/ui/button'
@@ -36,8 +36,12 @@ export default function UserPage() {
   const [pageNum, setPageNum] = useState(1)
   const [pageSize, setPageLength] = useState(10)
 
-  const { users, isLoading, deleteUser, total } = useUserStore()
+  const { users, isLoading, deleteUser, total, fetchUsers } = useUserStore()
   const { user: currentUser } = useAuthentication()
+
+  useEffect(() => {
+    fetchUsers(pageNum, pageSize).catch(console.error)
+  }, [pageNum, pageSize, fetchUsers])
 
   const filteredUsers = users.filter((u) =>
     u.username?.toLowerCase().includes(search.toLowerCase())
