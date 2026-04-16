@@ -1,6 +1,7 @@
 package com.cxk.simple_rag.rag;
 
 import com.cxk.simple_rag.conversation.service.ConversationService;
+import com.cxk.simple_rag.llm.LLMService;
 import com.cxk.simple_rag.vector.VectorSearchService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class RagService {
 
     private final VectorSearchService vectorSearchService;
     private final ConversationService conversationService;
+    private final LLMService llmService;
 
     // 简单的会话存储（生产环境建议使用 Redis）
     private final Map<String, Conversation> conversations = new ConcurrentHashMap<>();
@@ -74,8 +76,14 @@ public class RagService {
 
         contextBuilder.append("请根据以上信息回答用户的问题：").append(question);
 
-        // 调用 LLM 生成回答（这里先使用伪回答，后续可对接真实 LLM）
-        String answer = generateAnswer(contextBuilder.toString(), searchResults);
+        // 构建系统提示词
+        String systemPrompt = "你是一个智能助手，能够根据提供的知识库内容回答用户的问题。" +
+                "请仔细阅读提供的信息，用简洁明了的语言回答问题。" +
+                "如果提供的信息不足以回答问题，请如实告知用户。" +
+                "回答中引用的信息请标注对应的编号 [1]、[2] 等。";
+
+        // 调用 LLM 生成回答
+        String answer = llmService.generate(systemPrompt, contextBuilder.toString());
 
         // 记录对话到数据库
         conversationService.addMessage(conversationId, "user", question, null);

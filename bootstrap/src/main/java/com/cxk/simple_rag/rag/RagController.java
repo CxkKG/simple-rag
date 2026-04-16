@@ -1,5 +1,6 @@
 package com.cxk.simple_rag.rag;
 
+import com.cxk.simple_rag.llm.LLMService;
 import com.cxk.simple_rag.rag.RagService;
 import com.cxk.simple_rag.vector.VectorSearchService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class RagController {
 
     private final RagService ragService;
     private final VectorSearchService vectorSearchService;
+    private final LLMService llmService;
 
     /**
      * 创建会话
@@ -166,8 +168,14 @@ public class RagController {
                 // 发送上下文
                 emitter.send(SseEmitter.event().name("context").data(contextBuilder.toString()));
 
-                // 调用 LLM 生成回答（使用伪回答，后续可对接真实 LLM）
-                String answer = generateAnswer(contextBuilder.toString(), question, searchResults);
+                // 构建系统提示词
+                String systemPrompt = "你是一个智能助手，能够根据提供的知识库内容回答用户的问题。" +
+                        "请仔细阅读提供的信息，用简洁明了的语言回答问题。" +
+                        "如果提供的信息不足以回答问题，请如实告知用户。" +
+                        "回答中引用的信息请标注对应的编号 [1]、[2] 等。";
+
+                // 调用 LLM 生成回答
+                String answer = llmService.generate(systemPrompt, contextBuilder.toString() + "\n\n请根据以上信息回答用户的问题：" + question);
 
                 // 发送回答内容（分段发送模拟流式）
                 int chunkSize = 50;
@@ -198,22 +206,5 @@ public class RagController {
         });
 
         return emitter;
-    }
-
-    /**
-     * 生成回答
-     */
-    private String generateAnswer(String context, String question,
-                                   List<VectorSearchService.SearchResult> searchResults) {
-        if (searchResults.isEmpty()) {
-            return "抱歉，我没有找到相关的信息来回答您的问题。";
-        }
-
-        return "根据知识库中的信息回答您的问题：\n\n"
-                + question + "\n\n"
-                + "以下是可以参考的相关信息：\n\n"
-                + context + "\n\n"
-                + "基于以上信息，我的回答是：\n"
-                + "这是根据知识库内容生成的回答示例。实际应用中会调用 LLM 生成更准确的答案。";
     }
 }
