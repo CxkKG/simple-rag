@@ -160,7 +160,7 @@ export class ApiService {
 
     // 获取会话历史
     getConversationHistory: (conversationId: string) =>
-      request<Message[]>({
+      request<{ data: Message[] }>({
         method: 'get',
         url: `/rag/conversation/${conversationId}`,
       }),
@@ -260,23 +260,31 @@ export class ApiService {
 
     // 获取会话历史
     getMessages: (conversationId: string) =>
-      request<{ data: Message[] }>({
+      request<Message[]>({
         method: 'get',
-        url: `/api/conversations/${conversationId}/messages`,
+        url: `/rag/conversation/${conversationId}`,
       }),
 
     // 删除会话
     delete: (conversationId: string) =>
       request<void>({
         method: 'delete',
-        url: `/api/conversations/${conversationId}`,
+        url: `/rag/conversation/${conversationId}`,
+      }),
+
+    // 重命名会话
+    renameSession: (conversationId: string, title: string) =>
+      request<void>({
+        method: 'put',
+        url: `/rag/conversation/${conversationId}`,
+        data: { title },
       }),
 
     // 获取会话列表
     listConversations: (userId: string) =>
       request<{ data: ChatSession[]; total: number }>({
         method: 'get',
-        url: '/api/conversations',
+        url: '/rag/conversation/list',
         params: { userId },
       }),
   }

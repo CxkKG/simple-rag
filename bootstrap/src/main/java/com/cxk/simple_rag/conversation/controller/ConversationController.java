@@ -108,7 +108,7 @@ public class ConversationController {
      * 获取会话消息列表
      */
     @GetMapping("/{conversationId}/messages")
-    public ResponseEntity<Map<String, Object>> getMessages(@PathVariable String conversationId) {
+    public ResponseEntity<Map<String, Object>> getMessages(@PathVariable("conversationId") String conversationId) {
         List<MessageDO> messages = conversationService.getMessages(conversationId);
         Map<String, Object> response = new HashMap<>();
         response.put("code", 0);

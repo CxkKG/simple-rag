@@ -34,6 +34,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       const response = await ApiService.chat.createSession({ kbId, userId: 'admin' })
       const sessionId = response.conversationId
       set({ currentSessionId: sessionId, selectedKnowledgeBase: kbId })
+      // 创建会话后立即获取会话列表更新
+      await get().fetchSessions()
       return sessionId
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to create session' })
@@ -46,12 +48,18 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   selectSession: async (sessionId) => {
     set({ isLoading: true, error: null })
     try {
+      // 获取会话消息
       const response = await ApiService.chat.getMessages(sessionId)
       console.log('getMessages response:', response)
-      // 响应拦截器返回的是 {code, message, data}
-      // response.data 就是 {data: Message[]}，所以 response.data.data 是消息数组
-      const messages = (response as any).data?.data || (response as any).data || []
+
+      // 响应格式: Message[] (直接返回消息数组)
+      const messages = Array.isArray(response) ? response : []
+
+      // 更新当前会话 ID 和消息
       set({ currentSessionId: sessionId, messages: messages })
+
+      // 刷新会话列表以更新最后时间
+      await get().fetchSessions()
     } catch (error) {
       console.error('Failed to load session:', error)
       set({ error: error instanceof Error ? error.message : 'Failed to load session' })
@@ -66,15 +74,19 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     try {
       const userId = 'admin'
       const response = await ApiService.chat.listConversations(userId)
-      // 响应拦截器返回的是 {code, message, data, total}
-      // 所以 response.data 就是会话数组
-      const sessions = (response.data || []).map((session: any) => ({
+      console.log('listConversations response:', response)
+
+      // 响应格式: {code, message, data: ChatSession[], total}
+      const sessionsData = (response as any).data || []
+
+      const sessions = sessionsData.map((session: any) => ({
         id: session.conversationId,
         title: session.title || '新会话',
         kbId: session.kbId,
         lastName: session.title || '新会话',
         updatedAt: session.lastTime || session.updateTime || new Date().toISOString(),
       }))
+
       set({ sessions })
     } catch (error) {
       console.error('Failed to fetch sessions:', error)
@@ -88,8 +100,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       await ApiService.chat.delete(sessionId)
+      // 删除后刷新会话列表
+      await get().fetchSessions()
+
       set({
-        sessions: get().sessions.filter((s) => s.id !== sessionId),
         currentSessionId: get().currentSessionId === sessionId ? null : get().currentSessionId,
       })
     } catch (error) {
@@ -118,7 +132,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     set({ messages: [...messages, userMessage] })
 
     try {
-      //.Call API
+      // Call API
       const response = await ApiService.chat.chat(currentSessionId, content)
       const answer = response.answer
 
@@ -130,6 +144,12 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         createdAt: new Date().toISOString(),
       }
       set({ messages: [...messages, userMessage, assistantMessage] })
+
+      // 发送消息后更新会话标题（如果还是默认标题）
+      if (messages.length === 0) {
+        const firstMessage = content.length > 20 ? content.substring(0, 20) + '...' : content
+        ApiService.chat.renameSession(currentSessionId, firstMessage).catch(() => {})
+      }
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to send message' })
       // Remove temporary user message on error

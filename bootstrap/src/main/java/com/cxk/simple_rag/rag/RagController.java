@@ -1,5 +1,6 @@
 package com.cxk.simple_rag.rag;
 
+import com.cxk.simple_rag.conversation.service.ConversationService;
 import com.cxk.simple_rag.llm.LLMService;
 import com.cxk.simple_rag.rag.RagService;
 import com.cxk.simple_rag.vector.VectorSearchService;
@@ -29,6 +30,7 @@ public class RagController {
     private final RagService ragService;
     private final VectorSearchService vectorSearchService;
     private final LLMService llmService;
+    private final ConversationService conversationService;
 
     /**
      * 创建会话
@@ -45,6 +47,17 @@ public class RagController {
         Map<String, String> result = new HashMap<>();
         result.put("conversationId", conversationId);
         return result;
+    }
+
+    /**
+     * 重命名会话
+     */
+    @PutMapping("/conversation/{conversationId}")
+    public void renameConversation(
+            @PathVariable String conversationId,
+            @RequestBody Map<String, String> request) {
+        String title = request.get("title");
+        conversationService.renameConversation(conversationId, title);
     }
 
     /**
@@ -86,6 +99,40 @@ public class RagController {
     @DeleteMapping("/conversation/{conversationId}")
     public void deleteConversation(@PathVariable String conversationId) {
         ragService.deleteConversation(conversationId);
+    }
+
+    /**
+     * 获取会话列表（支持分页）
+     */
+    @GetMapping("/conversation/list")
+    public Map<String, Object> listConversations(
+            @RequestParam("userId") String userId,
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        List<com.cxk.simple_rag.conversation.entity.ConversationDO> conversations =
+                conversationService.listConversations(userId);
+
+        int total = conversations.size();
+        int start = (pageNum - 1) * pageSize;
+        int end = Math.min(start + pageSize, total);
+
+        List<Map<String, Object>> sessionList = new ArrayList<>();
+        for (int i = start; i < end; i++) {
+            com.cxk.simple_rag.conversation.entity.ConversationDO conv = conversations.get(i);
+            Map<String, Object> session = new HashMap<>();
+            session.put("conversationId", conv.getConversationId());
+            session.put("kbId", conv.getKbId());
+            session.put("title", conv.getTitle());
+            session.put("lastTime", conv.getLastTime());
+            session.put("createTime", conv.getCreateTime());
+            session.put("updateTime", conv.getUpdateTime());
+            sessionList.add(session);
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("data", sessionList);
+        result.put("total", total);
+        return result;
     }
 
     /**

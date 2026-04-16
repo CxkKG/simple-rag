@@ -80,10 +80,10 @@ export default function ChatPage() {
   }, [user, fetchKnowledgeBases, knowledgeBases.length])
 
   useEffect(() => {
-    if (user && sessions.length === 0) {
-      fetchSessions()
+    if (user) {
+      fetchSessions().catch(console.error)
     }
-  }, [user, fetchSessions, sessions.length])
+  }, [user, fetchSessions])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -146,20 +146,20 @@ export default function ChatPage() {
     <div className="flex flex-col h-screen bg-white overflow-hidden">
       {/* 会话侧边栏 */}
       <div className={`fixed inset-0 bg-black/50 z-30 ${isSessionsOpen ? 'block' : 'hidden'}`} onClick={() => setIsSessionsOpen(false)} />
-      <div className={`fixed left-0 top-0 h-full w-80 bg-slate-50 border-r border-slate-200 z-40 transform transition-transform duration-300 ${isSessionsOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+      <div className={`fixed left-0 top-0 h-full w-80 bg-slate-50 border-r border-slate-200 z-40 transform transition-transform duration-300 ${isSessionsOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col`}>
+        <div className="p-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
           <h2 className="font-semibold text-slate-900">会话历史</h2>
           <Button variant="ghost" size="iconSm" onClick={() => setIsSessionsOpen(false)} className="h-8 w-8">
             <X className="h-4 w-4" />
           </Button>
         </div>
-        <div className="p-4">
+        <div className="p-4 flex-shrink-0">
           <Button onClick={handleCreateSession} className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 mb-4">
             <Plus className="w-4 h-4 mr-2" />
             新建会话
           </Button>
         </div>
-        <div className="px-4 pb-4 space-y-2">
+        <div className="px-4 pb-4 space-y-2 overflow-y-auto flex-1 min-h-0">
           {sessions.length === 0 ? (
             <div className="text-center py-8 text-slate-500 text-sm">
               暂无会话记录
