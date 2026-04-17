@@ -72,6 +72,8 @@ export interface Document {
   processMode?: string
   status: DocumentStatus
   sourceType?: string
+  summary?: string
+  keywords?: string
   createdAt: string
   updatedAt?: string
 }

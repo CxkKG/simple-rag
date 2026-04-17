@@ -51,6 +51,10 @@ public class KnowledgeDocumentDO {
 
     private String pipelineId;
 
+    private String summary;
+
+    private String keywords;
+
     private String createdBy;
 
     private String updatedBy;

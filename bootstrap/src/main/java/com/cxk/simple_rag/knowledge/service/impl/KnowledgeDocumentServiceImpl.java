@@ -9,6 +9,7 @@ import com.cxk.simple_rag.core.chunk.ChunkingStrategy;
 import com.cxk.simple_rag.core.chunk.StructureAwareTextChunker;
 import com.cxk.simple_rag.core.chunk.VectorChunk;
 import com.cxk.simple_rag.core.embedding.ChunkEmbeddingService;
+import com.cxk.simple_rag.ai.AISummaryService;
 import com.cxk.simple_rag.core.parser.ParserSelector;
 import com.cxk.simple_rag.core.parser.ParserType;
 import com.cxk.simple_rag.knowledge.dto.UploadDocumentRequest;
@@ -61,6 +62,7 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
     private final MilvusService milvusService;
     private final KnowledgeDocumentChunkProducer chunkProducer;
     private final KnowledgeBaseService knowledgeBaseService;
+    private final AISummaryService aiSummaryService;
 
     private final Map<String, ChunkingStrategy> strategyCache = Map.of(
             "structure_aware", new StructureAwareTextChunker()
@@ -158,6 +160,13 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
             logDO.setExtractDuration(extractDuration);
             log.info("Text extracted: docId={}, duration={}ms, textLength={}", docId, extractDuration, text.length());
 
+            // 生成摘要和关键词
+            Instant summaryStart = Instant.now();
+            String summary = aiSummaryService.generateSummary(text);
+            List<String> keywords = aiSummaryService.extractKeywords(text, 5);
+            long summaryDuration = Duration.between(summaryStart, Instant.now()).toMillis();
+            log.info("Summary and keywords generated: docId={}, duration={}ms", docId, summaryDuration);
+
             Instant chunkStart = Instant.now();
             List<VectorChunk> chunks = chunkText(text, documentDO);
             long chunkDuration = Duration.between(chunkStart, Instant.now()).toMillis();
@@ -172,7 +181,7 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
             log.info("Chunks embedded: docId={}, duration={}ms", docId, embedDuration);
 
             Instant persistStart = Instant.now();
-            persistChunksAndVectors(documentDO, chunks);
+            persistChunksAndVectors(documentDO, chunks, summary, keywords);
             long persistDuration = Duration.between(persistStart, Instant.now()).toMillis();
             logDO.setPersistDuration(persistDuration);
 
@@ -262,7 +271,8 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    protected void persistChunksAndVectors(KnowledgeDocumentDO documentDO, List<VectorChunk> chunks) {
+    protected void persistChunksAndVectors(KnowledgeDocumentDO documentDO, List<VectorChunk> chunks,
+                                           String summary, List<String> keywords) {
         String docId = documentDO.getId();
         String kbId = documentDO.getKbId();
 
@@ -337,6 +347,14 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
         documentMapper.updateById(documentDO);
 
         log.info("Chunks persisted: docId={}, chunkCount={}", docId, chunks.size());
+
+        // 更新摘要和关键词
+        documentDO.setSummary(summary);
+        documentDO.setKeywords(String.join(",", keywords));
+        documentMapper.updateById(documentDO);
+
+        log.info("Summary and keywords updated: docId={}, summaryLength={}, keywords={}",
+                docId, summary.length(), keywords);
     }
 
     private InputStream getFileInputStream(String fileUrl) {
@@ -395,6 +413,8 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
                 .processMode(documentDO.getProcessMode())
                 .status(documentDO.getStatus())
                 .sourceType(documentDO.getSourceType())
+                .summary(documentDO.getSummary())
+                .keywords(documentDO.getKeywords())
                 .createTime(documentDO.getCreateTime())
                 .updateTime(documentDO.getUpdateTime())
                 .build();
@@ -458,5 +478,27 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
         triggerChunking(docId);
 
         log.info("Vector rebuild triggered: docId={}", docId);
+    }
+
+    @Override
+    public KnowledgeDocumentDO getDocumentById(String docId) {
+        return documentMapper.selectById(docId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateSummaryAndKeywords(String docId, String summary, List<String> keywords) {
+        KnowledgeDocumentDO documentDO = documentMapper.selectById(docId);
+        if (documentDO == null) {
+            throw new IllegalArgumentException("Document not found: " + docId);
+        }
+
+        documentDO.setSummary(summary);
+        documentDO.setKeywords(String.join(",", keywords));
+        documentDO.setUpdateTime(LocalDateTime.now());
+        documentMapper.updateById(documentDO);
+
+        log.info("Summary and keywords updated: docId={}, summaryLength={}, keywords={}",
+                docId, summary != null ? summary.length() : 0, keywords.size());
     }
 }

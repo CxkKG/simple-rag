@@ -36,6 +36,10 @@ public class KnowledgeDocumentVO {
 
     private String sourceType;
 
+    private String summary;
+
+    private String keywords;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;

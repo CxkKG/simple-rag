@@ -27,7 +27,11 @@ public interface KnowledgeDocumentService {
 
     KnowledgeDocumentVO getDocument(String docId);
 
+    KnowledgeDocumentDO getDocumentById(String docId);
+
     void deleteDocument(String docId);
 
     void rebuildVectors(String docId);
+
+    void updateSummaryAndKeywords(String docId, String summary, List<String> keywords);
 }

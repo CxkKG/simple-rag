@@ -31,6 +31,8 @@ const normalizeDocument = (doc: any): Document => ({
   processMode: doc.processMode || '',
   status: (doc.status as DocumentStatus) || DocumentStatus.Pending,
   sourceType: doc.sourceType || '',
+  summary: doc.summary || '',
+  keywords: doc.keywords || '',
   createdAt: doc.createTime || doc.createdAt || new Date().toISOString(),
   updatedAt: doc.updateTime || doc.updatedAt,
 })

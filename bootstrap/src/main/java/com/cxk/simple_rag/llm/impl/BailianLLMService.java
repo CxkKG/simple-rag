@@ -6,8 +6,10 @@ import com.cxk.simple_rag.config.AIConfig;
 import com.cxk.simple_rag.llm.LLMService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +21,7 @@ import java.util.Map;
  */
 @Slf4j
 @Service
+@Primary
 @RequiredArgsConstructor
 public class BailianLLMService implements LLMService {
 
@@ -26,10 +29,9 @@ public class BailianLLMService implements LLMService {
 
     @Override
     public String generate(String systemPrompt, String userPrompt) {
-        List<LLMService.Message> messages = List.of(
-                new LLMService.Message("system", systemPrompt),
-                new LLMService.Message("user", userPrompt)
-        );
+        List<LLMService.Message> messages = new ArrayList<>();
+        messages.add(new LLMService.Message("system", systemPrompt));
+        messages.add(new LLMService.Message("user", userPrompt));
         return generate(messages);
     }
 

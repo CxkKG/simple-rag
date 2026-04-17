@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +19,7 @@ import java.util.Map;
  * @author wangxin
  */
 @Slf4j
-//@Service
+@Service
 @RequiredArgsConstructor
 public class OllamaLLMService implements LLMService {
 
@@ -26,10 +27,9 @@ public class OllamaLLMService implements LLMService {
 
     @Override
     public String generate(String systemPrompt, String userPrompt) {
-        List<LLMService.Message> messages = List.of(
-                new LLMService.Message("system", systemPrompt),
-                new LLMService.Message("user", userPrompt)
-        );
+        List<LLMService.Message> messages = new ArrayList<>();
+        messages.add(new LLMService.Message("system", systemPrompt));
+        messages.add(new LLMService.Message("user", userPrompt));
         return generate(messages);
     }
 

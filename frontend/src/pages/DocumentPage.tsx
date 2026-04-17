@@ -206,7 +206,8 @@ export default function DocumentPage() {
                   <TableHead>文档名称</TableHead>
                   <TableHead>文件类型</TableHead>
                   <TableHead>文件大小</TableHead>
-                  <TableHead>分块数量</TableHead>
+                  <TableHead>摘要</TableHead>
+                  <TableHead>关键词</TableHead>
                   <TableHead>状态</TableHead>
                   <TableHead>创建时间</TableHead>
                   <TableHead className="text-right">操作</TableHead>
@@ -215,7 +216,7 @@ export default function DocumentPage() {
               <TableBody>
                 {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-24 text-center">
+                      <TableCell colSpan={8} className="h-24 text-center">
                         <div className="flex items-center justify-center gap-2">
                           <RefreshCw className="h-4 w-4 animate-spin text-slate-400" />
                           <span className="text-sm text-slate-500">加载中...</span>
@@ -224,7 +225,7 @@ export default function DocumentPage() {
                     </TableRow>
                 ) : filteredDocuments.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-24 text-center">
+                      <TableCell colSpan={8} className="h-24 text-center">
                         <div className="flex flex-col items-center justify-center gap-2 text-slate-500">
                           <FileText className="h-8 w-8 text-slate-300" />
                           <span className="text-sm">暂无文档</span>
@@ -253,9 +254,19 @@ export default function DocumentPage() {
                       </span>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="text-xs">
-                              {doc.chunkCount} 个分块
-                            </Badge>
+                            <div className="max-w-xs truncate text-sm text-slate-600" title={doc.summary || ''}>
+                              {doc.summary || '-'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {doc.keywords && doc.keywords.split(',').map((keyword, idx) => (
+                                <Badge key={idx} variant="secondary" className="text-xs">
+                                  {keyword}
+                                </Badge>
+                              ))}
+                              {!doc.keywords && <span className="text-sm text-slate-400">-</span>}
+                            </div>
                           </TableCell>
                           <TableCell>
                             <Badge
