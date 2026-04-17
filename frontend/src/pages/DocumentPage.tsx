@@ -30,6 +30,7 @@ import {
   RefreshCw,
   Search,
   X,
+  Edit,
 } from 'lucide-react'
 import { formatFileSize, formatDate } from '@/lib/utils'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -51,9 +52,14 @@ export default function DocumentPage() {
   const [file, setFile] = useState<File | null>(null)
   const [docName, setDocName] = useState('')
   const [error, setError] = useState('')
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editingDoc, setEditingDoc] = useState<Document | null>(null)
+  const [editDocName, setEditDocName] = useState('')
+  const [editSummary, setEditSummary] = useState('')
+  const [editKeywords, setEditKeywords] = useState<string[]>([])
 
   const { knowledgeBases, fetchKnowledgeBaseById } = useKnowledgeBaseStore()
-  const { documents, isLoading, fetchDocuments, deleteDocument, total, uploadDocument, triggerChunking } = useDocumentStore()
+  const { documents, isLoading, fetchDocuments, deleteDocument, total, uploadDocument, triggerChunking, updateDocumentInfo } = useDocumentStore()
 
   const navigate = useNavigate()
   const { user } = useAuthentication()
@@ -80,6 +86,31 @@ export default function DocumentPage() {
     e.stopPropagation()
     if (window.confirm('确定要删除这个文档吗？')) {
       await deleteDocument(id)
+    }
+  }
+
+  const handleOpenEditDialog = (doc: Document) => {
+    setEditingDoc(doc)
+    setEditDocName(doc.docName)
+    setEditSummary(doc.summary || '')
+    setEditKeywords(doc.keywords ? doc.keywords.split(',') : [])
+    setIsEditDialogOpen(true)
+  }
+
+  const handleSaveDocumentInfo = async () => {
+    if (!editingDoc) return
+
+    try {
+      await updateDocumentInfo(editingDoc.id, {
+        docName: editDocName,
+        summary: editSummary,
+        keywords: editKeywords,
+      })
+      setIsEditDialogOpen(false)
+      fetchDocuments(kbId, pageNum, pageSize)
+    } catch (err) {
+      console.error('Failed to update document info:', err)
+      setError('更新文档信息失败')
     }
   }
 
@@ -150,7 +181,7 @@ export default function DocumentPage() {
                 accept=".pdf,.doc,.docx,.md,.txt,.csv,.xlsx"
                 ref={fileInputRef}
             />
-            <Button onClick={handleButtonClick} className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700">
+            <Button onClick={handleButtonClick} className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700">
               <Upload className="w-4 h-4 mr-2" />
               上传文档
             </Button>
@@ -303,13 +334,17 @@ export default function DocumentPage() {
                                   <RefreshCw className="mr-2 h-4 w-4" />
                                   {doc.status === 'success' ? '已解析' : '解析向量'}
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOpenEditDialog(doc)}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  编辑
+                                </DropdownMenuItem>
                                 <DropdownMenuItem>
                                   <Play className="mr-2 h-4 w-4" />
                                   查看
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                    onSelect={(e) => handleDelete(doc.id, e as any)}
+                                    onClick={(e) => handleDelete(doc.id, e as any)}
                                     className="text-red-600 focus:text-red-600"
                                 >
                                   <Trash2 className="mr-2 h-4 w-4" />
@@ -353,6 +388,64 @@ export default function DocumentPage() {
           )}
         </div>
 
+        {/* 编辑文档对话框 */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>编辑文档信息</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
+              {error && (
+                <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-red-500" />
+                  {error}
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="edit-docName" className="text-sm font-medium">
+                  文档名称
+                </Label>
+                <Input
+                  id="edit-docName"
+                  value={editDocName}
+                  onChange={(e) => setEditDocName(e.target.value)}
+                  placeholder="请输入文档名称"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-summary" className="text-sm font-medium">
+                  摘要
+                </Label>
+                <Input
+                  id="edit-summary"
+                  value={editSummary}
+                  onChange={(e) => setEditSummary(e.target.value)}
+                  placeholder="请输入文档摘要"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-keywords" className="text-sm font-medium">
+                  关键词（用逗号分隔）
+                </Label>
+                <Input
+                  id="edit-keywords"
+                  value={editKeywords.join(',')}
+                  onChange={(e) => setEditKeywords(e.target.value.split(',').map(keyword => keyword.trim()).filter(keyword => keyword))}
+                  placeholder="请输入关键词，用逗号分隔"
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  取消
+                </Button>
+                <Button type="button" onClick={handleSaveDocumentInfo}>
+                  保存
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
         {/* 上传文档对话框 - ✅ 现在在最外层 div 内部 */}
         <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
           <DialogContent className="sm:max-w-md">
@@ -373,7 +466,7 @@ export default function DocumentPage() {
                 <div className="flex items-center gap-3 rounded-lg border border-dashed border-slate-300 p-4 hover:bg-slate-50 transition-colors">
                   {file ? (
                       <div className="flex items-center gap-3 flex-1">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-100 text-teal-600">
                           <FileText className="h-5 w-5" />
                         </div>
                         <div className="flex-1 min-w-0">

@@ -34,4 +34,10 @@ public interface KnowledgeDocumentService {
     void rebuildVectors(String docId);
 
     void updateSummaryAndKeywords(String docId, String summary, List<String> keywords);
+
+    void updateDocumentInfo(String docId, String docName, String summary, List<String> keywords);
+
+    int countDocuments();
+
+    int countDocumentsByKbId(String kbId);
 }

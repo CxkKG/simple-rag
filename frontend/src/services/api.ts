@@ -138,6 +138,14 @@ export class ApiService {
         method: 'post',
         url: `/knowledge/document/${id}/rebuild`,
       }),
+
+    // 更新文档信息
+    update: (id: string, data: { docName?: string; summary?: string; keywords?: string[] }) =>
+      request<{ data: null }>({
+        method: 'put',
+        url: `/knowledge/document/${id}`,
+        data,
+      }),
   }
 
   // RAG API
@@ -240,6 +248,16 @@ export class ApiService {
       }),
   }
 
+  // 仪表板 API
+  static dashboard = {
+    // 获取统计数据
+    getStats: () =>
+      request<{ data: { knowledgeBaseCount: number; documentCount: number; userCount: number } }>({
+        method: 'get',
+        url: '/dashboard/stats',
+      }),
+  }
+
   // 聊天 API
   static chat = {
     // 创建会话
@@ -263,6 +281,14 @@ export class ApiService {
       request<Message[]>({
         method: 'get',
         url: `/rag/conversation/${conversationId}`,
+      }),
+
+    // 重命名会话
+    renameSession: (conversationId: string, title: string) =>
+      request<void>({
+        method: 'put',
+        url: `/api/conversations/${conversationId}`,
+        data: { title },
       }),
 
     // 删除会话

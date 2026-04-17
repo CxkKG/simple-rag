@@ -99,6 +99,15 @@ export default function ChatPage() {
     if (!inputValue.trim()) return
 
     try {
+      // 如果没有活动会话，先创建一个
+      if (!currentSessionId && selectedKnowledgeBase) {
+        const sessionId = await createSession(selectedKnowledgeBase)
+        await selectSession(sessionId)
+      } else if (!currentSessionId && !selectedKnowledgeBase) {
+        alert('请先选择知识库')
+        return
+      }
+
       await sendMessage(inputValue)
       setInputValue('')
       inputRef.current?.focus()
@@ -132,7 +141,7 @@ export default function ChatPage() {
   if (isLoading || pageLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
       </div>
     )
   }
@@ -154,7 +163,7 @@ export default function ChatPage() {
           </Button>
         </div>
         <div className="p-4 flex-shrink-0">
-          <Button onClick={handleCreateSession} className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 mb-4">
+          <Button onClick={handleCreateSession} className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 mb-4">
             <Plus className="w-4 h-4 mr-2" />
             新建会话
           </Button>
@@ -172,9 +181,9 @@ export default function ChatPage() {
                   selectSession(session.id).catch(console.error)
                   setIsSessionsOpen(false)
                 }}
-                className={`group flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${currentSessionId === session.id ? 'bg-indigo-50 border border-indigo-200' : 'hover:bg-slate-100 border border-transparent'}`}
+                className={`group flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${currentSessionId === session.id ? 'bg-teal-50 border border-teal-200' : 'hover:bg-slate-100 border border-transparent'}`}
               >
-                <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${currentSessionId === session.id ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${currentSessionId === session.id ? 'bg-teal-600' : 'bg-slate-300'}`}>
                   <ChatBubble className="w-4 h-4 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -303,8 +312,8 @@ export default function ChatPage() {
           <div className="max-w-3xl mx-auto space-y-6 pb-4">
             {messages.length === 0 ? (
               <div className="text-center py-12">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 mb-6">
-                  <BookOpen className="w-8 h-8 text-indigo-600" />
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-teal-100 mb-6">
+                  <BookOpen className="w-8 h-8 text-teal-600" />
                 </div>
                 <h2 className="text-2xl font-semibold text-slate-900 mb-2">开始新的对话</h2>
                 <p className="text-slate-500 mb-8 max-w-md mx-auto">
@@ -335,8 +344,8 @@ export default function ChatPage() {
                   key={message.id}
                   className={`flex gap-4 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}
                 >
-                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${message.role === 'user' ? 'bg-slate-200' : 'bg-indigo-100'}`}>
-                    {message.role === 'user' ? <User className="w-4 h-4 text-slate-600" /> : <Bot className="w-4 h-4 text-indigo-600" />}
+                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${message.role === 'user' ? 'bg-slate-200' : 'bg-teal-100'}`}>
+                    {message.role === 'user' ? <User className="w-4 h-4 text-slate-600" /> : <Bot className="w-4 h-4 text-teal-600" />}
                   </div>
                   <div className={`flex-1 max-w-[calc(100%-48px)] ${message.role === 'user' ? 'text-right' : ''}`}>
                     <div className="flex items-center gap-2 mb-1">
@@ -349,7 +358,7 @@ export default function ChatPage() {
                     </div>
                     <div className={`p-4 rounded-2xl max-w-full ${
                       message.role === 'user'
-                        ? 'bg-indigo-600 text-white rounded-tr-none'
+                        ? 'bg-teal-600 text-white rounded-tr-none'
                         : 'bg-slate-50 text-slate-900 rounded-tl-none border border-slate-100'
                     }`}>
                       <div className="prose prose-slate max-w-none leading-relaxed whitespace-pre-wrap">
@@ -362,13 +371,13 @@ export default function ChatPage() {
             )}
             {chatIsLoading && (
               <div className="flex gap-4">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                  <Bot className="w-4 h-4 text-indigo-600" />
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center">
+                  <Bot className="w-4 h-4 text-teal-600" />
                 </div>
                 <div className="flex items-center gap-1 p-4 bg-slate-50 rounded-2xl rounded-tl-none border border-slate-100">
-                  <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
               </div>
             )}
@@ -396,7 +405,7 @@ export default function ChatPage() {
             <Button
               onClick={handleSend}
               disabled={!inputValue.trim() || chatIsLoading}
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send className="w-4 h-4" />
             </Button>

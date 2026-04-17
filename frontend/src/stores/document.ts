@@ -115,6 +115,22 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     }
   },
 
+  updateDocumentInfo: async (id: string, data: { docName?: string; summary?: string; keywords?: string[] }) => {
+    set({ isLoading: true, error: null })
+    try {
+      await ApiService.document.update(id, data)
+      set({
+        documents: get().documents.map((doc) =>
+          doc.id === id ? { ...doc, ...data } : doc
+        ),
+      })
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : 'Failed to update document info' })
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+
   setSelectedDocument: (doc) => set({ selectedDocument: doc }),
   clearError: () => set({ error: null }),
 }))

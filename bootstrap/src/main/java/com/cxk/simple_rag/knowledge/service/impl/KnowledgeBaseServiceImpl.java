@@ -111,6 +111,13 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
         log.info("Knowledge base deleted: id={}", id);
     }
 
+    @Override
+    public int countKnowledgeBases() {
+        LambdaQueryWrapper<KnowledgeBaseDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(KnowledgeBaseDO::getDeleted, 0);
+        return Math.toIntExact(knowledgeBaseMapper.selectCount(wrapper));
+    }
+
     private String generateId() {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 19);
     }

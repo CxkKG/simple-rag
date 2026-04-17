@@ -23,7 +23,7 @@ export default function KnowledgeBasePage() {
           <h2 className="text-2xl font-bold">知识库管理</h2>
           <p className="text-muted-foreground">管理您的知识库和文档</p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)}>
+        <Button onClick={() => setIsDialogOpen(true)} className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700">
           <Plus className="w-4 h-4 mr-2" />
           创建知识库
         </Button>

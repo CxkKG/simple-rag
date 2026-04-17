@@ -289,12 +289,10 @@ export function KnowledgeBaseTable() {
                               <Edit className="mr-2 h-4 w-4" />
                               编辑
                             </DropdownMenuItem>
-                            <DropdownMenuContent sideOffset={4} className="w-32">
-                              <DropdownMenuItem onClick={(e) => handleDelete(kb.id, e as any)} className="text-red-600 focus:text-red-600">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                删除
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
+                            <DropdownMenuItem onClick={(e) => handleDelete(kb.id, e as any)} className="text-red-600 focus:text-red-600">
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              删除
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

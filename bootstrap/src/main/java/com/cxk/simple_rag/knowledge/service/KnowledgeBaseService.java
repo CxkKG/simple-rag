@@ -21,4 +21,6 @@ public interface KnowledgeBaseService {
     KnowledgeBaseVO updateKnowledgeBase(String id, String name);
 
     void deleteKnowledgeBase(String id);
+
+    int countKnowledgeBases();
 }

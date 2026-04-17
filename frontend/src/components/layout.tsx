@@ -56,10 +56,10 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
         {/* 侧边栏头部 */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-slate-100">
           <Link to="/" className="flex items-center gap-2 text-xl font-bold text-slate-900">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 text-white">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-teal-600 to-emerald-600 text-white">
               <BookOpen className="h-5 w-5" />
             </div>
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-emerald-600">
               Simple RAG
             </span>
           </Link>
@@ -81,18 +81,18 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                 onClick={() => handleNavigation(item.path)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group ${
                   isActive
-                    ? 'bg-gradient-to-r from-indigo-50 to-violet-50 text-indigo-600'
+                    ? 'bg-gradient-to-r from-teal-50 to-emerald-50 text-teal-600'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 }`}
               >
                 <div
                   className={`relative flex items-center justify-center w-5 h-5 ${
-                    isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'
+                    isActive ? 'text-teal-600' : 'text-slate-400 group-hover:text-slate-600'
                   }`}
                 >
                   <item.icon className="w-5 h-5 transition-transform group-hover:scale-110" />
                   {isActive && (
-                    <span className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-indigo-600" />
+                    <span className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-teal-600" />
                   )}
                 </div>
                 <span
@@ -115,7 +115,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
               <p className="text-xs text-slate-500 truncate">admin@example.com</p>
             </div>
             <Avatar className="h-8 w-8 border border-slate-200">
-              <AvatarFallback className="bg-gradient-to-br from-indigo-100 to-violet-100 text-indigo-600 text-sm font-medium">
+              <AvatarFallback className="bg-gradient-to-br from-teal-100 to-emerald-100 text-teal-600 text-sm font-medium">
                 管
               </AvatarFallback>
             </Avatar>
@@ -152,7 +152,7 @@ export function Header({ setIsOpen }: HeaderProps) {
             <span className="text-xs text-slate-500">admin</span>
           </div>
           <Avatar className="h-9 w-9 border border-slate-200">
-            <AvatarFallback className="bg-gradient-to-br from-indigo-100 to-violet-100 text-indigo-600 text-sm font-medium">
+            <AvatarFallback className="bg-gradient-to-br from-teal-100 to-emerald-100 text-teal-600 text-sm font-medium">
               管
             </AvatarFallback>
           </Avatar>

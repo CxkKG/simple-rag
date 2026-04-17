@@ -102,6 +102,21 @@
 
     <build>
         <plugins>
+            <!-- 🔧 添加 Java 编译插件，启用 -parameters 保留参数名 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>21</source>        <!-- 根据你的 JDK 版本调整 -->
+                    <target>21</target>
+                    <compilerArgs>
+                        <arg>-parameters</arg>  <!-- ✅ 关键：保留方法参数名 -->
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+
+            <!-- 原有的 Spring Boot 插件 -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>

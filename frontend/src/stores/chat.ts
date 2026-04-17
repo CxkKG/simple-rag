@@ -46,17 +46,22 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   selectSession: async (sessionId) => {
+    console.log('selectSession called with sessionId:', sessionId)
     set({ isLoading: true, error: null })
     try {
+      // 先设置当前会话 ID
+      set({ currentSessionId: sessionId })
+
       // 获取会话消息
       const response = await ApiService.chat.getMessages(sessionId)
       console.log('getMessages response:', response)
 
       // 响应格式: Message[] (直接返回消息数组)
       const messages = Array.isArray(response) ? response : []
+      console.log('Setting messages:', messages)
 
-      // 更新当前会话 ID 和消息
-      set({ currentSessionId: sessionId, messages: messages })
+      // 更新消息
+      set({ messages })
 
       // 刷新会话列表以更新最后时间
       await get().fetchSessions()
@@ -116,8 +121,14 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
   sendMessage: async (content) => {
     const { currentSessionId, selectedKnowledgeBase, messages } = get()
-    if (!currentSessionId) {
-      throw new Error('No active session')
+
+    // 如果没有活动会话，先创建一个
+    let sessionId = currentSessionId
+    if (!sessionId) {
+      if (!selectedKnowledgeBase) {
+        throw new Error('请先选择知识库')
+      }
+      sessionId = await get().createSession(selectedKnowledgeBase)
     }
 
     set({ isLoading: true, error: null })
@@ -133,7 +144,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
     try {
       // Call API
-      const response = await ApiService.chat.chat(currentSessionId, content)
+      const response = await ApiService.chat.chat(sessionId, content)
       const answer = response.answer
 
       // Add assistant message
@@ -148,7 +159,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       // 发送消息后更新会话标题（如果还是默认标题）
       if (messages.length === 0) {
         const firstMessage = content.length > 20 ? content.substring(0, 20) + '...' : content
-        ApiService.chat.renameSession(currentSessionId, firstMessage).catch(() => {})
+        ApiService.chat.renameSession(sessionId, firstMessage).catch(() => {})
       }
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to send message' })

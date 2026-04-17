@@ -501,4 +501,46 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
         log.info("Summary and keywords updated: docId={}, summaryLength={}, keywords={}",
                 docId, summary != null ? summary.length() : 0, keywords.size());
     }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateDocumentInfo(String docId, String docName, String summary, List<String> keywords) {
+        KnowledgeDocumentDO documentDO = documentMapper.selectById(docId);
+        if (documentDO == null) {
+            throw new IllegalArgumentException("Document not found: " + docId);
+        }
+
+        if (StrUtil.isNotBlank(docName)) {
+            documentDO.setDocName(docName);
+        }
+
+        if (StrUtil.isNotBlank(summary)) {
+            documentDO.setSummary(summary);
+        }
+
+        if (keywords != null && !keywords.isEmpty()) {
+            documentDO.setKeywords(String.join(",", keywords));
+        }
+
+        documentDO.setUpdateTime(LocalDateTime.now());
+        documentMapper.updateById(documentDO);
+
+        log.info("Document info updated: docId={}, docName={}, summaryLength={}, keywords={}",
+                docId, docName, summary != null ? summary.length() : 0, keywords);
+    }
+
+    @Override
+    public int countDocuments() {
+        LambdaQueryWrapper<KnowledgeDocumentDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(KnowledgeDocumentDO::getDeleted, 0);
+        return Math.toIntExact(documentMapper.selectCount(wrapper));
+    }
+
+    @Override
+    public int countDocumentsByKbId(String kbId) {
+        LambdaQueryWrapper<KnowledgeDocumentDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(KnowledgeDocumentDO::getKbId, kbId)
+                .eq(KnowledgeDocumentDO::getDeleted, 0);
+        return Math.toIntExact(documentMapper.selectCount(wrapper));
+    }
 }

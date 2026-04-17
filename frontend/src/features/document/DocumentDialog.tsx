@@ -80,7 +80,7 @@ export function DocumentDialog({ open, onOpenChange, kbId }: DocumentDialogProps
             <div className="flex items-center gap-3 rounded-lg border border-dashed border-slate-300 p-4 hover:bg-slate-50 transition-colors">
               {file ? (
                 <div className="flex items-center gap-3 flex-1">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-100 text-teal-600">
                     <Upload className="h-5 w-5" />
                   </div>
                   <div className="flex-1 min-w-0">

@@ -55,7 +55,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8">
         {/* Logo 区域 */}
         <div className="text-center space-y-4">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 shadow-lg shadow-indigo-500/30">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-600 shadow-lg shadow-teal-500/30">
             <BookOpen className="h-8 w-8 text-white" />
           </div>
           <div>
@@ -99,7 +99,7 @@ export default function LoginPage() {
                     required
                     placeholder="请输入用户名"
                     disabled={isLoading}
-                    className="h-11 transition-all duration-200 focus-visible:ring-indigo-500"
+                    className="h-11 transition-all duration-200 focus-visible:ring-teal-500"
                   />
                 </div>
                 <div className="space-y-1">
@@ -114,13 +114,13 @@ export default function LoginPage() {
                     required
                     placeholder="请输入密码"
                     disabled={isLoading}
-                    className="h-11 transition-all duration-200 focus-visible:ring-indigo-500"
+                    className="h-11 transition-all duration-200 focus-visible:ring-teal-500"
                   />
                 </div>
               </div>
               <Button
                 type="submit"
-                className="w-full h-11 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-md"
+                className="w-full h-11 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 shadow-md"
                 disabled={isLoading}
               >
                 {isLoading ? (

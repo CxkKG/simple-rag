@@ -72,13 +72,32 @@ public class KnowledgeDocumentController {
             @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
 
         List<KnowledgeDocumentVO> documents = documentService.listDocuments(kbId, pageNum, pageSize);
-        int total = documents.size(); // TODO: 需要添加 getTotal 方法
+        int total = documentService.countDocumentsByKbId(kbId);
 
         Map<String, Object> response = new HashMap<>();
         response.put("code", 0);
         response.put("message", "success");
         response.put("data", documents);
         response.put("total", total);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> updateDocumentInfo(
+            @PathVariable("id") String docId,
+            @RequestBody Map<String, Object> request) {
+
+        String docName = (String) request.get("docName");
+        String summary = (String) request.get("summary");
+        List<String> keywords = (List<String>) request.get("keywords");
+
+        documentService.updateDocumentInfo(docId, docName, summary, keywords);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "success");
+        response.put("data", null);
 
         return ResponseEntity.ok(response);
     }

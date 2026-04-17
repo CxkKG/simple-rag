@@ -23,7 +23,7 @@
   }
 
   .btn-primary {
-    @apply bg-gradient-to-r from-indigo-600 to-violet-600 text-primary-foreground hover:bg-gradient-to-r hover:from-indigo-700 hover:to-violet-700 shadow-sm hover:shadow-md;
+    @apply bg-gradient-to-r from-teal-600 to-emerald-600 text-primary-foreground hover:bg-gradient-to-r hover:from-teal-700 hover:to-emerald-700 shadow-sm hover:shadow-md;
   }
 
   .btn-secondary {
@@ -59,7 +59,7 @@
   }
 
   .card-hover {
-    @apply transition-all duration-200 hover:shadow-md hover:border-indigo-100;
+    @apply transition-all duration-200 hover:shadow-md hover:border-teal-100;
   }
 
   .badge-pending {
