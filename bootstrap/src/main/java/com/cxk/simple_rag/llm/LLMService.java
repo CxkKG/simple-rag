@@ -1,8 +1,9 @@
 package com.cxk.simple_rag.llm;
 
-import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * LLM 服务接口
@@ -27,6 +28,25 @@ public interface LLMService {
      * @return 生成的回答
      */
     String generate(List<Message> messages);
+
+    /**
+     * 流式生成回答（SSE）
+     *
+     * @param messages 消息列表
+     * @param emitter SSE 发射器
+     * @param contentConsumer 内容消费回调，用于接收流式片段
+     */
+    void streamGenerate(List<Message> messages, SseEmitter emitter, Consumer<String> contentConsumer);
+
+    /**
+     * 流式生成回答（SSE）- 简化版
+     *
+     * @param systemPrompt 系统提示词
+     * @param userPrompt 用户提示词
+     * @param emitter SSE 发射器
+     * @param contentConsumer 内容消费回调
+     */
+    void streamGenerate(String systemPrompt, String userPrompt, SseEmitter emitter, Consumer<String> contentConsumer);
 
     /**
      * 消息类

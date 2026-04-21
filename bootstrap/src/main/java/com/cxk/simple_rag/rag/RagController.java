@@ -14,6 +14,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * RAG 智能问答控制器
@@ -140,7 +141,7 @@ public class RagController {
      *
      * @param kbId 知识库 ID
      * @param question 问题
-     * @param topK 引用分块数量（可选，默认 3）
+     * @param topK 检索数量（可选，默认 3）
      * @return 回答
      */
     @PostMapping("/query")
@@ -167,30 +168,53 @@ public class RagController {
      * @param topK 检索数量（可选，默认 3）
      * @return SSE 流
      */
-    @PostMapping(value = "/stream-chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(value = "/stream-chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @ResponseBody
     public SseEmitter streamChat(
             @RequestParam String kbId,
             @RequestParam String question,
             @RequestParam(required = false) String conversationId,
             @RequestParam(defaultValue = "3") int topK) {
+
+        // 设置超时时间为 0 表示永不超时（由异步任务控制）
         SseEmitter emitter = new SseEmitter(0L);
 
-        // 使用数组包装变量以在 lambda 中修改
-        String[] finalConvId = { conversationId };
+        // 使用原子布尔标记是否已完成，避免重复完成
+        AtomicBoolean completed = new AtomicBoolean(false);
 
         // 异步处理对话
         CompletableFuture.runAsync(() -> {
-            // 如果没有会话 ID，创建新的
-            if (finalConvId[0] == null || finalConvId[0].trim().isEmpty()) {
-                finalConvId[0] = ragService.createConversation(kbId, "system");
-            }
+            String finalConvId = conversationId;
 
             try {
+                // 设置完成回调，确保资源正确释放
+                String finalConvId1 = finalConvId;
+                emitter.onCompletion(() -> {
+                    log.info("SSE connection completed: conversationId={}", finalConvId1);
+                    completed.set(true);
+                });
+
+                String finalConvId2 = finalConvId;
+                emitter.onTimeout(() -> {
+                    log.warn("SSE connection timed out: conversationId={}", finalConvId2);
+                    completed.set(true);
+                });
+
+                String finalConvId3 = finalConvId;
+                emitter.onError(throwable -> {
+                    log.error("SSE connection error: conversationId={}", finalConvId3, throwable);
+                    completed.set(true);
+                });
+
+                // 如果没有会话 ID，创建新的
+                if (finalConvId == null || finalConvId.trim().isEmpty()) {
+                    finalConvId = ragService.createConversation(kbId, "system");
+                }
+
                 // 发送会话 ID
                 emitter.send(SseEmitter.event()
                         .name("conversationId")
-                        .data(finalConvId[0]));
+                        .data(finalConvId));
 
                 // 发送开始事件
                 emitter.send(SseEmitter.event().name("start").data("start"));
@@ -221,34 +245,50 @@ public class RagController {
                         "如果提供的信息不足以回答问题，请如实告知用户。" +
                         "回答中引用的信息请标注对应的编号 [1]、[2] 等。";
 
-                // 调用 LLM 生成回答
-                String answer = llmService.generate(systemPrompt, contextBuilder.toString() + "\n\n请根据以上信息回答用户的问题：" + question);
+                // 构建用户消息
+                String userMessage = contextBuilder.toString() + "\n\n请根据以上信息回答用户的问题：" + question;
 
-                // 发送回答内容（分段发送模拟流式）
-                int chunkSize = 50;
-                for (int i = 0; i < answer.length(); i += chunkSize) {
-                    int end = Math.min(i + chunkSize, answer.length());
-                    String chunk = answer.substring(i, end);
-                    emitter.send(SseEmitter.event().name("content").data(chunk));
-                    Thread.sleep(50); // 模拟流式生成
+                // 用于累积完整回答
+                StringBuilder fullAnswer = new StringBuilder();
+
+                // 调用 LLM 流式生成回答
+                llmService.streamGenerate(systemPrompt, userMessage, emitter, text -> {
+                    // 内容消费回调，累积完整回答
+                    fullAnswer.append(text);
+                });
+
+                // 检查是否在流式过程中已完成
+                if (completed.get()) {
+                    log.warn("Stream already completed, skipping save");
+                    return;
                 }
 
                 // 发送完成事件
                 emitter.send(SseEmitter.event().name("end").data("end"));
 
                 // 保存对话记录
-                ragService.saveMessage(finalConvId[0], "user", question);
-                ragService.saveMessage(finalConvId[0], "assistant", answer);
+                ragService.saveMessage(finalConvId, "user", question);
+                ragService.saveMessage(finalConvId, "assistant", fullAnswer.toString());
+
+                log.info("Stream chat completed: conversationId={}, question={}, answerLength={}",
+                        finalConvId, question, fullAnswer.length());
 
             } catch (Exception e) {
-                log.error("Stream chat error", e);
-                try {
-                    emitter.send(SseEmitter.event().name("error").data(e.getMessage()));
-                } catch (IOException ex) {
-                    log.error("Failed to send error event", ex);
+                log.error("Stream chat error: conversationId={}", finalConvId, e);
+                if (!completed.get()) {
+                    try {
+                        emitter.send(SseEmitter.event()
+                                .name("error")
+                                .data("处理失败：" + e.getMessage()));
+                    } catch (IOException ex) {
+                        log.error("Failed to send error event", ex);
+                    }
                 }
             } finally {
-                emitter.complete();
+                if (!completed.get()) {
+                    completed.set(true);
+                    emitter.complete();
+                }
             }
         });
 

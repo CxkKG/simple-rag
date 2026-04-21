@@ -143,18 +143,97 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     set({ messages: [...messages, userMessage] })
 
     try {
-      // Call API
-      const response = await ApiService.chat.chat(sessionId, content)
-      const answer = response.answer
+      // 使用 EventSource 接收流式响应
+      const kbId = selectedKnowledgeBase!
+      const streamPath = ApiService.chat.streamChat(kbId, content, sessionId)
+      // 构建完整的 URL（EventSource 不支持 axios 拦截器，需要完整 URL）
+      const baseURL = import.meta.env.VITE_API_BASE_URL || window.location.origin + '/api/simple-rag'
+      const streamUrl = baseURL + streamPath
 
-      // Add assistant message
+      // 创建完整的 AI 消息占位符
+      const assistantMessageId = `assistant_${Date.now()}`
       const assistantMessage: Message = {
-        id: `assistant_${Date.now()}`,
+        id: assistantMessageId,
         role: 'assistant',
-        content: answer,
+        content: '',
         createdAt: new Date().toISOString(),
       }
-      set({ messages: [...messages, userMessage, assistantMessage] })
+
+      // 使用 ref 存储消息 ID，避免闭包问题
+      let currentAssistantMessageId = assistantMessageId
+      // 先添加用户消息和空的 AI 消息占位符，然后设置 isLoading = false 隐藏加载动画
+      set({ messages: [...messages, userMessage, assistantMessage], isLoading: false })
+
+      // 使用 EventSource 连接 SSE
+      await new Promise<void>((resolve, reject) => {
+        const eventSource = new EventSource(streamUrl)
+        let accumulatedContent = ''
+        let hasError = false
+
+        // 接收会话 ID
+        eventSource.addEventListener('conversationId', (event) => {
+          console.log('Received conversationId:', event.data)
+        })
+
+        // 接收内容片段
+        eventSource.addEventListener('content', (event) => {
+          const chunk = event.data
+          accumulatedContent += chunk
+
+          // 更新消息内容 - 使用函数式更新避免闭包问题
+          set((state) => {
+            const newMessages = state.messages.map(msg =>
+              msg.id === currentAssistantMessageId
+                ? { ...msg, content: accumulatedContent }
+                : msg
+            )
+            return { messages: newMessages }
+          })
+        })
+
+        // 接收完成事件
+        eventSource.addEventListener('end', () => {
+          console.log('Stream completed')
+          eventSource.close()
+          resolve()
+        })
+
+        // 接收错误事件
+        eventSource.addEventListener('error', (event) => {
+          console.error('Stream error:', event.data)
+          hasError = true
+          eventSource.close()
+          reject(new Error(event.data || '流式响应失败'))
+        })
+
+        // 连接打开
+        eventSource.onopen = () => {
+          console.log('SSE connection opened')
+        }
+
+        // 连接错误
+        eventSource.onerror = () => {
+          if (!hasError) {
+            eventSource.close()
+            reject(new Error('SSE connection error'))
+          }
+        }
+
+        // 设置超时
+        const timeout = setTimeout(() => {
+          eventSource.close()
+          if (!hasError) {
+            reject(new Error('请求超时'))
+          }
+        }, 60000) // 60 秒超时
+
+        // 当完成时清除超时
+        const originalClose = eventSource.close.bind(eventSource)
+        eventSource.close = () => {
+          clearTimeout(timeout)
+          originalClose()
+        }
+      })
 
       // 发送消息后更新会话标题（如果还是默认标题）
       if (messages.length === 0) {
@@ -162,9 +241,11 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         ApiService.chat.renameSession(sessionId, firstMessage).catch(() => {})
       }
     } catch (error) {
+      console.error('Send error:', error)
       set({ error: error instanceof Error ? error.message : 'Failed to send message' })
       // Remove temporary user message on error
       set({ messages: messages })
+      throw error
     } finally {
       set({ isLoading: false })
     }

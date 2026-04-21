@@ -328,6 +328,15 @@ export class ApiService {
         url: '/rag/conversation/list',
         params: { userId },
       }),
+
+    // 流式问答（SSE）
+    streamChat: (kbId: string, question: string, conversationId?: string, topK: number = 3) => {
+      const params = new URLSearchParams({ kbId, question, topK: topK.toString() })
+      if (conversationId) {
+        params.append('conversationId', conversationId)
+      }
+      return `/rag/stream-chat?${params.toString()}`
+    },
   }
 }
 
