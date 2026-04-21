@@ -60,9 +60,10 @@ export interface KnowledgeBase {
 }
 
 // 文档类型
-export interface Document {
+export interface SimpleRagDocument {
   id: string
   kbId: string
+  kbName?: string
   docName: string
   enabled?: number
   chunkCount?: number

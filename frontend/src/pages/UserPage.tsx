@@ -64,10 +64,10 @@ export default function UserPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">用户管理</h2>
-          <p className="text-sm text-slate-500">管理系统用户和权限</p>
+          <h2 className="text-2xl font-bold text-education-blue-900">用户管理</h2>
+          <p className="text-sm text-education-blue-600">管理系统用户和权限</p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)} className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700">
+        <Button onClick={() => setIsDialogOpen(true)} className="bg-gradient-to-r from-education-blue-600 to-education-blue-500 hover:from-education-blue-700 hover:to-education-blue-600">
           <Plus className="w-4 h-4 mr-2" />
           添加用户
         </Button>
@@ -77,7 +77,7 @@ export default function UserPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 flex-1">
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-education-blue-400" />
               <Input
                 placeholder="搜索用户..."
                 value={search}
@@ -85,21 +85,21 @@ export default function UserPage() {
                 className="pl-10 h-10"
               />
             </div>
-            <span className="text-sm text-slate-500">
+            <span className="text-sm text-education-blue-500">
               共 {filteredUsers.length} 个用户
             </span>
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="rounded-xl border border-education-blue-100 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader className="bg-slate-50">
+              <TableHeader className="bg-education-blue-50">
                 <TableRow>
-                  <TableHead>用户名</TableHead>
-                  <TableHead>角色</TableHead>
-                  <TableHead>创建时间</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
+                  <TableHead className="text-education-blue-800">用户名</TableHead>
+                  <TableHead className="text-education-blue-800">角色</TableHead>
+                  <TableHead className="text-education-blue-800">创建时间</TableHead>
+                  <TableHead className="text-right text-education-blue-800">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -135,7 +135,7 @@ export default function UserPage() {
                       <TableCell>
                         <Badge
                           variant={user.role === 'admin' ? 'default' : 'secondary'}
-                          className={user.role === 'admin' ? 'bg-indigo-600 hover:bg-indigo-700' : ''}
+                          className={user.role === 'admin' ? 'bg-education-blue-600 hover:bg-education-blue-700' : ''}
                         >
                           {user.role === 'admin' ? '管理员' : '普通用户'}
                         </Badge>

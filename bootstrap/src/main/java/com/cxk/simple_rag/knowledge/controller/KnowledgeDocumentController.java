@@ -1,10 +1,14 @@
 package com.cxk.simple_rag.knowledge.controller;
 
 import com.cxk.simple_rag.knowledge.dto.ChunkDocumentRequest;
+import com.cxk.simple_rag.knowledge.dto.QueryDocumentRequest;
 import com.cxk.simple_rag.knowledge.dto.UploadDocumentRequest;
+import com.cxk.simple_rag.knowledge.service.KnowledgeBaseService;
 import com.cxk.simple_rag.knowledge.service.KnowledgeDocumentService;
 import com.cxk.simple_rag.knowledge.vo.KnowledgeDocumentVO;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,9 +25,11 @@ import java.util.Map;
 @RestController
 @RequestMapping("/knowledge/document")
 @RequiredArgsConstructor
+@Slf4j
 public class KnowledgeDocumentController {
 
     private final KnowledgeDocumentService documentService;
+    private final KnowledgeBaseService knowledgeBaseService;
 
     @PostMapping("/upload")
     public ResponseEntity<Map<String, Object>> uploadDocument(
@@ -117,6 +123,48 @@ public class KnowledgeDocumentController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Object>> deleteDocument(@PathVariable("id") String docId) {
         documentService.deleteDocument(docId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "success");
+        response.put("data", null);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/query")
+    public ResponseEntity<Map<String, Object>> queryDocuments(@RequestBody QueryDocumentRequest request) {
+        Page<KnowledgeDocumentVO> page = documentService.queryDocuments(request);
+
+        // 为每个文档添加所属知识库信息
+        List<KnowledgeDocumentVO> documentsWithKBInfo = page.getRecords().stream()
+                .map(vo -> {
+                    try {
+                        var knowledgeBase = knowledgeBaseService.getKnowledgeBase(vo.getKbId());
+                        vo.setKbName(knowledgeBase.getName());
+                    } catch (Exception e) {
+                        log.warn("Failed to get knowledge base info for docId: {}, kbId: {}", vo.getId(), vo.getKbId(), e);
+                        vo.setKbName("未知知识库");
+                    }
+                    return vo;
+                })
+                .toList();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "success");
+        response.put("data", documentsWithKBInfo);
+        response.put("total", page.getTotal());
+        response.put("pageNum", page.getCurrent());
+        response.put("pageSize", page.getSize());
+        response.put("pages", page.getPages());
+
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/batch")
+    public ResponseEntity<Map<String, Object>> deleteDocuments(@RequestBody List<String> docIds) {
+        documentService.deleteDocuments(docIds);
 
         Map<String, Object> response = new HashMap<>();
         response.put("code", 0);

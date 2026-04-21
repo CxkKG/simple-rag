@@ -12,6 +12,7 @@ import com.cxk.simple_rag.core.embedding.ChunkEmbeddingService;
 import com.cxk.simple_rag.ai.AISummaryService;
 import com.cxk.simple_rag.core.parser.ParserSelector;
 import com.cxk.simple_rag.core.parser.ParserType;
+import com.cxk.simple_rag.knowledge.dto.QueryDocumentRequest;
 import com.cxk.simple_rag.knowledge.dto.UploadDocumentRequest;
 import com.cxk.simple_rag.knowledge.entity.KnowledgeChunkDO;
 import com.cxk.simple_rag.knowledge.entity.KnowledgeDocumentChunkLogDO;
@@ -401,9 +402,20 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
     }
 
     private KnowledgeDocumentVO toVO(KnowledgeDocumentDO documentDO) {
+        // 获取所属知识库名称
+        String kbName = null;
+        try {
+            var knowledgeBase = knowledgeBaseService.getKnowledgeBase(documentDO.getKbId());
+            kbName = knowledgeBase.getName();
+        } catch (Exception e) {
+            log.warn("Failed to get knowledge base name for docId: {}, kbId: {}", documentDO.getId(), documentDO.getKbId(), e);
+            kbName = "未知知识库";
+        }
+
         return KnowledgeDocumentVO.builder()
                 .id(documentDO.getId())
                 .kbId(documentDO.getKbId())
+                .kbName(kbName)
                 .docName(documentDO.getDocName())
                 .enabled(documentDO.getEnabled())
                 .chunkCount(documentDO.getChunkCount())
@@ -534,6 +546,81 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
         LambdaQueryWrapper<KnowledgeDocumentDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(KnowledgeDocumentDO::getDeleted, 0);
         return Math.toIntExact(documentMapper.selectCount(wrapper));
+    }
+
+    @Override
+    public Page<KnowledgeDocumentVO> queryDocuments(QueryDocumentRequest request) {
+        Page<KnowledgeDocumentDO> page = new Page<>(request.getPageNum(), request.getPageSize());
+        LambdaQueryWrapper<KnowledgeDocumentDO> wrapper = new LambdaQueryWrapper<>();
+
+        // 文档名称模糊查询
+        if (StrUtil.isNotBlank(request.getDocName())) {
+            wrapper.like(KnowledgeDocumentDO::getDocName, request.getDocName());
+        }
+
+        // 所属知识库查询
+        if (StrUtil.isNotBlank(request.getKbId())) {
+            wrapper.eq(KnowledgeDocumentDO::getKbId, request.getKbId());
+        }
+
+        // 文档状态查询
+        if (StrUtil.isNotBlank(request.getStatus())) {
+            wrapper.eq(KnowledgeDocumentDO::getStatus, request.getStatus());
+        }
+
+        // 文件类型查询
+        if (StrUtil.isNotBlank(request.getFileType())) {
+            wrapper.eq(KnowledgeDocumentDO::getFileType, request.getFileType());
+        }
+
+        // 创建时间范围查询
+        if (request.getStartTime() != null) {
+            wrapper.ge(KnowledgeDocumentDO::getCreateTime, request.getStartTime());
+        }
+        if (request.getEndTime() != null) {
+            wrapper.le(KnowledgeDocumentDO::getCreateTime, request.getEndTime());
+        }
+
+        // 只查询未删除的文档
+        wrapper.eq(KnowledgeDocumentDO::getDeleted, 0);
+
+        // 按创建时间降序排序
+        wrapper.orderByDesc(KnowledgeDocumentDO::getCreateTime);
+
+        Page<KnowledgeDocumentDO> resultPage = documentMapper.selectPage(page, wrapper);
+
+        // 转换为VO对象
+        Page<KnowledgeDocumentVO> voPage = new Page<>();
+        voPage.setCurrent(resultPage.getCurrent());
+        voPage.setSize(resultPage.getSize());
+        voPage.setTotal(resultPage.getTotal());
+        voPage.setPages(resultPage.getPages());
+        voPage.setRecords(resultPage.getRecords().stream().map(this::toVO).toList());
+
+        return voPage;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteDocuments(List<String> docIds) {
+        if (docIds == null || docIds.isEmpty()) {
+            return;
+        }
+
+        // 逻辑删除文档
+        LambdaQueryWrapper<KnowledgeDocumentDO> updateWrapper = new LambdaQueryWrapper<>();
+        updateWrapper.in(KnowledgeDocumentDO::getId, docIds);
+        KnowledgeDocumentDO updateDO = new KnowledgeDocumentDO();
+        updateDO.setDeleted(1);
+        updateDO.setUpdateTime(LocalDateTime.now());
+        documentMapper.update(updateDO, updateWrapper);
+
+        // 删除对应的分块数据
+        LambdaQueryWrapper<KnowledgeChunkDO> deleteChunkWrapper = new LambdaQueryWrapper<>();
+        deleteChunkWrapper.in(KnowledgeChunkDO::getDocId, docIds);
+        chunkMapper.delete(deleteChunkWrapper);
+
+        log.info("Documents deleted: docIds={}", docIds);
     }
 
     @Override

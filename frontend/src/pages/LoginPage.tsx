@@ -51,31 +51,31 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-education-blue-50 px-4">
       <div className="w-full max-w-md space-y-8">
         {/* Logo 区域 */}
         <div className="text-center space-y-4">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-600 shadow-lg shadow-teal-500/30">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-education-blue-600 to-education-blue-500 shadow-lg shadow-education-blue-500/30">
             <BookOpen className="h-8 w-8 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-              Simple RAG
+            <h1 className="text-3xl font-bold tracking-tight text-education-blue-900">
+              智能课程学习助手
             </h1>
-            <p className="mt-2 text-sm text-slate-600">
-              智能知识库问答系统
+            <p className="mt-2 text-sm text-education-blue-600">
+              智能课程学习助手，轻松获取学习资源和知识问答
             </p>
           </div>
         </div>
 
         {/* 登录卡片 */}
-        <Card className="border-0 shadow-xl shadow-slate-200/50">
+        <Card className="border-0 shadow-xl shadow-education-blue-200/50">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-xl font-semibold text-slate-900">
+            <CardTitle className="text-xl font-semibold text-education-blue-900">
               欢迎登录
             </CardTitle>
-            <CardDescription className="text-slate-500">
-              请输入您的账号信息访问系统
+            <CardDescription className="text-education-blue-600">
+              请输入您的账号信息访问学习系统
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -88,7 +88,7 @@ export default function LoginPage() {
               )}
               <div className="space-y-3">
                 <div className="space-y-1">
-                  <Label htmlFor="username" className="text-sm font-medium text-slate-700">
+                  <Label htmlFor="username" className="text-sm font-medium text-education-blue-700">
                     用户名
                   </Label>
                   <Input
@@ -99,11 +99,11 @@ export default function LoginPage() {
                     required
                     placeholder="请输入用户名"
                     disabled={isLoading}
-                    className="h-11 transition-all duration-200 focus-visible:ring-teal-500"
+                    className="h-11 transition-all duration-200 focus-visible:ring-education-blue-500"
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="password" className="text-sm font-medium text-slate-700">
+                  <Label htmlFor="password" className="text-sm font-medium text-education-blue-700">
                     密码
                   </Label>
                   <Input
@@ -114,13 +114,13 @@ export default function LoginPage() {
                     required
                     placeholder="请输入密码"
                     disabled={isLoading}
-                    className="h-11 transition-all duration-200 focus-visible:ring-teal-500"
+                    className="h-11 transition-all duration-200 focus-visible:ring-education-blue-500"
                   />
                 </div>
               </div>
               <Button
                 type="submit"
-                className="w-full h-11 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 shadow-md"
+                className="w-full h-11 bg-gradient-to-r from-education-blue-600 to-education-blue-500 hover:from-education-blue-700 hover:to-education-blue-600 shadow-md"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -133,15 +133,15 @@ export default function LoginPage() {
                 )}
               </Button>
             </form>
-            <div className="mt-4 text-center text-xs text-slate-500">
-              默认账号: <span className="font-medium text-slate-700">admin</span> / <span className="font-medium text-slate-700">admin</span>
+            <div className="mt-4 text-center text-xs text-education-blue-500">
+              默认账号: <span className="font-medium text-education-blue-700">admin</span> / <span className="font-medium text-education-blue-700">admin</span>
             </div>
           </CardContent>
         </Card>
 
         {/* 底部信息 */}
-        <div className="text-center text-sm text-slate-500">
-          <p>© 2024 Simple RAG. All rights reserved.</p>
+        <div className="text-center text-sm text-education-blue-500">
+          <p>© 2024 智能课程学习助手. All rights reserved.</p>
         </div>
       </div>
     </div>

@@ -20,20 +20,20 @@ export function SystemSettings() {
   return (
     <div className="max-w-4xl space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900">系统设置</h2>
-        <p className="text-sm text-slate-500 mt-1">配置系统参数和全局选项</p>
+        <h2 className="text-2xl font-bold text-education-blue-900">系统设置</h2>
+        <p className="text-sm text-education-blue-600 mt-1">配置系统参数和全局选项</p>
       </div>
 
       {/* 通用配置卡片 */}
-      <Card className="border-0 shadow-lg shadow-slate-200/50">
-        <CardHeader className="bg-gradient-to-r from-indigo-50 to-violet-50">
+      <Card className="border-0 shadow-lg shadow-education-blue-200/50">
+        <CardHeader className="bg-gradient-to-r from-education-blue-50 to-education-green-50">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm">
-              <Settings className="h-5 w-5 text-indigo-600" />
+              <Settings className="h-5 w-5 text-education-blue-600" />
             </div>
             <div>
-              <CardTitle className="text-lg font-semibold text-slate-900">通用配置</CardTitle>
-              <CardDescription className="text-slate-500">
+              <CardTitle className="text-lg font-semibold text-education-blue-900">通用配置</CardTitle>
+              <CardDescription className="text-education-blue-600">
                 设置系统的基本参数
               </CardDescription>
             </div>
@@ -87,15 +87,15 @@ export function SystemSettings() {
       </Card>
 
       {/* AI 配置卡片 */}
-      <Card className="border-0 shadow-lg shadow-slate-200/50">
-        <CardHeader className="bg-gradient-to-r from-indigo-50 to-violet-50">
+      <Card className="border-0 shadow-lg shadow-education-blue-200/50">
+        <CardHeader className="bg-gradient-to-r from-education-blue-50 to-education-green-50">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm">
-              <Settings className="h-5 w-5 text-indigo-600" />
+              <Settings className="h-5 w-5 text-education-blue-600" />
             </div>
             <div>
-              <CardTitle className="text-lg font-semibold text-slate-900">AI 配置</CardTitle>
-              <CardDescription className="text-slate-500">
+              <CardTitle className="text-lg font-semibold text-education-blue-900">AI 配置</CardTitle>
+              <CardDescription className="text-education-blue-600">
                 设置 AI 模型相关的参数
               </CardDescription>
             </div>

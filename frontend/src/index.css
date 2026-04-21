@@ -8,7 +8,7 @@
   }
 
   body {
-    @apply bg-slate-50 text-foreground;
+    @apply bg-education-blue-50 text-foreground;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   }
 }
@@ -23,11 +23,11 @@
   }
 
   .btn-primary {
-    @apply bg-gradient-to-r from-teal-600 to-emerald-600 text-primary-foreground hover:bg-gradient-to-r hover:from-teal-700 hover:to-emerald-700 shadow-sm hover:shadow-md;
+    @apply bg-gradient-to-r from-education-blue-600 to-education-blue-500 text-white hover:bg-gradient-to-r hover:from-education-blue-700 hover:to-education-blue-600 shadow-sm hover:shadow-md;
   }
 
   .btn-secondary {
-    @apply bg-slate-100 text-slate-900 hover:bg-slate-200 hover:text-slate-900;
+    @apply bg-education-green-50 text-education-green-800 hover:bg-education-green-100 hover:text-education-green-900;
   }
 
   .btn-outline {
@@ -55,23 +55,23 @@
   }
 
   .card {
-    @apply rounded-xl border border-slate-200 bg-card text-card-foreground shadow-sm shadow-slate-200/50;
+    @apply rounded-xl border border-education-blue-100 bg-white text-card-foreground shadow-sm shadow-education-blue-200/50;
   }
 
   .card-hover {
-    @apply transition-all duration-200 hover:shadow-md hover:border-teal-100;
+    @apply transition-all duration-200 hover:shadow-md hover:border-education-blue-200;
   }
 
   .badge-pending {
-    @apply inline-flex items-center rounded-full border border-orange-200 px-2.5 py-0.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-orange-50 text-orange-700;
+    @apply inline-flex items-center rounded-full border border-education-orange-200 px-2.5 py-0.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-education-orange-50 text-education-orange-700;
   }
 
   .badge-success {
-    @apply inline-flex items-center rounded-full border border-green-200 px-2.5 py-0.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-green-50 text-green-700;
+    @apply inline-flex items-center rounded-full border border-education-green-200 px-2.5 py-0.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-education-green-50 text-education-green-700;
   }
 
   .badge-processing {
-    @apply inline-flex items-center rounded-full border border-blue-200 px-2.5 py-0.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-blue-50 text-blue-700;
+    @apply inline-flex items-center rounded-full border border-education-blue-200 px-2.5 py-0.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-education-blue-50 text-education-blue-700;
   }
 
   .badge-error {
@@ -79,7 +79,7 @@
   }
 
   .badge-default {
-    @apply inline-flex items-center rounded-full border border-slate-200 px-2.5 py-0.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-slate-100 text-slate-700;
+    @apply inline-flex items-center rounded-full border border-education-blue-200 px-2.5 py-0.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-education-blue-50 text-education-blue-700;
   }
 
   .modal-overlay {
@@ -88,5 +88,29 @@
 
   .modal-content {
     @apply fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-xl;
+  }
+
+  /* 隐藏滚动条但保留滚动功能 */
+  .hide-scrollbar {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 0;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: transparent;
   }
 }

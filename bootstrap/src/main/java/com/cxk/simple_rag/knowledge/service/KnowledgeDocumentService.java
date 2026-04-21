@@ -1,8 +1,10 @@
 package com.cxk.simple_rag.knowledge.service;
 
+import com.cxk.simple_rag.knowledge.dto.QueryDocumentRequest;
 import com.cxk.simple_rag.knowledge.dto.UploadDocumentRequest;
 import com.cxk.simple_rag.knowledge.entity.KnowledgeDocumentDO;
 import com.cxk.simple_rag.knowledge.vo.KnowledgeDocumentVO;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -25,11 +27,15 @@ public interface KnowledgeDocumentService {
 
     List<KnowledgeDocumentVO> listDocuments(String kbId, int pageNum, int pageSize);
 
+    Page<KnowledgeDocumentVO> queryDocuments(QueryDocumentRequest request);
+
     KnowledgeDocumentVO getDocument(String docId);
 
     KnowledgeDocumentDO getDocumentById(String docId);
 
     void deleteDocument(String docId);
+
+    void deleteDocuments(List<String> docIds);
 
     void rebuildVectors(String docId);
 

@@ -88,7 +88,7 @@ function KnowledgeBaseDialog({ open, onOpenChange, kb }: KnowledgeBaseDialogProp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{kb ? '编辑知识库' : '创建知识库'}</DialogTitle>
+          <DialogTitle>{kb ? '编辑课程资源库' : '创建课程资源库'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
@@ -99,7 +99,7 @@ function KnowledgeBaseDialog({ open, onOpenChange, kb }: KnowledgeBaseDialogProp
           )}
           <div className="space-y-2">
             <Label htmlFor="name" className="text-sm font-medium">
-              知识库名称
+              课程资源库名称
             </Label>
             <Input
               id="name"
@@ -207,18 +207,18 @@ export function KnowledgeBaseTable() {
         </div>
 
         {/* 知识库列表 */}
-        <div className="rounded-xl border border-slate-200 bg-white">
+        <div className="rounded-xl border border-education-blue-100 bg-white">
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader className="bg-slate-50">
+              <TableHeader className="bg-education-blue-50">
                 <TableRow>
-                  <TableHead className="w-12">#</TableHead>
-                  <TableHead>知识库名称</TableHead>
-                  <TableHead>Embedding 模型</TableHead>
-                  <TableHead>Collection 名称</TableHead>
-                  <TableHead>创建人</TableHead>
-                  <TableHead>创建时间</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
+                  <TableHead className="w-12 text-education-blue-800">#</TableHead>
+                  <TableHead className="text-education-blue-800">课程资源库名称</TableHead>
+                  <TableHead className="text-education-blue-800">Embedding 模型</TableHead>
+                  <TableHead className="text-education-blue-800">Collection 名称</TableHead>
+                  <TableHead className="text-education-blue-800">创建人</TableHead>
+                  <TableHead className="text-education-blue-800">创建时间</TableHead>
+                  <TableHead className="text-right text-education-blue-800">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

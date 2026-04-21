@@ -18,6 +18,8 @@ public class KnowledgeDocumentVO {
 
     private String kbId;
 
+    private String kbName;
+
     private String docName;
 
     private Integer enabled;

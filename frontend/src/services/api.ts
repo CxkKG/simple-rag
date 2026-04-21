@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
-import { API_CONFIG, Message, KnowledgeBase, Document, User, SystemConfig, ChatSession } from '../types'
+import { API_CONFIG, Message, KnowledgeBase, SimpleRagDocument, User, SystemConfig, ChatSession } from '../types'
 
 // 创建 axios 实例
 const service: AxiosInstance = axios.create({
@@ -93,7 +93,7 @@ export class ApiService {
   static document = {
     // 上传文档
     upload: (data: FormData) =>
-      request<{ data: Document }>({
+      request<{ data: SimpleRagDocument }>({
         method: 'post',
         url: '/knowledge/document/upload',
         data,
@@ -104,7 +104,7 @@ export class ApiService {
 
     // 分页查询文档
     list: (kbId: string, pageNum: number = 1, pageSize: number = 10) =>
-      request<{ data: Document[]; total: number }>({
+      request<{ data: SimpleRagDocument[]; total: number }>({
         method: 'get',
         url: '/knowledge/document/page',
         params: { kbId, pageNum, pageSize },
@@ -120,7 +120,7 @@ export class ApiService {
 
     // 获取文档详情
     getById: (id: string) =>
-      request<{ data: Document }>({
+      request<{ data: SimpleRagDocument }>({
         method: 'get',
         url: `/knowledge/document/${id}`,
       }),
@@ -140,11 +140,34 @@ export class ApiService {
       }),
 
     // 更新文档信息
-    update: (id: string, data: { docName?: string; summary?: string; keywords?: string[] }) =>
+    update: (id: string, data: { docName?: string; summary?: string; keywords?: string }) =>
       request<{ data: null }>({
         method: 'put',
         url: `/knowledge/document/${id}`,
         data,
+      }),
+    // 多条件查询文档
+    query: (data: {
+      docName?: string;
+      kbId?: string;
+      startTime?: string;
+      endTime?: string;
+      status?: string;
+      fileType?: string;
+      pageNum?: number;
+      pageSize?: number;
+    }) =>
+      request<{ data: SimpleRagDocument[]; total: number; pageNum: number; pageSize: number; pages: number }>({
+        method: 'post',
+        url: '/knowledge/document/query',
+        data,
+      }),
+    // 批量删除文档
+    deleteBatch: (docIds: string[]) =>
+      request<{ data: null }>({
+        method: 'delete',
+        url: '/knowledge/document/batch',
+        data: docIds,
       }),
   }
 
@@ -281,14 +304,6 @@ export class ApiService {
       request<Message[]>({
         method: 'get',
         url: `/rag/conversation/${conversationId}`,
-      }),
-
-    // 重命名会话
-    renameSession: (conversationId: string, title: string) =>
-      request<void>({
-        method: 'put',
-        url: `/api/conversations/${conversationId}`,
-        data: { title },
       }),
 
     // 删除会话

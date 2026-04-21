@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { SimpleRagDocument } from '@/types'
 import {
   Table,
   TableBody,
@@ -53,7 +54,7 @@ export default function DocumentPage() {
   const [docName, setDocName] = useState('')
   const [error, setError] = useState('')
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [editingDoc, setEditingDoc] = useState<Document | null>(null)
+  const [editingDoc, setEditingDoc] = useState<SimpleRagDocument | null>(null)
   const [editDocName, setEditDocName] = useState('')
   const [editSummary, setEditSummary] = useState('')
   const [editKeywords, setEditKeywords] = useState<string[]>([])
@@ -89,7 +90,7 @@ export default function DocumentPage() {
     }
   }
 
-  const handleOpenEditDialog = (doc: Document) => {
+  const handleOpenEditDialog = (doc: SimpleRagDocument) => {
     setEditingDoc(doc)
     setEditDocName(doc.docName)
     setEditSummary(doc.summary || '')
@@ -168,8 +169,8 @@ export default function DocumentPage() {
               <Play className="w-4 h-4 rotate-180" />
             </Button>
             <div>
-              <h2 className="text-2xl font-bold text-slate-900">文档管理</h2>
-              <p className="text-sm text-slate-500">管理知识库中的文档</p>
+              <h2 className="text-2xl font-bold text-education-blue-900">课程文档</h2>
+              <p className="text-sm text-education-blue-600">管理课程资源库中的学习文档</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -181,7 +182,7 @@ export default function DocumentPage() {
                 accept=".pdf,.doc,.docx,.md,.txt,.csv,.xlsx"
                 ref={fileInputRef}
             />
-            <Button onClick={handleButtonClick} className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700">
+            <Button onClick={handleButtonClick} className="bg-gradient-to-r from-education-blue-600 to-education-blue-500 hover:from-education-blue-700 hover:to-education-blue-600">
               <Upload className="w-4 h-4 mr-2" />
               上传文档
             </Button>
@@ -190,20 +191,20 @@ export default function DocumentPage() {
 
         {/* 知识库信息卡片 */}
         {kb && (
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-xl border border-education-blue-100 bg-education-blue-50/50 p-6 shadow-sm">
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-900">{kb.name}</h3>
+                  <h3 className="text-lg font-semibold text-education-blue-900">{kb.name}</h3>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className="text-xs bg-education-blue-100 text-education-blue-700 border-education-blue-200">
                       Embedding 模型: {kb.embeddingModel}
                     </Badge>
-                    <Badge variant="outline" className="text-xs font-mono">
+                    <Badge variant="outline" className="text-xs font-mono bg-education-blue-100 text-education-blue-700 border-education-blue-200">
                       Collection: {kb.collectionName}
                     </Badge>
                   </div>
                 </div>
-                <Badge className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200">
+                <Badge className="bg-education-green-100 text-education-green-700 hover:bg-education-green-200">
                   {total} 个文档
                 </Badge>
               </div>
@@ -229,19 +230,19 @@ export default function DocumentPage() {
         </div>
 
         {/* 文档列表 */}
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="rounded-xl border border-education-blue-100 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader className="bg-slate-50">
+              <TableHeader className="bg-education-blue-50">
                 <TableRow>
-                  <TableHead>文档名称</TableHead>
-                  <TableHead>文件类型</TableHead>
-                  <TableHead>文件大小</TableHead>
-                  <TableHead>摘要</TableHead>
-                  <TableHead>关键词</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>创建时间</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
+                  <TableHead className="text-education-blue-800">文档名称</TableHead>
+                  <TableHead className="text-education-blue-800">文件类型</TableHead>
+                  <TableHead className="text-education-blue-800">文件大小</TableHead>
+                  <TableHead className="text-education-blue-800">摘要</TableHead>
+                  <TableHead className="text-education-blue-800">关键词</TableHead>
+                  <TableHead className="text-education-blue-800">状态</TableHead>
+                  <TableHead className="text-education-blue-800">创建时间</TableHead>
+                  <TableHead className="text-right text-education-blue-800">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
