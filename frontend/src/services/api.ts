@@ -288,11 +288,11 @@ export class ApiService {
 
   // 聊天 API
   static chat = {
-    createSession: (data: { kbId: string; userId: string }) =>
+    createSession: (kbId: string) =>
       request<{ conversationId: string }>({
         method: 'post',
         url: '/rag/conversation',
-        params: { kbId: data.kbId, userId: data.userId },
+        params: { kbId },
       }),
 
     chat: (conversationId: string, question: string, topK: number = 3) =>
@@ -321,11 +321,10 @@ export class ApiService {
         data: { title },
       }),
 
-    listConversations: (userId: string) =>
+    listConversations: () =>
       request<{ data: ChatSession[]; total: number }>({
         method: 'get',
         url: '/rag/conversation/list',
-        params: { userId },
       }),
 
     streamChat: (kbId: string, question: string, conversationId?: string, topK: number = 3) => {

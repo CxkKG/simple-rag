@@ -61,11 +61,20 @@ public class ConversationServiceImpl implements ConversationService {
     }
 
     @Override
-    public void renameConversation(String conversationId, String title) {
+    public ConversationDO getConversation(String conversationId, String userId) {
         ConversationDO conversation = getConversation(conversationId);
         if (conversation == null) {
-            throw new IllegalArgumentException("Conversation not found: " + conversationId);
+            throw new IllegalArgumentException("会话不存在: " + conversationId);
         }
+        if (!conversation.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("无权访问该会话");
+        }
+        return conversation;
+    }
+
+    @Override
+    public void renameConversation(String conversationId, String userId, String title) {
+        ConversationDO conversation = getConversation(conversationId, userId);
 
         conversation.setTitle(StrUtil.isBlank(title) ? "新会话" : title);
         conversation.setUpdateTime(new Date());
@@ -74,11 +83,8 @@ public class ConversationServiceImpl implements ConversationService {
     }
 
     @Override
-    public void deleteConversation(String conversationId) {
-        ConversationDO conversation = getConversation(conversationId);
-        if (conversation == null) {
-            throw new IllegalArgumentException("Conversation not found: " + conversationId);
-        }
+    public void deleteConversation(String conversationId, String userId) {
+        ConversationDO conversation = getConversation(conversationId, userId);
 
         conversation.setDeleted(1);
         conversation.setUpdateTime(new Date());

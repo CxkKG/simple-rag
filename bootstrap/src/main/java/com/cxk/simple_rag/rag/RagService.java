@@ -50,11 +50,12 @@ public class RagService {
      * @param conversationId 会话 ID
      * @param question 用户问题
      * @param topK 引用分块数量
+     * @param userId 用户 ID
      * @return 回答
      */
-    public String chat(String conversationId, String question, int topK) {
-        // 获取会话信息
-        var conversationDO = conversationService.getConversation(conversationId);
+    public String chat(String conversationId, String question, int topK, String userId) {
+        // 获取会话信息（带用户权限校验）
+        var conversationDO = conversationService.getConversation(conversationId, userId);
         if (conversationDO == null) {
             throw new IllegalArgumentException("Conversation not found: " + conversationId);
         }
@@ -110,10 +111,11 @@ public class RagService {
      * 获取会话历史
      *
      * @param conversationId 会话 ID
+     * @param userId 用户 ID
      * @return 消息列表
      */
-    public List<Message> getConversationHistory(String conversationId) {
-        var conversationDO = conversationService.getConversation(conversationId);
+    public List<Message> getConversationHistory(String conversationId, String userId) {
+        var conversationDO = conversationService.getConversation(conversationId, userId);
         if (conversationDO == null) {
             throw new IllegalArgumentException("Conversation not found: " + conversationId);
         }
@@ -136,9 +138,10 @@ public class RagService {
      * 删除会话
      *
      * @param conversationId 会话 ID
+     * @param userId 用户 ID
      */
-    public void deleteConversation(String conversationId) {
-        conversationService.deleteConversation(conversationId);
+    public void deleteConversation(String conversationId, String userId) {
+        conversationService.deleteConversation(conversationId, userId);
         log.info("Conversation deleted: conversationId={}", conversationId);
     }
 

@@ -1,5 +1,6 @@
 package com.cxk.simple_rag.rag;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.cxk.simple_rag.conversation.service.ConversationService;
 import com.cxk.simple_rag.llm.LLMService;
 import com.cxk.simple_rag.rag.RagService;
@@ -37,13 +38,11 @@ public class RagController {
      * 创建会话
      *
      * @param kbId 知识库 ID
-     * @param userId 用户 ID
      * @return 会话 ID
      */
     @PostMapping("/conversation")
-    public Map<String, String> createConversation(
-            @RequestParam String kbId,
-            @RequestParam String userId) {
+    public Map<String, String> createConversation(@RequestParam String kbId) {
+        String userId = StpUtil.getLoginIdAsString();
         String conversationId = ragService.createConversation(kbId, userId);
         Map<String, String> result = new HashMap<>();
         result.put("conversationId", conversationId);
@@ -57,8 +56,9 @@ public class RagController {
     public void renameConversation(
             @PathVariable String conversationId,
             @RequestBody Map<String, String> request) {
+        String userId = StpUtil.getLoginIdAsString();
         String title = request.get("title");
-        conversationService.renameConversation(conversationId, title);
+        conversationService.renameConversation(conversationId, userId, title);
     }
 
     /**
@@ -74,7 +74,8 @@ public class RagController {
             @RequestParam String conversationId,
             @RequestParam String question,
             @RequestParam(defaultValue = "3") int topK) {
-        String answer = ragService.chat(conversationId, question, topK);
+        String userId = StpUtil.getLoginIdAsString();
+        String answer = ragService.chat(conversationId, question, topK, userId);
 
         Map<String, Object> result = new HashMap<>();
         result.put("answer", answer);
@@ -89,7 +90,8 @@ public class RagController {
      */
     @GetMapping("/conversation/{conversationId}")
     public List<RagService.Message> getConversationHistory(@PathVariable String conversationId) {
-        return ragService.getConversationHistory(conversationId);
+        String userId = StpUtil.getLoginIdAsString();
+        return ragService.getConversationHistory(conversationId, userId);
     }
 
     /**
@@ -99,7 +101,8 @@ public class RagController {
      */
     @DeleteMapping("/conversation/{conversationId}")
     public void deleteConversation(@PathVariable String conversationId) {
-        ragService.deleteConversation(conversationId);
+        String userId = StpUtil.getLoginIdAsString();
+        ragService.deleteConversation(conversationId, userId);
     }
 
     /**
@@ -107,9 +110,9 @@ public class RagController {
      */
     @GetMapping("/conversation/list")
     public Map<String, Object> listConversations(
-            @RequestParam("userId") String userId,
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize) {
+        String userId = StpUtil.getLoginIdAsString();
         List<com.cxk.simple_rag.conversation.entity.ConversationDO> conversations =
                 conversationService.listConversations(userId);
 
@@ -149,9 +152,10 @@ public class RagController {
             @RequestParam String kbId,
             @RequestParam String question,
             @RequestParam(defaultValue = "3") int topK) {
+        String userId = StpUtil.getLoginIdAsString();
         // 创建临时会话
-        String conversationId = ragService.createConversation(kbId, "system");
-        String answer = ragService.chat(conversationId, question, topK);
+        String conversationId = ragService.createConversation(kbId, userId);
+        String answer = ragService.chat(conversationId, question, topK, userId);
 
         Map<String, Object> result = new HashMap<>();
         result.put("answer", answer);
@@ -175,6 +179,13 @@ public class RagController {
             @RequestParam String question,
             @RequestParam(required = false) String conversationId,
             @RequestParam(defaultValue = "3") int topK) {
+
+        String userId = StpUtil.getLoginIdAsString();
+
+        // 如果提供了会话 ID，校验该会话属于当前用户
+        if (conversationId != null && !conversationId.trim().isEmpty()) {
+            conversationService.getConversation(conversationId, userId);
+        }
 
         // 设置超时时间为 0 表示永不超时（由异步任务控制）
         SseEmitter emitter = new SseEmitter(0L);
@@ -208,7 +219,7 @@ public class RagController {
 
                 // 如果没有会话 ID，创建新的
                 if (finalConvId == null || finalConvId.trim().isEmpty()) {
-                    finalConvId = ragService.createConversation(kbId, "system");
+                    finalConvId = ragService.createConversation(kbId, userId);
                 }
 
                 // 发送会话 ID

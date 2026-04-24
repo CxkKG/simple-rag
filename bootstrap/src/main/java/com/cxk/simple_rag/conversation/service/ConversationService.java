@@ -30,19 +30,31 @@ public interface ConversationService {
     ConversationDO getConversation(String conversationId);
 
     /**
+     * 获取会话详情（带用户权限校验）
+     *
+     * @param conversationId 会话 ID
+     * @param userId 用户 ID
+     * @return 会话对象
+     * @throws IllegalArgumentException 会话不存在或不属于该用户
+     */
+    ConversationDO getConversation(String conversationId, String userId);
+
+    /**
      * 重命名会话
      *
      * @param conversationId 会话 ID
+     * @param userId 用户 ID
      * @param title 新标题
      */
-    void renameConversation(String conversationId, String title);
+    void renameConversation(String conversationId, String userId, String title);
 
     /**
      * 删除会话
      *
      * @param conversationId 会话 ID
+     * @param userId 用户 ID
      */
-    void deleteConversation(String conversationId);
+    void deleteConversation(String conversationId, String userId);
 
     /**
      * 获取用户会话列表

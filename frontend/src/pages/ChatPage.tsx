@@ -293,7 +293,7 @@ export default function ChatPage() {
                           setSelectedKnowledgeBase(kb.id)
                           setIsKBSelectOpen(false)
                           if (messages.length === 0) {
-                            createSession(kb.id).then(setSelectedKnowledgeBase).catch(console.error)
+                            createSession(kb.id).catch(console.error)
                           }
                         }}
                         className="px-4 py-3 hover:bg-education-blue-50 cursor-pointer border-b border-education-blue-100 last:border-0"

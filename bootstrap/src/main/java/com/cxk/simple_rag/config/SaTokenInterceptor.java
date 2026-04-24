@@ -34,8 +34,14 @@ public class SaTokenInterceptor implements HandlerInterceptor {
     }
 
     private boolean isAdminPath(String path, String method) {
-        if (path.startsWith("/knowledge")
-                || path.startsWith("/dashboard")
+        // 知识库：仅管理类操作（创建/修改/删除）需要 admin，查询接口对所有登录用户开放
+        if (path.startsWith("/knowledge")) {
+            if ("GET".equalsIgnoreCase(method)) {
+                return false;
+            }
+            return true;
+        }
+        if (path.startsWith("/dashboard")
                 || path.startsWith("/system")
                 || path.startsWith("/ingestion")) {
             return true;

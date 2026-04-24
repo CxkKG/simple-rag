@@ -31,7 +31,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   createSession: async (kbId) => {
     set({ isLoading: true, error: null })
     try {
-      const response = await ApiService.chat.createSession({ kbId, userId: 'admin' })
+      const response = await ApiService.chat.createSession(kbId)
       const sessionId = response.conversationId
       set({ currentSessionId: sessionId, selectedKnowledgeBase: kbId })
       // 创建会话后立即获取会话列表更新
@@ -77,8 +77,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   fetchSessions: async () => {
     set({ isLoading: true, error: null })
     try {
-      const userId = 'admin'
-      const response = await ApiService.chat.listConversations(userId)
+      const response = await ApiService.chat.listConversations()
       console.log('listConversations response:', response)
 
       // 响应格式: {code, message, data: ChatSession[], total}

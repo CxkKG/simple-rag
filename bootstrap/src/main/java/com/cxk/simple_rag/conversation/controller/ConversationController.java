@@ -1,5 +1,6 @@
 package com.cxk.simple_rag.conversation.controller;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.cxk.simple_rag.conversation.service.ConversationService;
 import com.cxk.simple_rag.conversation.entity.ConversationDO;
 import com.cxk.simple_rag.conversation.entity.MessageDO;
@@ -30,7 +31,7 @@ public class ConversationController {
     public ResponseEntity<Map<String, Object>> createConversation(
             @RequestBody Map<String, String> request) {
         String kbId = request.get("kbId");
-        String userId = request.get("userId");
+        String userId = StpUtil.getLoginIdAsString();
 
         if (kbId == null) {
             throw new IllegalArgumentException("kbId is required");
@@ -52,7 +53,8 @@ public class ConversationController {
      */
     @GetMapping("/{conversationId}")
     public ResponseEntity<Map<String, Object>> getConversation(@PathVariable String conversationId) {
-        ConversationDO conversation = conversationService.getConversation(conversationId);
+        String userId = StpUtil.getLoginIdAsString();
+        ConversationDO conversation = conversationService.getConversation(conversationId, userId);
         Map<String, Object> response = new HashMap<>();
         response.put("code", 0);
         response.put("message", "success");
@@ -67,8 +69,9 @@ public class ConversationController {
     public ResponseEntity<Map<String, Object>> renameConversation(
             @PathVariable String conversationId,
             @RequestBody Map<String, String> request) {
+        String userId = StpUtil.getLoginIdAsString();
         String title = request.get("title");
-        conversationService.renameConversation(conversationId, title);
+        conversationService.renameConversation(conversationId, userId, title);
         Map<String, Object> response = new HashMap<>();
         response.put("code", 0);
         response.put("message", "success");
@@ -81,7 +84,8 @@ public class ConversationController {
      */
     @DeleteMapping("/{conversationId}")
     public ResponseEntity<Map<String, Object>> deleteConversation(@PathVariable String conversationId) {
-        conversationService.deleteConversation(conversationId);
+        String userId = StpUtil.getLoginIdAsString();
+        conversationService.deleteConversation(conversationId, userId);
         Map<String, Object> response = new HashMap<>();
         response.put("code", 0);
         response.put("message", "success");
@@ -93,8 +97,8 @@ public class ConversationController {
      * 获取用户会话列表
      */
     @GetMapping
-    public ResponseEntity<Map<String, Object>> listConversations(
-            @RequestParam String userId) {
+    public ResponseEntity<Map<String, Object>> listConversations() {
+        String userId = StpUtil.getLoginIdAsString();
         List<ConversationDO> conversations = conversationService.listConversations(userId);
         Map<String, Object> response = new HashMap<>();
         response.put("code", 0);
