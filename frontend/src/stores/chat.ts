@@ -199,7 +199,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         })
 
         // 接收错误事件
-        eventSource.addEventListener('error', (event) => {
+        eventSource.addEventListener('error', (event: MessageEvent) => {
           console.error('Stream error:', event.data)
           hasError = true
           eventSource.close()

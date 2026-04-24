@@ -13,11 +13,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 用户控制器
- *
- * @author wangxin
- */
 @RestController
 @RequestMapping("/user")
 @RequiredArgsConstructor
@@ -25,9 +20,6 @@ public class UserController {
 
     private final UserService userService;
 
-    /**
-     * 用户注册
-     */
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> register(@Valid @RequestBody RegisterRequest request) {
         UserVO userVO = userService.register(request);
@@ -40,9 +32,6 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * 用户登录
-     */
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequest request) {
         UserVO userVO = userService.login(request);
@@ -55,9 +44,30 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * 获取当前用户信息
-     */
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, Object>> logout() {
+        userService.logout();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "登出成功");
+        response.put("data", null);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/current")
+    public ResponseEntity<Map<String, Object>> getCurrentUser() {
+        UserVO userVO = userService.getCurrentUser();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "success");
+        response.put("data", userVO);
+
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/info/{userId}")
     public ResponseEntity<Map<String, Object>> getUserInfo(@PathVariable("userId") String userId) {
         UserVO userVO = userService.getUserById(userId);
@@ -70,9 +80,6 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * 分页查询用户
-     */
     @GetMapping("/page")
     public ResponseEntity<Map<String, Object>> listUsers(
             @RequestParam(value = "pageNum", defaultValue = "1") int pageNum,
@@ -90,9 +97,6 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * 创建用户
-     */
     @PostMapping
     public ResponseEntity<Map<String, Object>> createUser(@Valid @RequestBody Map<String, String> request) {
         String username = request.get("username");
@@ -118,9 +122,6 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * 更新用户
-     */
     @PutMapping("/{id}")
     public ResponseEntity<Map<String, Object>> updateUser(
             @PathVariable("id") String id,
@@ -128,7 +129,6 @@ public class UserController {
 
         UserVO existingUser = userService.getUserById(id);
 
-        // 只允许更新用户名，不允许修改角色（安全考虑）
         String username = request.get("username");
         if (username != null) {
             // TODO: 更新用户名逻辑
@@ -144,9 +144,6 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * 删除用户
-     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable("id") String id) {
         userService.deleteUser(id);

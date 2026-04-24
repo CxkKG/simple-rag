@@ -9,9 +9,10 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { BookOpen, Loader2 } from 'lucide-react'
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -21,10 +22,21 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    if (password !== confirmPassword) {
+      setError('两次输入的密码不一致')
+      return
+    }
+
+    if (password.length < 6) {
+      setError('密码长度不能少于6位')
+      return
+    }
+
     setIsLoading(true)
 
     try {
-      const res = await ApiService.auth.login({ username, password })
+      const res = await ApiService.auth.register({ username, password })
       const userData = res.data as any
       const user = {
         id: userData.id,
@@ -37,7 +49,7 @@ export default function LoginPage() {
       login(user, userData.token)
       navigate('/chat')
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || '用户名或密码错误'
+      const msg = err?.response?.data?.message || err?.message || '注册失败，请稍后重试'
       setError(msg)
     } finally {
       setIsLoading(false)
@@ -56,7 +68,7 @@ export default function LoginPage() {
               智能课程学习助手
             </h1>
             <p className="mt-2 text-sm text-education-blue-600">
-              智能课程学习助手，轻松获取学习资源和知识问答
+              注册新账号，开始学习之旅
             </p>
           </div>
         </div>
@@ -64,10 +76,10 @@ export default function LoginPage() {
         <Card className="border-0 shadow-xl shadow-education-blue-200/50">
           <CardHeader className="space-y-1">
             <CardTitle className="text-xl font-semibold text-education-blue-900">
-              欢迎登录
+              注册账号
             </CardTitle>
             <CardDescription className="text-education-blue-600">
-              请输入您的账号信息访问学习系统
+              创建您的学习账号
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -104,7 +116,22 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    placeholder="请输入密码"
+                    placeholder="请输入密码（至少6位）"
+                    disabled={isLoading}
+                    className="h-11 transition-all duration-200 focus-visible:ring-education-blue-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="confirmPassword" className="text-sm font-medium text-education-blue-700">
+                    确认密码
+                  </Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    placeholder="请再次输入密码"
                     disabled={isLoading}
                     className="h-11 transition-all duration-200 focus-visible:ring-education-blue-500"
                   />
@@ -118,17 +145,17 @@ export default function LoginPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    登录中...
+                    注册中...
                   </>
                 ) : (
-                  '登 录'
+                  '注 册'
                 )}
               </Button>
             </form>
             <div className="mt-4 text-center text-sm text-education-blue-500">
-              还没有账号？{' '}
-              <Link to="/register" className="text-education-blue-700 font-medium hover:text-education-blue-800">
-                注册新账号
+              已有账号？{' '}
+              <Link to="/login" className="text-education-blue-700 font-medium hover:text-education-blue-800">
+                返回登录
               </Link>
             </div>
           </CardContent>

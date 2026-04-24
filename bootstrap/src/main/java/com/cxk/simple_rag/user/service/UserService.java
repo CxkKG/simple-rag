@@ -17,6 +17,10 @@ public interface UserService {
 
     UserVO login(LoginRequest request);
 
+    void logout();
+
+    UserVO getCurrentUser();
+
     UserVO getUserById(String userId);
 
     UserVO getUserByUsername(String username);

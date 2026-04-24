@@ -1,7 +1,8 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { API_CONFIG, Message, KnowledgeBase, SimpleRagDocument, User, SystemConfig, ChatSession } from '../types'
 
-// 创建 axios 实例
+const TOKEN_KEY = 'ra_token'
+
 const service: AxiosInstance = axios.create({
   baseURL: API_CONFIG.baseURL,
   timeout: API_CONFIG.timeout,
@@ -10,14 +11,13 @@ const service: AxiosInstance = axios.create({
   },
 })
 
-// 请求拦截器
+// 请求拦截器 — 添加 token
 service.interceptors.request.use(
   (config) => {
-    // 可以在这里添加 token
-    // const token = localStorage.getItem('token')
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`
-    // }
+    const token = localStorage.getItem(TOKEN_KEY)
+    if (token) {
+      config.headers['satoken'] = token
+    }
     return config
   },
   (error) => {
@@ -25,32 +25,61 @@ service.interceptors.request.use(
   }
 )
 
-// 响应拦截器
+// 响应拦截器 — 处理 401
 service.interceptors.response.use(
   (response: AxiosResponse) => {
     const res = response.data
-    // 统一的响应处理
     if (res.code !== 0 && res.code !== undefined) {
       return Promise.reject(new Error(res.message || 'Error'))
     }
     return res
   },
   (error) => {
-    console.error('API Error:', error)
+    if (error.response?.status === 401) {
+      localStorage.removeItem(TOKEN_KEY)
+      localStorage.removeItem('ra_admin_user')
+      window.location.href = '/login'
+    }
     return Promise.reject(error)
   }
 )
 
-// 基础请求方法
 const request = <T>(config: AxiosRequestConfig): Promise<T> => {
   return service.request(config)
 }
 
-// API 服务类
 export class ApiService {
+  // 认证 API
+  static auth = {
+    login: (data: { username: string; password: string }) =>
+      request<{ data: User & { token: string } }>({
+        method: 'post',
+        url: '/user/login',
+        data,
+      }),
+
+    register: (data: { username: string; password: string }) =>
+      request<{ data: User & { token: string } }>({
+        method: 'post',
+        url: '/user/register',
+        data,
+      }),
+
+    logout: () =>
+      request<{ data: null }>({
+        method: 'post',
+        url: '/user/logout',
+      }),
+
+    currentUser: () =>
+      request<{ data: User }>({
+        method: 'get',
+        url: '/user/current',
+      }),
+  }
+
   // 知识库 API
   static knowledgeBase = {
-    // 创建知识库
     create: (data: { name: string; embeddingModel: string; createdBy?: string }) =>
       request<{ data: KnowledgeBase }>({
         method: 'post',
@@ -58,14 +87,12 @@ export class ApiService {
         data,
       }),
 
-    // 获取知识库详情
     getById: (id: string) =>
       request<{ data: KnowledgeBase }>({
         method: 'get',
         url: `/knowledge/base/${id}`,
       }),
 
-    // 分页查询知识库
     list: (pageNum: number = 1, pageSize: number = 10) =>
       request<{ data: KnowledgeBase[]; total: number }>({
         method: 'get',
@@ -73,7 +100,6 @@ export class ApiService {
         params: { pageNum, pageSize },
       }),
 
-    // 更新知识库
     update: (id: string, data: { name: string }) =>
       request<{ data: KnowledgeBase }>({
         method: 'put',
@@ -81,7 +107,6 @@ export class ApiService {
         data,
       }),
 
-    // 删除知识库
     delete: (id: string) =>
       request<{ data: null }>({
         method: 'delete',
@@ -91,7 +116,6 @@ export class ApiService {
 
   // 文档 API
   static document = {
-    // 上传文档
     upload: (data: FormData) =>
       request<{ data: SimpleRagDocument }>({
         method: 'post',
@@ -102,7 +126,6 @@ export class ApiService {
         },
       }),
 
-    // 分页查询文档
     list: (kbId: string, pageNum: number = 1, pageSize: number = 10) =>
       request<{ data: SimpleRagDocument[]; total: number }>({
         method: 'get',
@@ -110,7 +133,6 @@ export class ApiService {
         params: { kbId, pageNum, pageSize },
       }),
 
-    // 手动分块
     chunk: (docId: string) =>
       request<{ data: null }>({
         method: 'post',
@@ -118,35 +140,31 @@ export class ApiService {
         data: { docId },
       }),
 
-    // 获取文档详情
     getById: (id: string) =>
       request<{ data: SimpleRagDocument }>({
         method: 'get',
         url: `/knowledge/document/${id}`,
       }),
 
-    // 删除文档
     delete: (id: string) =>
       request<{ data: null }>({
         method: 'delete',
         url: `/knowledge/document/${id}`,
       }),
 
-    // 重建向量
     rebuildVectors: (id: string) =>
       request<{ data: null }>({
         method: 'post',
         url: `/knowledge/document/${id}/rebuild`,
       }),
 
-    // 更新文档信息
     update: (id: string, data: { docName?: string; summary?: string; keywords?: string }) =>
       request<{ data: null }>({
         method: 'put',
         url: `/knowledge/document/${id}`,
         data,
       }),
-    // 多条件查询文档
+
     query: (data: {
       docName?: string;
       kbId?: string;
@@ -162,7 +180,7 @@ export class ApiService {
         url: '/knowledge/document/query',
         data,
       }),
-    // 批量删除文档
+
     deleteBatch: (docIds: string[]) =>
       request<{ data: null }>({
         method: 'delete',
@@ -173,7 +191,6 @@ export class ApiService {
 
   // RAG API
   static rag = {
-    // 创建会话
     createConversation: (kbId: string) =>
       request<{ conversationId: string }>({
         method: 'post',
@@ -181,7 +198,6 @@ export class ApiService {
         params: { kbId },
       }),
 
-    // 问答
     chat: (conversationId: string, question: string, topK: number = 3) =>
       request<{ answer: string }>({
         method: 'post',
@@ -189,21 +205,18 @@ export class ApiService {
         params: { conversationId, question, topK },
       }),
 
-    // 获取会话历史
     getConversationHistory: (conversationId: string) =>
       request<{ data: Message[] }>({
         method: 'get',
         url: `/rag/conversation/${conversationId}`,
       }),
 
-    // 删除会话
     deleteConversation: (conversationId: string) =>
       request<void>({
         method: 'delete',
         url: `/rag/conversation/${conversationId}`,
       }),
 
-    // 快捷问答
     query: (kbId: string, question: string, topK: number = 3) =>
       request<{ answer: string; conversationId: string }>({
         method: 'post',
@@ -214,7 +227,6 @@ export class ApiService {
 
   // 用户 API
   static user = {
-    // 分页查询用户
     list: (pageNum: number = 1, pageSize: number = 10) =>
       request<{ data: User[]; total: number }>({
         method: 'get',
@@ -222,14 +234,12 @@ export class ApiService {
         params: { pageNum, pageSize },
       }),
 
-    // 获取用户详情
     getById: (id: string) =>
       request<{ data: User }>({
         method: 'get',
         url: `/user/${id}`,
       }),
 
-    // 创建用户
     create: (data: { username: string; password: string; role?: string }) =>
       request<{ data: User }>({
         method: 'post',
@@ -237,7 +247,6 @@ export class ApiService {
         data,
       }),
 
-    // 更新用户
     update: (id: string, data: { username?: string; password?: string; role?: string }) =>
       request<{ data: User }>({
         method: 'put',
@@ -245,7 +254,6 @@ export class ApiService {
         data,
       }),
 
-    // 删除用户
     delete: (id: string) =>
       request<{ data: null }>({
         method: 'delete',
@@ -255,14 +263,12 @@ export class ApiService {
 
   // 系统配置 API
   static system = {
-    // 获取配置
     getConfig: (key: string) =>
       request<{ data: SystemConfig }>({
         method: 'get',
         url: `/system/config/${key}`,
       }),
 
-    // 更新配置
     updateConfig: (key: string, value: string) =>
       request<{ data: SystemConfig }>({
         method: 'put',
@@ -273,7 +279,6 @@ export class ApiService {
 
   // 仪表板 API
   static dashboard = {
-    // 获取统计数据
     getStats: () =>
       request<{ data: { knowledgeBaseCount: number; documentCount: number; userCount: number } }>({
         method: 'get',
@@ -283,7 +288,6 @@ export class ApiService {
 
   // 聊天 API
   static chat = {
-    // 创建会话
     createSession: (data: { kbId: string; userId: string }) =>
       request<{ conversationId: string }>({
         method: 'post',
@@ -291,7 +295,6 @@ export class ApiService {
         params: { kbId: data.kbId, userId: data.userId },
       }),
 
-    // 问答
     chat: (conversationId: string, question: string, topK: number = 3) =>
       request<{ answer: string }>({
         method: 'post',
@@ -299,21 +302,18 @@ export class ApiService {
         params: { conversationId, question, topK },
       }),
 
-    // 获取会话历史
     getMessages: (conversationId: string) =>
       request<Message[]>({
         method: 'get',
         url: `/rag/conversation/${conversationId}`,
       }),
 
-    // 删除会话
     delete: (conversationId: string) =>
       request<void>({
         method: 'delete',
         url: `/rag/conversation/${conversationId}`,
       }),
 
-    // 重命名会话
     renameSession: (conversationId: string, title: string) =>
       request<void>({
         method: 'put',
@@ -321,7 +321,6 @@ export class ApiService {
         data: { title },
       }),
 
-    // 获取会话列表
     listConversations: (userId: string) =>
       request<{ data: ChatSession[]; total: number }>({
         method: 'get',
@@ -329,11 +328,15 @@ export class ApiService {
         params: { userId },
       }),
 
-    // 流式问答（SSE）
     streamChat: (kbId: string, question: string, conversationId?: string, topK: number = 3) => {
       const params = new URLSearchParams({ kbId, question, topK: topK.toString() })
       if (conversationId) {
         params.append('conversationId', conversationId)
+      }
+      // 添加 token 到 SSE 请求
+      const token = localStorage.getItem(TOKEN_KEY)
+      if (token) {
+        params.append('satoken', token)
       }
       return `/rag/stream-chat?${params.toString()}`
     },

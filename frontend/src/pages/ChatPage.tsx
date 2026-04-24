@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Helmet } from 'react-helmet-async'
+import { UserRole } from '@/types'
 import {
   Dialog,
   DialogContent,
@@ -20,7 +21,7 @@ import {
   Plus,
   Trash2,
   Settings,
-  BookOpen, 
+  BookOpen,
   MoreVertical,
   X,
   User,
@@ -41,7 +42,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
 export default function ChatPage() {
   const navigate = useNavigate()
-  const { user, isAuthenticated, isLoading } = useAuthentication()
+  const { user, isAuthenticated, isLoading, hasRole, logout } = useAuthentication()
   const {
     messages,
     isLoading: chatIsLoading,
@@ -65,12 +66,6 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [pageLoading, setPageLoading] = useState(true)
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      navigate('/login')
-    }
-  }, [user, isAuthenticated, isLoading, navigate])
 
   useEffect(() => {
     if (user && knowledgeBases.length === 0) {
@@ -148,7 +143,6 @@ export default function ChatPage() {
   }
 
   if (!isAuthenticated || !user) {
-    navigate('/login')
     return null
   }
 
@@ -320,22 +314,26 @@ export default function ChatPage() {
             </div>
           </div>
           <div className="hidden md:flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/')}>
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <Settings className="w-4 h-4" />
+            {hasRole(UserRole.Admin) && (
+              <>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/dashboard')}>
+                  <ArrowLeft className="w-4 h-4" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => navigate('/')}>
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  返回管理后台
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => navigate('/dashboard')}>
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      进入后台管理
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="h-8 w-8 rounded-full p-0">
@@ -351,9 +349,9 @@ export default function ChatPage() {
                   {user.username}
                 </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => {
-                  localStorage.removeItem('ra_admin_user')
-                  window.location.href = '/login'
+                <DropdownMenuItem onClick={async () => {
+                  await logout()
+                  navigate('/login')
                 }}>
                   <LogOut className="w-4 h-4 mr-2" />
                   退出登录

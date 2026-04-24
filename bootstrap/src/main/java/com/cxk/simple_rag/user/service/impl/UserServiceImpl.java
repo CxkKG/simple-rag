@@ -1,5 +1,6 @@
 package com.cxk.simple_rag.user.service.impl;
 
+import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.crypto.digest.BCrypt;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cxk.simple_rag.user.dto.LoginRequest;
@@ -15,11 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * 用户服务实现类
- *
- * @author wangxin
- */
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
@@ -29,7 +25,6 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public UserVO register(RegisterRequest request) {
-        // 检查用户名是否已存在
         LambdaQueryWrapper<UserDO> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(UserDO::getUsername, request.getUsername());
         queryWrapper.eq(UserDO::getDeleted, 0);
@@ -38,11 +33,10 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("用户名已存在");
         }
 
-        // 创建用户
         UserDO user = new UserDO();
         user.setUsername(request.getUsername());
         user.setPassword(BCrypt.hashpw(request.getPassword()));
-        user.setRole("user"); // 默认角色为用户
+        user.setRole("user");
         user.setAvatar(request.getAvatar());
         user.setCreateTime(LocalDateTime.now());
         user.setUpdateTime(LocalDateTime.now());
@@ -50,12 +44,13 @@ public class UserServiceImpl implements UserService {
 
         userMapper.insert(user);
 
-        return convertToVO(user);
+        // 注册后自动登录
+        StpUtil.login(user.getId());
+        return convertToVO(user, StpUtil.getTokenValue());
     }
 
     @Override
     public UserVO login(LoginRequest request) {
-        // 查询用户
         LambdaQueryWrapper<UserDO> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(UserDO::getUsername, request.getUsername());
         queryWrapper.eq(UserDO::getDeleted, 0);
@@ -65,12 +60,27 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("用户名或密码错误");
         }
 
-        // 验证密码
         if (!BCrypt.checkpw(request.getPassword(), user.getPassword())) {
             throw new IllegalArgumentException("用户名或密码错误");
         }
 
-        return convertToVO(user);
+        StpUtil.login(user.getId());
+        return convertToVO(user, StpUtil.getTokenValue());
+    }
+
+    @Override
+    public void logout() {
+        StpUtil.logout();
+    }
+
+    @Override
+    public UserVO getCurrentUser() {
+        String userId = StpUtil.getLoginIdAsString();
+        UserDO user = userMapper.selectById(userId);
+        if (user == null || user.getDeleted() == 1) {
+            throw new IllegalArgumentException("用户不存在");
+        }
+        return convertToVO(user, null);
     }
 
     @Override
@@ -79,7 +89,7 @@ public class UserServiceImpl implements UserService {
         if (user == null || user.getDeleted() == 1) {
             throw new IllegalArgumentException("用户不存在");
         }
-        return convertToVO(user);
+        return convertToVO(user, null);
     }
 
     @Override
@@ -91,7 +101,7 @@ public class UserServiceImpl implements UserService {
         if (user == null) {
             throw new IllegalArgumentException("用户不存在");
         }
-        return convertToVO(user);
+        return convertToVO(user, null);
     }
 
     @Override
@@ -101,7 +111,7 @@ public class UserServiceImpl implements UserService {
         queryWrapper.eq(UserDO::getDeleted, 0);
         queryWrapper.last("LIMIT " + pageSize + " OFFSET " + startRow);
         List<UserDO> users = userMapper.selectList(queryWrapper);
-        return users.stream().map(this::convertToVO).toList();
+        return users.stream().map(u -> convertToVO(u, null)).toList();
     }
 
     @Override
@@ -119,15 +129,13 @@ public class UserServiceImpl implements UserService {
         userMapper.updateById(user);
     }
 
-    /**
-     * 将 DO 转换为 VO
-     */
-    private UserVO convertToVO(UserDO user) {
+    private UserVO convertToVO(UserDO user, String token) {
         return UserVO.builder()
                 .id(user.getId())
                 .username(user.getUsername())
                 .role(user.getRole())
                 .avatar(user.getAvatar())
+                .token(token)
                 .createTime(user.getCreateTime())
                 .build();
     }

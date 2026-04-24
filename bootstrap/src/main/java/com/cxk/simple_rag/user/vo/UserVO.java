@@ -22,5 +22,7 @@ public class UserVO {
 
     private String avatar;
 
+    private String token;
+
     private LocalDateTime createTime;
 }

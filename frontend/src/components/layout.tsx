@@ -7,7 +7,6 @@ import {
   Menu,
   X,
   FileText,
-  MessageSquare,
   LogOut,
 } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
@@ -21,14 +20,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useAuthentication } from '@/hooks/useAuthentication'
+import { UserRole } from '@/types'
+import { MessageSquare } from 'lucide-react'
 
-const menuItems = [
-  { icon: LayoutDashboard, label: '概览', path: '/' },
-  { icon: BookOpen, label: '知识库', path: '/knowledge-bases' },
-  { icon: FileText, label: '文档', path: '/documents' },
-  { icon: MessageSquare, label: '问答', path: '/chat' },
-  { icon: Users, label: '用户管理', path: '/users' },
-  { icon: Settings, label: '系统设置', path: '/settings' },
+const allMenuItems = [
+  { icon: LayoutDashboard, label: '概览', path: '/dashboard', role: UserRole.Admin },
+  { icon: BookOpen, label: '知识库', path: '/knowledge-bases', role: UserRole.Admin },
+  { icon: FileText, label: '文档', path: '/documents', role: UserRole.Admin },
+  { icon: MessageSquare, label: '问答', path: '/chat', role: undefined },
+  { icon: Users, label: '用户管理', path: '/users', role: UserRole.Admin },
+  { icon: Settings, label: '系统设置', path: '/settings', role: UserRole.Admin },
 ]
 
 interface SidebarProps {
@@ -39,15 +41,25 @@ interface SidebarProps {
 export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const location = useLocation()
   const navigate = useNavigate()
+  const { user, hasRole, logout } = useAuthentication()
+
+  const menuItems = allMenuItems.filter((item) => {
+    if (!item.role) return true
+    return hasRole(item.role)
+  })
 
   const handleNavigation = (path: string) => {
     navigate(path)
     setIsOpen(false)
   }
 
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login')
+  }
+
   return (
     <>
-      {/* 移动端遮罩 */}
       <div
         className={`fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden transition-opacity duration-300 ${
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
@@ -55,15 +67,13 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
         onClick={() => setIsOpen(false)}
       />
 
-      {/* 侧边栏 */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-education-blue-100 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static shadow-lg lg:shadow-none ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* 侧边栏头部 */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-education-blue-100">
-          <Link to="/" className="flex items-center gap-2 text-xl font-bold text-education-blue-900">
+          <Link to="/chat" className="flex items-center gap-2 text-xl font-bold text-education-blue-900">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-education-blue-600 to-education-blue-500 text-white">
               <BookOpen className="h-5 w-5" />
             </div>
@@ -79,7 +89,6 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           </button>
         </div>
 
-        {/* 侧边栏菜单 */}
         <nav className="p-4 space-y-1">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path
@@ -115,16 +124,15 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           })}
         </nav>
 
-        {/* 侧边栏底部 */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-100 bg-slate-50/50">
           <div className="flex items-center gap-3 px-2">
             <div className="flex-1 overflow-hidden">
-              <p className="text-sm font-medium text-slate-900 truncate">管理员</p>
-              <p className="text-xs text-slate-500 truncate">admin@example.com</p>
+              <p className="text-sm font-medium text-slate-900 truncate">{user?.username || '用户'}</p>
+              <p className="text-xs text-slate-500 truncate">{hasRole(UserRole.Admin) ? '管理员' : '普通用户'}</p>
             </div>
             <Avatar className="h-8 w-8 border border-slate-200">
               <AvatarFallback className="bg-gradient-to-br from-teal-100 to-emerald-100 text-teal-600 text-sm font-medium">
-                管
+                {user?.username?.substring(0, 1).toUpperCase() || '用'}
               </AvatarFallback>
             </Avatar>
           </div>
@@ -139,6 +147,14 @@ interface HeaderProps {
 }
 
 export function Header({ setIsOpen }: HeaderProps) {
+  const { user, logout } = useAuthentication()
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login')
+  }
+
   return (
     <header className="h-16 px-6 border-b border-education-blue-100 bg-white flex items-center justify-between sticky top-0 z-30 shadow-sm">
       <div className="flex items-center gap-4">
@@ -155,19 +171,16 @@ export function Header({ setIsOpen }: HeaderProps) {
           <DropdownMenuTrigger asChild>
             <Avatar className="h-9 w-9 border border-education-blue-200 cursor-pointer">
               <AvatarFallback className="bg-gradient-to-br from-education-blue-100 to-education-green-100 text-education-blue-600 text-sm font-medium">
-                学
+                {user?.username?.substring(0, 1).toUpperCase() || '用'}
               </AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48 bg-white border border-education-blue-100 shadow-lg">
             <div className="px-2 py-1.5 text-sm font-medium">
-              学生
+              {user?.username || '用户'}
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => {
-              localStorage.removeItem('ra_admin_user')
-              window.location.href = '/login'
-            }}>
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="w-4 h-4 mr-2" />
               退出登录
             </DropdownMenuItem>
