@@ -29,5 +29,7 @@ public interface UserService {
 
     long getTotalUsers();
 
+    UserVO updateUser(String userId, String username, String password, String role);
+
     void deleteUser(String userId);
 }

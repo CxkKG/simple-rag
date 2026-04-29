@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cxk.simple_rag.knowledge.entity.KnowledgeBaseDO;
+import com.cxk.simple_rag.knowledge.entity.KnowledgeDocumentDO;
 import com.cxk.simple_rag.knowledge.mapper.KnowledgeBaseMapper;
 import com.cxk.simple_rag.knowledge.service.KnowledgeBaseService;
 import com.cxk.simple_rag.knowledge.vo.KnowledgeBaseVO;

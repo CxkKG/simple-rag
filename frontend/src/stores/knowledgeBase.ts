@@ -24,6 +24,7 @@ const normalizeKnowledgeBase = (kb: any): KnowledgeBase => ({
   name: kb.name || '',
   embeddingModel: kb.embeddingModel || '',
   collectionName: kb.collectionName || '',
+  documentCount: kb.documentCount ?? 0,
   createdBy: kb.createdBy || '',
   createdAt: kb.createTime || kb.createdAt || new Date().toISOString(),
   updatedAt: kb.updateTime || kb.updatedAt || new Date().toISOString(),

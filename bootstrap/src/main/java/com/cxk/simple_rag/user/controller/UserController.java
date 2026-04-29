@@ -127,14 +127,10 @@ public class UserController {
             @PathVariable("id") String id,
             @RequestBody Map<String, String> request) {
 
-        UserVO existingUser = userService.getUserById(id);
-
         String username = request.get("username");
-        if (username != null) {
-            // TODO: 更新用户名逻辑
-        }
-
-        UserVO updatedUser = userService.getUserById(id);
+        String password = request.get("password");
+        String role = request.get("role");
+        UserVO updatedUser = userService.updateUser(id, username, password, role);
 
         Map<String, Object> response = new HashMap<>();
         response.put("code", 0);

@@ -23,6 +23,7 @@ import com.cxk.simple_rag.knowledge.mapper.KnowledgeDocumentMapper;
 import com.cxk.simple_rag.knowledge.mq.KnowledgeDocumentChunkProducer;
 import com.cxk.simple_rag.knowledge.service.KnowledgeBaseService;
 import com.cxk.simple_rag.knowledge.service.KnowledgeDocumentService;
+import com.cxk.simple_rag.knowledge.vo.KnowledgeDocumentContentVO;
 import com.cxk.simple_rag.knowledge.vo.KnowledgeDocumentVO;
 import com.cxk.simple_rag.storage.RustFsStorageService;
 import com.cxk.simple_rag.vector.MilvusService;
@@ -52,6 +53,9 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
+
+    private static final int MAX_CONTENT_PAGE_SIZE = 10000;
+    private static final int MAX_PREVIEW_CHARACTERS = 500000;
 
     private final KnowledgeDocumentMapper documentMapper;
     private final KnowledgeChunkMapper chunkMapper;
@@ -389,6 +393,7 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
             case "pdf" -> "pdf";
             case "doc", "docx" -> "word";
             case "xls", "xlsx" -> "excel";
+            case "csv" -> "csv";
             case "ppt", "pptx" -> "powerpoint";
             case "md" -> "markdown";
             case "txt" -> "text";
@@ -454,6 +459,47 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
             throw new IllegalArgumentException("Document not found: " + docId);
         }
         return toVO(documentDO);
+    }
+
+    @Override
+    public String getDocumentContent(String docId) {
+        KnowledgeDocumentDO documentDO = documentMapper.selectById(docId);
+        if (documentDO == null) {
+            throw new IllegalArgumentException("Document not found: " + docId);
+        }
+        return extractText(documentDO);
+    }
+
+    @Override
+    public KnowledgeDocumentContentVO getDocumentContent(String docId, int pageNum, int pageSize) {
+        KnowledgeDocumentDO documentDO = documentMapper.selectById(docId);
+        if (documentDO == null) {
+            throw new IllegalArgumentException("Document not found: " + docId);
+        }
+
+        String content = extractText(documentDO);
+        int total = content != null ? content.length() : 0;
+        boolean oversized = total > MAX_PREVIEW_CHARACTERS;
+        String previewContent = oversized && content != null ? content.substring(0, MAX_PREVIEW_CHARACTERS) : content;
+        int previewTotal = previewContent != null ? previewContent.length() : 0;
+        int safePageSize = Math.max(1, Math.min(pageSize, MAX_CONTENT_PAGE_SIZE));
+        int pages = Math.max(1, (int) Math.ceil((double) previewTotal / safePageSize));
+        int safePageNum = Math.max(1, Math.min(pageNum, pages));
+        int start = Math.min((safePageNum - 1) * safePageSize, previewTotal);
+        int end = Math.min(start + safePageSize, previewTotal);
+
+        return KnowledgeDocumentContentVO.builder()
+                .content(previewContent == null ? "" : previewContent.substring(start, end))
+                .total(total)
+                .pageNum(safePageNum)
+                .pageSize(safePageSize)
+                .pages(pages)
+                .fileType(documentDO.getFileType())
+                .docName(documentDO.getDocName())
+                .previewOnly(oversized)
+                .oversized(oversized)
+                .errorMessage(oversized ? "文档内容较大，当前仅展示前 " + MAX_PREVIEW_CHARACTERS + " 个字符预览" : null)
+                .build();
     }
 
     @Override

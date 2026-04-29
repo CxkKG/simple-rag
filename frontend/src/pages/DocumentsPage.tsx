@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { SimpleRagDocument, KnowledgeBase } from '@/types'
+import { SimpleRagDocument, KnowledgeBase, DocumentContentPage } from '@/types'
+import { DocumentContentViewer } from '@/features/document/DocumentContentViewer'
 import {
   Table,
   TableBody,
@@ -27,16 +28,17 @@ import {
   MoreHorizontal,
   FileText,
   Upload,
-  Play,
   Trash2,
   RefreshCw,
   Search,
   X,
   Edit,
+  Eye,
   Filter,
 } from 'lucide-react'
 import { formatFileSize, formatDate } from '@/lib/utils'
 import { useNavigate } from 'react-router-dom'
+import { useResizableColumns } from '@/hooks/useResizableColumns'
 import {
   Dialog,
   DialogContent,
@@ -63,12 +65,28 @@ export default function DocumentsPage() {
   const [editDocName, setEditDocName] = useState('')
   const [editSummary, setEditSummary] = useState('')
   const [editKeywords, setEditKeywords] = useState('')
+  const [documentContentPage, setDocumentContentPage] = useState<DocumentContentPage | null>(null)
+  const [isContentLoading, setIsContentLoading] = useState(false)
+  const [contentError, setContentError] = useState('')
+  const contentPageSize = 3000
 
-  const { documents, isLoading, queryDocuments, deleteDocuments, total, selectedIds, toggleSelectId, clearSelectedIds, uploadDocument } = useDocumentStore()
+  const { documents, isLoading, queryDocuments, deleteDocuments, total, selectedIds, toggleSelectId, clearSelectedIds, uploadDocument, fetchDocumentContent } = useDocumentStore()
   const { knowledgeBases, fetchKnowledgeBases } = useKnowledgeBaseStore()
 
   const navigate = useNavigate()
   const { user } = useAuthentication()
+  const tableColumns = useResizableColumns([
+    { key: 'select', width: 48, minWidth: 44, maxWidth: 70 },
+    { key: 'name', width: 260, minWidth: 200, maxWidth: 520 },
+    { key: 'kb', width: 160, minWidth: 130, maxWidth: 300 },
+    { key: 'type', width: 110, minWidth: 90, maxWidth: 180 },
+    { key: 'size', width: 120, minWidth: 100, maxWidth: 180 },
+    { key: 'summary', width: 220, minWidth: 160, maxWidth: 520 },
+    { key: 'keywords', width: 220, minWidth: 150, maxWidth: 420 },
+    { key: 'status', width: 100, minWidth: 90, maxWidth: 150 },
+    { key: 'createdAt', width: 150, minWidth: 130, maxWidth: 220 },
+    { key: 'actions', width: 88, minWidth: 76, maxWidth: 120 },
+  ])
 
   // 获取知识库列表
   useEffect(() => {
@@ -90,11 +108,25 @@ export default function DocumentsPage() {
     queryDocuments(request)
   }, [search, status, fileType, startDate, endDate, selectedKbId, pageNum, pageSize, queryDocuments])
 
+  const refreshDocuments = () => {
+    return queryDocuments({
+      docName: search,
+      status: status || undefined,
+      fileType: fileType || undefined,
+      startTime: startDate ? startDate.toISOString() : undefined,
+      endTime: endDate ? endDate.toISOString() : undefined,
+      kbId: selectedKbId || undefined,
+      pageNum,
+      pageSize,
+    })
+  }
+
   // 批量删除
   const handleBatchDelete = async () => {
     if (selectedIds.length === 0) return
     if (window.confirm(`确定要删除选中的 ${selectedIds.length} 个文档吗？`)) {
       await deleteDocuments(selectedIds)
+      await refreshDocuments()
     }
   }
 
@@ -126,6 +158,7 @@ export default function DocumentsPage() {
     setIsUploadModalOpen(false)
     setUploadFile(null)
     setUploadDocName('')
+    await refreshDocuments()
     setSelectedKbId('')
   }
 
@@ -150,6 +183,7 @@ export default function DocumentsPage() {
       })
       setIsEditModalOpen(false)
       setSelectedDoc(null)
+      await refreshDocuments()
     } catch (error) {
       console.error('Failed to update document:', error)
       alert('更新失败: ' + (error instanceof Error ? error.message : '未知错误'))
@@ -160,6 +194,7 @@ export default function DocumentsPage() {
   const handleChunkDocument = async (docId: string) => {
     try {
       await useDocumentStore.getState().triggerChunking(docId)
+      await refreshDocuments()
       alert('解析任务已提交')
     } catch (error) {
       console.error('Failed to trigger chunking:', error)
@@ -167,10 +202,26 @@ export default function DocumentsPage() {
     }
   }
 
-  // 打开查看模态框
-  const handleViewDocument = (doc: SimpleRagDocument) => {
+  const loadDocumentContent = async (docId: string, page = 1) => {
+    setIsContentLoading(true)
+    setContentError('')
+    try {
+      const content = await fetchDocumentContent(docId, page, contentPageSize)
+      setDocumentContentPage(content)
+    } catch (error) {
+      setDocumentContentPage(null)
+      setContentError(error instanceof Error ? error.message : '加载文档内容失败')
+    } finally {
+      setIsContentLoading(false)
+    }
+  }
+
+  const handleViewDocument = async (doc: SimpleRagDocument) => {
     setSelectedDoc(doc)
+    setDocumentContentPage(null)
+    setContentError('')
     setIsViewModalOpen(true)
+    await loadDocumentContent(doc.id)
   }
 
   // 处理删除单个文档
@@ -178,6 +229,7 @@ export default function DocumentsPage() {
     if (window.confirm('确定要删除这个文档吗？')) {
       try {
         await useDocumentStore.getState().deleteDocument(docId)
+        await refreshDocuments()
         alert('删除成功')
       } catch (error) {
         console.error('Failed to delete document:', error)
@@ -306,26 +358,27 @@ export default function DocumentsPage() {
         {/* 文档列表 */}
         <div className="rounded-xl border border-education-blue-100 bg-white shadow-sm">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="table-fixed" style={tableColumns.getTableStyle()}>
               <TableHeader className="bg-education-blue-50">
                 <TableRow>
-                  <TableHead className="text-education-blue-800 w-8">
+                  <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('select')}>
                     <input
                       type="checkbox"
                       checked={selectedIds.length === documents.length && documents.length > 0}
                       onChange={(e) => handleSelectAll(e.target.checked)}
                       className="rounded border-slate-300 text-education-blue-600 focus:ring-education-blue-500"
                     />
+                    <span {...tableColumns.getResizeHandleProps('select')} />
                   </TableHead>
-                  <TableHead className="text-education-blue-800">文档名称</TableHead>
-                  <TableHead className="text-education-blue-800">所属知识库</TableHead>
-                  <TableHead className="text-education-blue-800">文件类型</TableHead>
-                  <TableHead className="text-education-blue-800">文件大小</TableHead>
-                  <TableHead className="text-education-blue-800">摘要</TableHead>
-                  <TableHead className="text-education-blue-800">关键词</TableHead>
-                  <TableHead className="text-education-blue-800">状态</TableHead>
-                  <TableHead className="text-education-blue-800">创建时间</TableHead>
-                  <TableHead className="text-right text-education-blue-800">操作</TableHead>
+                  <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('name')}>文档名称<span {...tableColumns.getResizeHandleProps('name')} /></TableHead>
+                  <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('kb')}>所属知识库<span {...tableColumns.getResizeHandleProps('kb')} /></TableHead>
+                  <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('type')}>文件类型<span {...tableColumns.getResizeHandleProps('type')} /></TableHead>
+                  <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('size')}>文件大小<span {...tableColumns.getResizeHandleProps('size')} /></TableHead>
+                  <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('summary')}>摘要<span {...tableColumns.getResizeHandleProps('summary')} /></TableHead>
+                  <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('keywords')}>关键词<span {...tableColumns.getResizeHandleProps('keywords')} /></TableHead>
+                  <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('status')}>状态<span {...tableColumns.getResizeHandleProps('status')} /></TableHead>
+                  <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('createdAt')}>创建时间<span {...tableColumns.getResizeHandleProps('createdAt')} /></TableHead>
+                  <TableHead className="relative group text-right text-education-blue-800" style={tableColumns.getColumnStyle('actions')}>操作<span {...tableColumns.getResizeHandleProps('actions')} /></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -349,103 +402,114 @@ export default function DocumentsPage() {
                     </TableRow>
                 ) : (
                     documents.map((doc) => (
-                        <TableRow key={doc.id} className="hover:bg-slate-50 transition-colors">
-                          <TableCell>
+                        <TableRow key={doc.id} className="h-16 hover:bg-slate-50 transition-colors">
+                          <TableCell className="py-2" style={tableColumns.getColumnStyle('select')}>
                             <input
                               type="checkbox"
                               checked={selectedIds.includes(doc.id)}
-                              onChange={(e) => toggleSelectId(doc.id)}
+                              onChange={() => toggleSelectId(doc.id)}
                               className="rounded border-slate-300 text-education-blue-600 focus:ring-education-blue-500"
                             />
                           </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-3 font-medium">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
+                          <TableCell className="py-2" style={tableColumns.getColumnStyle('name')}>
+                            <div className="flex min-w-0 items-center gap-3 font-medium">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100">
                                 <FileText className="h-4 w-4 text-slate-600" />
                               </div>
-                              <span className="text-slate-900">{doc.docName}</span>
+                              <span className="truncate text-slate-900" title={doc.docName}>{doc.docName}</span>
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-xs bg-education-blue-100 text-education-blue-700 border-education-blue-200">
+                          <TableCell className="py-2" style={tableColumns.getColumnStyle('kb')}>
+                            <Badge variant="outline" className="max-w-full truncate text-xs bg-education-blue-100 text-education-blue-700 border-education-blue-200" title={doc.kbName || '未知知识库'}>
                               {doc.kbName || '未知知识库'}
                             </Badge>
                           </TableCell>
-                          <TableCell>
-                            <code className="rounded bg-slate-100 px-2 py-1 text-xs font-mono text-slate-600">
+                          <TableCell className="py-2" style={tableColumns.getColumnStyle('type')}>
+                            <code className="block truncate rounded bg-slate-100 px-2 py-1 text-xs font-mono text-slate-600" title={doc.fileType}>
                               {doc.fileType}
                             </code>
                           </TableCell>
-                          <TableCell>
-                      <span className="text-sm text-slate-600">
-                        {doc.fileSize ? formatFileSize(doc.fileSize) : '-'}
-                      </span>
+                          <TableCell className="py-2" style={tableColumns.getColumnStyle('size')}>
+                            <span className="block truncate text-sm text-slate-600">
+                              {doc.fileSize ? formatFileSize(doc.fileSize) : '-'}
+                            </span>
                           </TableCell>
-                          <TableCell>
-                            <div className="max-w-xs truncate text-sm text-slate-600" title={doc.summary || ''}>
+                          <TableCell className="py-2" style={tableColumns.getColumnStyle('summary')}>
+                            <div className="truncate text-sm text-slate-600" title={doc.summary || ''}>
                               {doc.summary || '-'}
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {doc.keywords && doc.keywords.split(',').map((keyword, idx) => (
-                                <Badge key={idx} variant="secondary" className="text-xs">
-                                  {keyword}
-                                </Badge>
-                              ))}
-                              {!doc.keywords && <span className="text-sm text-slate-400">-</span>}
+                          <TableCell className="py-2" style={tableColumns.getColumnStyle('keywords')}>
+                            <div className="truncate text-sm text-slate-600" title={doc.keywords || ''}>
+                              {doc.keywords || '-'}
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="py-2" style={tableColumns.getColumnStyle('status')}>
                             <Badge
                                 variant={
                                   doc.status === 'success'
                                       ? 'default'
                                       : doc.status === 'failed'
                                           ? 'error'
-                                          : 'processing'
+                                          : doc.status === 'pending'
+                                              ? 'pending'
+                                              : 'processing'
                                 }
                             >
                               {doc.status === 'success'
                                   ? '已完成'
                                   : doc.status === 'failed'
                                       ? '失败'
-                                      : '处理中'}
+                                      : doc.status === 'pending'
+                                          ? '待处理'
+                                          : '处理中'}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-sm text-slate-500">
-                            {formatDate(doc.createdAt)}
+                          <TableCell className="py-2 text-sm text-slate-500" style={tableColumns.getColumnStyle('createdAt')}>
+                            <span className="block truncate">{formatDate(doc.createdAt)}</span>
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="py-2 text-right" style={tableColumns.getColumnStyle('actions')}>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="iconSm" className="h-8 w-8">
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-40">
+                              <DropdownMenuContent align="end" className="w-48 rounded-xl border-education-blue-100 bg-white p-2 shadow-xl">
+                                <div className="px-2 pb-2 pt-1">
+                                  <p className="truncate text-xs font-medium text-slate-500">文档操作</p>
+                                  <p className="truncate text-sm font-semibold text-slate-900">{doc.docName}</p>
+                                </div>
+                                <DropdownMenuSeparator className="bg-education-blue-50" />
+                                <DropdownMenuItem
+                                  onClick={() => handleViewDocument(doc)}
+                                  className="cursor-pointer rounded-lg px-3 py-2 text-slate-700 focus:bg-education-blue-50 focus:text-education-blue-700"
+                                >
+                                  <Eye className="mr-2 h-4 w-4 text-education-blue-500" />
+                                  查看内容
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleEditDocument(doc)}
+                                  className="cursor-pointer rounded-lg px-3 py-2 text-slate-700 focus:bg-education-blue-50 focus:text-education-blue-700"
+                                >
+                                  <Edit className="mr-2 h-4 w-4 text-slate-500" />
+                                  编辑信息
+                                </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => handleChunkDocument(doc.id)}
                                   disabled={doc.status === 'success'}
+                                  className="cursor-pointer rounded-lg px-3 py-2 text-slate-700 focus:bg-education-blue-50 focus:text-education-blue-700"
                                 >
-                                  <RefreshCw className="mr-2 h-4 w-4" />
+                                  <RefreshCw className="mr-2 h-4 w-4 text-emerald-500" />
                                   {doc.status === 'success' ? '已解析' : '解析向量'}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleEditDocument(doc)}>
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  编辑
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleViewDocument(doc)}>
-                                  <Play className="mr-2 h-4 w-4" />
-                                  查看
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
+                                <DropdownMenuSeparator className="bg-education-blue-50" />
                                 <DropdownMenuItem
                                     onClick={() => handleDeleteDocument(doc.id)}
-                                    className="text-red-600 focus:text-red-600"
+                                    className="cursor-pointer rounded-lg px-3 py-2 text-red-600 focus:bg-red-50 focus:text-red-700"
                                 >
                                   <Trash2 className="mr-2 h-4 w-4" />
-                                  删除
+                                  删除文档
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -605,63 +669,42 @@ export default function DocumentsPage() {
 
         {/* 查看文档模态框 */}
         <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-          <DialogContent className="sm:max-w-2xl">
+          <DialogContent className="sm:max-w-5xl">
             <DialogHeader>
-              <DialogTitle>文档详情</DialogTitle>
+              <DialogTitle>{selectedDoc?.docName || '文档详情'}</DialogTitle>
             </DialogHeader>
             {selectedDoc && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium text-slate-500">文档ID</Label>
-                    <div className="p-2 text-sm bg-slate-50 rounded">{selectedDoc.id}</div>
-                  </div>
-                  <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                  <div className="rounded-lg bg-slate-50 p-3">
                     <Label className="text-xs font-medium text-slate-500">状态</Label>
-                    <div className="p-2 text-sm">
-                      <Badge variant={selectedDoc.status === 'success' ? 'default' : selectedDoc.status === 'failed' ? 'destructive' : 'secondary'}>
-                        {selectedDoc.status === 'success' ? '已完成' : selectedDoc.status === 'failed' ? '失败' : '处理中'}
+                    <div className="mt-2">
+                      <Badge variant={selectedDoc.status === 'success' ? 'default' : selectedDoc.status === 'failed' ? 'error' : selectedDoc.status === 'pending' ? 'pending' : 'processing'}>
+                        {selectedDoc.status === 'success' ? '已完成' : selectedDoc.status === 'failed' ? '失败' : selectedDoc.status === 'pending' ? '待处理' : '处理中'}
                       </Badge>
                     </div>
                   </div>
-                  <div className="space-y-2">
+                  <div className="rounded-lg bg-slate-50 p-3">
                     <Label className="text-xs font-medium text-slate-500">文件类型</Label>
-                    <div className="p-2 text-sm bg-slate-50 rounded">{selectedDoc.fileType}</div>
+                    <div className="mt-2 text-sm text-slate-700">{selectedDoc.fileType}</div>
                   </div>
-                  <div className="space-y-2">
+                  <div className="rounded-lg bg-slate-50 p-3">
                     <Label className="text-xs font-medium text-slate-500">文件大小</Label>
-                    <div className="p-2 text-sm bg-slate-50 rounded">{selectedDoc.fileSize ? formatFileSize(selectedDoc.fileSize) : '-'}</div>
+                    <div className="mt-2 text-sm text-slate-700">{selectedDoc.fileSize ? formatFileSize(selectedDoc.fileSize) : '-'}</div>
                   </div>
-                  <div className="space-y-2">
+                  <div className="rounded-lg bg-slate-50 p-3">
                     <Label className="text-xs font-medium text-slate-500">分块数量</Label>
-                    <div className="p-2 text-sm bg-slate-50 rounded">{selectedDoc.chunkCount || 0}</div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium text-slate-500">创建时间</Label>
-                    <div className="p-2 text-sm bg-slate-50 rounded">{formatDate(selectedDoc.createdAt)}</div>
+                    <div className="mt-2 text-sm text-slate-700">{selectedDoc.chunkCount || 0}</div>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium text-slate-500">文档摘要</Label>
-                  <div className="p-3 text-sm bg-slate-50 rounded min-h-[60px]">
-                    {selectedDoc.summary || '无摘要'}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium text-slate-500">关键词</Label>
-                  <div className="flex flex-wrap gap-2 p-2">
-                    {selectedDoc.keywords && selectedDoc.keywords.split(',').map((keyword, idx) => (
-                      <Badge key={idx} variant="secondary" className="text-xs">
-                        {keyword}
-                      </Badge>
-                    ))}
-                    {!selectedDoc.keywords && <span className="text-sm text-slate-400">无关键词</span>}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium text-slate-500">文件 URL</Label>
-                  <div className="p-2 text-sm bg-slate-50 rounded break-all">{selectedDoc.fileUrl}</div>
-                </div>
+                <DocumentContentViewer
+                  contentPage={documentContentPage}
+                  docName={selectedDoc.docName}
+                  fileType={selectedDoc.fileType}
+                  isLoading={isContentLoading}
+                  error={contentError}
+                  onPageChange={(page) => loadDocumentContent(selectedDoc.id, page)}
+                />
               </div>
             )}
             <DialogFooter>

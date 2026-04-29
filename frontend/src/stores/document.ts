@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { SimpleRagDocument, DocumentStatus } from '@/types'
+import { SimpleRagDocument, DocumentStatus, DocumentContentPage } from '@/types'
 import { ApiService } from '@/services/api'
 
 interface DocumentStore {
@@ -23,6 +23,7 @@ interface DocumentStore {
     pageSize?: number
   }) => Promise<void>
   fetchDocumentById: (id: string) => Promise<void>
+  fetchDocumentContent: (id: string, pageNum?: number, pageSize?: number) => Promise<DocumentContentPage>
   uploadDocument: (kbId: string, file: File, docName?: string) => Promise<void>
   deleteDocument: (id: string) => Promise<void>
   deleteDocuments: (docIds: string[]) => Promise<void>
@@ -45,6 +46,7 @@ const normalizeDocument = (doc: any): SimpleRagDocument => {
     docName: doc.docName || '',
     enabled: doc.enabled ?? 0,
     chunkCount: doc.chunkCount ?? 0,
+    content: doc.content || '',
     fileUrl: doc.fileUrl || '',
     fileType: doc.fileType || '',
     fileSize: doc.fileSize ?? 0,
@@ -122,6 +124,47 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
       set({ selectedDocument: normalizeDocument(response.data) })
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to fetch document' })
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+
+  fetchDocumentContent: async (id: string, pageNum = 1, pageSize = 2000) => {
+    set({ isLoading: true, error: null })
+    try {
+      const response = await ApiService.document.getContent(id, pageNum, pageSize)
+      const data = response.data
+      const contentPage: DocumentContentPage = typeof data === 'string'
+        ? {
+            content: data,
+            total: data.length,
+            pageNum: 1,
+            pageSize: data.length || pageSize,
+            pages: 1,
+            previewOnly: false,
+            oversized: false,
+          }
+        : {
+            content: data?.content || '',
+            total: data?.total ?? 0,
+            pageNum: data?.pageNum ?? pageNum,
+            pageSize: data?.pageSize ?? pageSize,
+            pages: data?.pages ?? 1,
+            fileType: data?.fileType,
+            docName: data?.docName,
+            previewOnly: data?.previewOnly,
+            oversized: data?.oversized,
+            errorMessage: data?.errorMessage,
+          }
+      set({
+        selectedDocument: get().selectedDocument?.id === id
+          ? { ...get().selectedDocument, content: contentPage.content }
+          : get().selectedDocument,
+      })
+      return contentPage
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : 'Failed to fetch document content' })
+      throw error
     } finally {
       set({ isLoading: false })
     }

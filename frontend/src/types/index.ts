@@ -54,6 +54,7 @@ export interface KnowledgeBase {
   name: string
   embeddingModel: string
   collectionName: string
+  documentCount?: number
   createdBy: string
   createdAt: string
   updatedAt: string
@@ -68,6 +69,7 @@ export interface SimpleRagDocument {
   enabled?: number
   chunkCount?: number
   fileUrl?: string
+  content?: string
   fileType: string
   fileSize?: number
   processMode?: string
@@ -77,6 +79,19 @@ export interface SimpleRagDocument {
   keywords?: string
   createdAt: string
   updatedAt?: string
+}
+
+export interface DocumentContentPage {
+  content: string
+  total: number
+  pageNum: number
+  pageSize: number
+  pages: number
+  fileType?: string
+  docName?: string
+  previewOnly?: boolean
+  oversized?: boolean
+  errorMessage?: string
 }
 
 // 用户类型

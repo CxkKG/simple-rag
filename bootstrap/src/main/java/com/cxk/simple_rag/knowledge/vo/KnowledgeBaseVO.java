@@ -22,6 +22,8 @@ public class KnowledgeBaseVO {
 
     private String collectionName;
 
+    private Integer documentCount;
+
     private String createdBy;
 
     private LocalDateTime createTime;

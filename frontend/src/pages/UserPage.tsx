@@ -16,6 +16,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
@@ -29,15 +30,23 @@ import {
 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { UserDialog } from '@/features/user/UserDialog'
+import { useResizableColumns } from '@/hooks/useResizableColumns'
 
 export default function UserPage() {
   const [search, setSearch] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<any | null>(null)
   const [pageNum, setPageNum] = useState(1)
   const [pageSize, setPageLength] = useState(10)
 
   const { users, isLoading, deleteUser, total, fetchUsers } = useUserStore()
   const { user: currentUser } = useAuthentication()
+  const tableColumns = useResizableColumns([
+    { key: 'username', width: 320, minWidth: 200, maxWidth: 560 },
+    { key: 'role', width: 150, minWidth: 110, maxWidth: 220 },
+    { key: 'createdAt', width: 170, minWidth: 130, maxWidth: 240 },
+    { key: 'actions', width: 88, minWidth: 76, maxWidth: 120 },
+  ])
 
   useEffect(() => {
     fetchUsers(pageNum, pageSize).catch(console.error)
@@ -51,6 +60,20 @@ export default function UserPage() {
     e.stopPropagation()
     if (window.confirm('确定要删除这个用户吗？')) {
       await deleteUser(id)
+      await fetchUsers(pageNum, pageSize)
+    }
+  }
+
+  const handleEdit = (user: any) => {
+    setEditingUser(user)
+    setIsDialogOpen(true)
+  }
+
+  const handleDialogOpenChange = async (open: boolean) => {
+    setIsDialogOpen(open)
+    if (!open) {
+      setEditingUser(null)
+      await fetchUsers(pageNum, pageSize)
     }
   }
 
@@ -67,7 +90,10 @@ export default function UserPage() {
           <h2 className="text-2xl font-bold text-education-blue-900">用户管理</h2>
           <p className="text-sm text-education-blue-600">管理系统用户和权限</p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)} className="bg-gradient-to-r from-education-blue-600 to-education-blue-500 hover:from-education-blue-700 hover:to-education-blue-600">
+        <Button onClick={() => {
+          setEditingUser(null)
+          setIsDialogOpen(true)
+        }} className="bg-gradient-to-r from-education-blue-600 to-education-blue-500 hover:from-education-blue-700 hover:to-education-blue-600">
           <Plus className="w-4 h-4 mr-2" />
           添加用户
         </Button>
@@ -93,13 +119,13 @@ export default function UserPage() {
 
         <div className="rounded-xl border border-education-blue-100 bg-white shadow-sm">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="table-fixed" style={tableColumns.getTableStyle()}>
               <TableHeader className="bg-education-blue-50">
                 <TableRow>
-                  <TableHead className="text-education-blue-800">用户名</TableHead>
-                  <TableHead className="text-education-blue-800">角色</TableHead>
-                  <TableHead className="text-education-blue-800">创建时间</TableHead>
-                  <TableHead className="text-right text-education-blue-800">操作</TableHead>
+                  <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('username')}>用户名<span {...tableColumns.getResizeHandleProps('username')} /></TableHead>
+                  <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('role')}>角色<span {...tableColumns.getResizeHandleProps('role')} /></TableHead>
+                  <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('createdAt')}>创建时间<span {...tableColumns.getResizeHandleProps('createdAt')} /></TableHead>
+                  <TableHead className="relative group text-right text-education-blue-800" style={tableColumns.getColumnStyle('actions')}>操作<span {...tableColumns.getResizeHandleProps('actions')} /></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -123,16 +149,16 @@ export default function UserPage() {
                   </TableRow>
                 ) : (
                   filteredUsers.map((user) => (
-                    <TableRow key={user.id} className="hover:bg-slate-50 transition-colors">
-                      <TableCell>
-                        <div className="flex items-center gap-3 font-medium">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-600 font-medium">
+                    <TableRow key={user.id} className="h-16 hover:bg-slate-50 transition-colors">
+                      <TableCell className="py-2" style={tableColumns.getColumnStyle('username')}>
+                        <div className="flex min-w-0 items-center gap-3 font-medium">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 font-medium">
                             {user.username?.[0]?.toUpperCase() || 'U'}
                           </div>
-                          <span className="text-slate-900">{user.username}</span>
+                          <span className="truncate text-slate-900" title={user.username}>{user.username}</span>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-2" style={tableColumns.getColumnStyle('role')}>
                         <Badge
                           variant={user.role === 'admin' ? 'default' : 'secondary'}
                           className={user.role === 'admin' ? 'bg-education-blue-600 hover:bg-education-blue-700' : ''}
@@ -140,31 +166,38 @@ export default function UserPage() {
                           {user.role === 'admin' ? '管理员' : '普通用户'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-slate-500">
-                        {formatDate(user.createdAt)}
+                      <TableCell className="py-2 text-sm text-slate-500" style={tableColumns.getColumnStyle('createdAt')}>
+                        <span className="block truncate">{formatDate(user.createdAt)}</span>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="py-2 text-right" style={tableColumns.getColumnStyle('actions')}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="iconSm" className="h-8 w-8">
                               <MoreHorizontal className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-32">
-                            <DropdownMenuItem>
-                              <Edit className="w-4 h-4 mr-2" />
-                              编辑
+                          <DropdownMenuContent align="end" className="w-48 rounded-xl border-education-blue-100 bg-white p-2 shadow-xl">
+                            <div className="px-2 pb-2 pt-1">
+                              <p className="truncate text-xs font-medium text-slate-500">用户操作</p>
+                              <p className="truncate text-sm font-semibold text-slate-900">{user.username}</p>
+                            </div>
+                            <DropdownMenuSeparator className="bg-education-blue-50" />
+                            <DropdownMenuItem
+                              onClick={() => handleEdit(user)}
+                              className="cursor-pointer rounded-lg px-3 py-2 text-slate-700 focus:bg-education-blue-50 focus:text-education-blue-700"
+                            >
+                              <Edit className="mr-2 h-4 w-4 text-slate-500" />
+                              编辑信息
                             </DropdownMenuItem>
-                            <DropdownMenuContent sideOffset={4} className="w-32">
-                              <DropdownMenuItem
-                                onSelect={(e) => handleDelete(user.id, e as any)}
-                                disabled={user.id === currentUser?.id}
-                                className={user.id === currentUser?.id ? 'opacity-50 cursor-not-allowed' : 'text-red-600 focus:text-red-600'}
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                删除
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
+                            <DropdownMenuSeparator className="bg-education-blue-50" />
+                            <DropdownMenuItem
+                              onClick={(e) => handleDelete(user.id, e as any)}
+                              disabled={user.id === currentUser?.id}
+                              className={user.id === currentUser?.id ? 'cursor-not-allowed rounded-lg px-3 py-2 opacity-50' : 'cursor-pointer rounded-lg px-3 py-2 text-red-600 focus:bg-red-50 focus:text-red-700'}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              删除用户
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -206,8 +239,8 @@ export default function UserPage() {
 
       <UserDialog
         open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        user={null}
+        onOpenChange={handleDialogOpenChange}
+        user={editingUser}
       />
     </div>
   )

@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { SimpleRagDocument } from '@/types'
+import { SimpleRagDocument, DocumentContentPage } from '@/types'
+import { DocumentContentViewer } from '@/features/document/DocumentContentViewer'
 import {
   Table,
   TableBody,
@@ -32,9 +33,11 @@ import {
   Search,
   X,
   Edit,
+  Eye,
 } from 'lucide-react'
 import { formatFileSize, formatDate } from '@/lib/utils'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useResizableColumns } from '@/hooks/useResizableColumns'
 import {
   Dialog,
   DialogContent,
@@ -58,13 +61,30 @@ export default function DocumentPage() {
   const [editDocName, setEditDocName] = useState('')
   const [editSummary, setEditSummary] = useState('')
   const [editKeywords, setEditKeywords] = useState<string[]>([])
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [viewingDoc, setViewingDoc] = useState<SimpleRagDocument | null>(null)
+  const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
+  const [documentContentPage, setDocumentContentPage] = useState<DocumentContentPage | null>(null)
+  const [isContentLoading, setIsContentLoading] = useState(false)
+  const [contentError, setContentError] = useState('')
+  const contentPageSize = 3000
 
   const { knowledgeBases, fetchKnowledgeBaseById } = useKnowledgeBaseStore()
-  const { documents, isLoading, fetchDocuments, deleteDocument, total, uploadDocument, triggerChunking, updateDocumentInfo } = useDocumentStore()
+  const { documents, isLoading, fetchDocuments, deleteDocument, total, uploadDocument, triggerChunking, updateDocumentInfo, fetchDocumentContent } = useDocumentStore()
 
   const navigate = useNavigate()
   const { user } = useAuthentication()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const tableColumns = useResizableColumns([
+    { key: 'name', width: 300, minWidth: 220, maxWidth: 520 },
+    { key: 'type', width: 110, minWidth: 90, maxWidth: 180 },
+    { key: 'size', width: 120, minWidth: 100, maxWidth: 180 },
+    { key: 'summary', width: 240, minWidth: 160, maxWidth: 520 },
+    { key: 'keywords', width: 220, minWidth: 150, maxWidth: 420 },
+    { key: 'status', width: 100, minWidth: 90, maxWidth: 150 },
+    { key: 'createdAt', width: 150, minWidth: 130, maxWidth: 220 },
+    { key: 'actions', width: 88, minWidth: 76, maxWidth: 120 },
+  ])
 
   // 点击上传按钮时触发隐藏的文件输入框
   const handleButtonClick = () => {
@@ -87,6 +107,9 @@ export default function DocumentPage() {
     e.stopPropagation()
     if (window.confirm('确定要删除这个文档吗？')) {
       await deleteDocument(id)
+      if (kbId) {
+        await fetchDocuments(kbId, pageNum, pageSize)
+      }
     }
   }
 
@@ -96,6 +119,29 @@ export default function DocumentPage() {
     setEditSummary(doc.summary || '')
     setEditKeywords(doc.keywords ? doc.keywords.split(',') : [])
     setIsEditDialogOpen(true)
+  }
+
+  const loadDocumentContent = async (docId: string, page = 1) => {
+    setIsContentLoading(true)
+    setContentError('')
+    try {
+      const content = await fetchDocumentContent(docId, page, contentPageSize)
+      setDocumentContentPage(content)
+    } catch (err) {
+      setDocumentContentPage(null)
+      setContentError(err instanceof Error ? err.message : '加载文档内容失败')
+    } finally {
+      setIsContentLoading(false)
+    }
+  }
+
+  const handleOpenViewDialog = async (doc: SimpleRagDocument) => {
+    setViewingDoc(doc)
+    setSelectedDocId(doc.id)
+    setDocumentContentPage(null)
+    setContentError('')
+    setIsViewDialogOpen(true)
+    await loadDocumentContent(doc.id)
   }
 
   const handleSaveDocumentInfo = async () => {
@@ -149,6 +195,7 @@ export default function DocumentPage() {
       setIsUploadDialogOpen(false)
       setFile(null)
       setDocName('')
+      await fetchDocuments(kbId, pageNum, pageSize)
     } catch (err) {
       setError(err instanceof Error ? err.message : '上传失败')
     }
@@ -232,17 +279,17 @@ export default function DocumentPage() {
         {/* 文档列表 */}
         <div className="rounded-xl border border-education-blue-100 bg-white shadow-sm">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="table-fixed" style={tableColumns.getTableStyle()}>
               <TableHeader className="bg-education-blue-50">
                 <TableRow>
-                  <TableHead className="text-education-blue-800">文档名称</TableHead>
-                  <TableHead className="text-education-blue-800">文件类型</TableHead>
-                  <TableHead className="text-education-blue-800">文件大小</TableHead>
-                  <TableHead className="text-education-blue-800">摘要</TableHead>
-                  <TableHead className="text-education-blue-800">关键词</TableHead>
-                  <TableHead className="text-education-blue-800">状态</TableHead>
-                  <TableHead className="text-education-blue-800">创建时间</TableHead>
-                  <TableHead className="text-right text-education-blue-800">操作</TableHead>
+                  <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('name')}>文档名称<span {...tableColumns.getResizeHandleProps('name')} /></TableHead>
+                  <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('type')}>文件类型<span {...tableColumns.getResizeHandleProps('type')} /></TableHead>
+                  <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('size')}>文件大小<span {...tableColumns.getResizeHandleProps('size')} /></TableHead>
+                  <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('summary')}>摘要<span {...tableColumns.getResizeHandleProps('summary')} /></TableHead>
+                  <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('keywords')}>关键词<span {...tableColumns.getResizeHandleProps('keywords')} /></TableHead>
+                  <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('status')}>状态<span {...tableColumns.getResizeHandleProps('status')} /></TableHead>
+                  <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('createdAt')}>创建时间<span {...tableColumns.getResizeHandleProps('createdAt')} /></TableHead>
+                  <TableHead className="relative group text-right text-education-blue-800" style={tableColumns.getColumnStyle('actions')}>操作<span {...tableColumns.getResizeHandleProps('actions')} /></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -265,97 +312,122 @@ export default function DocumentPage() {
                       </TableCell>
                     </TableRow>
                 ) : (
-                    filteredDocuments.map((doc) => (
-                        <TableRow key={doc.id} className="hover:bg-slate-50 transition-colors">
-                          <TableCell>
-                            <div className="flex items-center gap-3 font-medium">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
-                                <FileText className="h-4 w-4 text-slate-600" />
+                    filteredDocuments.map((doc) => {
+                      const isSelected = selectedDocId === doc.id
+                      return (
+                        <TableRow
+                          key={doc.id}
+                          data-state={isSelected ? 'selected' : undefined}
+                          className={`h-16 transition-colors ${isSelected ? 'bg-education-blue-50/80 hover:bg-education-blue-50' : 'hover:bg-slate-50'}`}
+                        >
+                          <TableCell className="py-2" style={tableColumns.getColumnStyle('name')}>
+                            <div className="flex min-w-0 items-center gap-3 font-medium">
+                              <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${isSelected ? 'bg-education-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600'}`}>
+                                <FileText className="h-4 w-4" />
                               </div>
-                              <span className="text-slate-900">{doc.docName}</span>
+                              <div className="min-w-0 flex-1">
+                                <span className="block truncate text-slate-900" title={doc.docName}>{doc.docName}</span>
+                                {isSelected && <span className="text-xs font-medium text-education-blue-600">当前查看</span>}
+                              </div>
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <code className="rounded bg-slate-100 px-2 py-1 text-xs font-mono text-slate-600">
+                          <TableCell className="py-2" style={tableColumns.getColumnStyle('type')}>
+                            <code className="block truncate rounded bg-slate-100 px-2 py-1 text-xs font-mono text-slate-600" title={doc.fileType}>
                               {doc.fileType}
                             </code>
                           </TableCell>
-                          <TableCell>
-                      <span className="text-sm text-slate-600">
-                        {doc.fileSize ? formatFileSize(doc.fileSize) : '-'}
-                      </span>
+                          <TableCell className="py-2" style={tableColumns.getColumnStyle('size')}>
+                            <span className="block truncate text-sm text-slate-600">
+                              {doc.fileSize ? formatFileSize(doc.fileSize) : '-'}
+                            </span>
                           </TableCell>
-                          <TableCell>
-                            <div className="max-w-xs truncate text-sm text-slate-600" title={doc.summary || ''}>
+                          <TableCell className="py-2" style={tableColumns.getColumnStyle('summary')}>
+                            <div className="truncate text-sm text-slate-600" title={doc.summary || ''}>
                               {doc.summary || '-'}
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {doc.keywords && doc.keywords.split(',').map((keyword, idx) => (
-                                <Badge key={idx} variant="secondary" className="text-xs">
-                                  {keyword}
-                                </Badge>
-                              ))}
-                              {!doc.keywords && <span className="text-sm text-slate-400">-</span>}
+                          <TableCell className="py-2" style={tableColumns.getColumnStyle('keywords')}>
+                            <div className="truncate text-sm text-slate-600" title={doc.keywords || ''}>
+                              {doc.keywords || '-'}
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="py-2" style={tableColumns.getColumnStyle('status')}>
                             <Badge
                                 variant={
                                   doc.status === 'success'
                                       ? 'default'
                                       : doc.status === 'failed'
                                           ? 'error'
-                                          : 'processing'
+                                          : doc.status === 'pending'
+                                              ? 'pending'
+                                              : 'processing'
                                 }
                             >
                               {doc.status === 'success'
                                   ? '已完成'
                                   : doc.status === 'failed'
                                       ? '失败'
-                                      : '处理中'}
+                                      : doc.status === 'pending'
+                                          ? '待处理'
+                                          : '处理中'}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-sm text-slate-500">
-                            {formatDate(doc.createdAt)}
+                          <TableCell className="py-2 text-sm text-slate-500" style={tableColumns.getColumnStyle('createdAt')}>
+                            <span className="block truncate">{formatDate(doc.createdAt)}</span>
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="py-2 text-right" style={tableColumns.getColumnStyle('actions')}>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="iconSm" className="h-8 w-8">
+                                <Button
+                                  variant={isSelected ? 'outline' : 'ghost'}
+                                  size="iconSm"
+                                  className={`h-8 w-8 rounded-full ${isSelected ? 'border-education-blue-200 bg-white text-education-blue-700 shadow-sm' : 'hover:bg-education-blue-50 hover:text-education-blue-700'}`}
+                                >
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-40">
+                              <DropdownMenuContent align="end" className="w-48 rounded-xl border-education-blue-100 bg-white p-2 shadow-xl">
+                                <div className="px-2 pb-2 pt-1">
+                                  <p className="truncate text-xs font-medium text-slate-500">文档操作</p>
+                                  <p className="truncate text-sm font-semibold text-slate-900">{doc.docName}</p>
+                                </div>
+                                <DropdownMenuSeparator className="bg-education-blue-50" />
+                                <DropdownMenuItem
+                                  onClick={() => handleOpenViewDialog(doc)}
+                                  className="cursor-pointer rounded-lg px-3 py-2 text-slate-700 focus:bg-education-blue-50 focus:text-education-blue-700"
+                                >
+                                  <Eye className="mr-2 h-4 w-4 text-education-blue-500" />
+                                  查看内容
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleOpenEditDialog(doc)}
+                                  className="cursor-pointer rounded-lg px-3 py-2 text-slate-700 focus:bg-education-blue-50 focus:text-education-blue-700"
+                                >
+                                  <Edit className="mr-2 h-4 w-4 text-slate-500" />
+                                  编辑信息
+                                </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => handleTriggerChunking(doc.id)}
                                   disabled={doc.status === 'success'}
+                                  className="cursor-pointer rounded-lg px-3 py-2 text-slate-700 focus:bg-education-blue-50 focus:text-education-blue-700"
                                 >
-                                  <RefreshCw className="mr-2 h-4 w-4" />
+                                  <RefreshCw className="mr-2 h-4 w-4 text-emerald-500" />
                                   {doc.status === 'success' ? '已解析' : '解析向量'}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleOpenEditDialog(doc)}>
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  编辑
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                  <Play className="mr-2 h-4 w-4" />
-                                  查看
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
+                                <DropdownMenuSeparator className="bg-education-blue-50" />
                                 <DropdownMenuItem
                                     onClick={(e) => handleDelete(doc.id, e as any)}
-                                    className="text-red-600 focus:text-red-600"
+                                    className="cursor-pointer rounded-lg px-3 py-2 text-red-600 focus:bg-red-50 focus:text-red-700"
                                 >
                                   <Trash2 className="mr-2 h-4 w-4" />
-                                  删除
+                                  删除文档
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
                         </TableRow>
-                    ))
+                      )
+                    })
                 )}
               </TableBody>
             </Table>
@@ -444,6 +516,30 @@ export default function DocumentPage() {
                 </Button>
               </DialogFooter>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* 查看文档对话框 */}
+        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent className="sm:max-w-5xl">
+            <DialogHeader>
+              <DialogTitle>{viewingDoc?.docName || '查看文档'}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <DocumentContentViewer
+                contentPage={documentContentPage}
+                docName={viewingDoc?.docName}
+                fileType={viewingDoc?.fileType}
+                isLoading={isContentLoading}
+                error={contentError}
+                onPageChange={(page) => viewingDoc && loadDocumentContent(viewingDoc.id, page)}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+                关闭
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 

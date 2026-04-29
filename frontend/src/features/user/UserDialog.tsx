@@ -16,7 +16,7 @@ import { UserRole } from '@/types'
 
 interface UserDialogProps {
   open: boolean
-  onOpenChange: (open: boolean) => void
+  onOpenChange: (open: boolean) => void | Promise<void>
   user?: User | null
 }
 

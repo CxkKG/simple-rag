@@ -28,6 +28,8 @@ public class KnowledgeDocumentVO {
 
     private String fileUrl;
 
+    private String content;
+
     private String fileType;
 
     private Long fileSize;

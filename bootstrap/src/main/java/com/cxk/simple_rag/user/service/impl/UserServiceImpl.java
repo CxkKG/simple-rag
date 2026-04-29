@@ -122,6 +122,35 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public UserVO updateUser(String userId, String username, String password, String role) {
+        UserDO user = userMapper.selectById(userId);
+        if (user == null || user.getDeleted() == 1) {
+            throw new IllegalArgumentException("用户不存在");
+        }
+
+        if (username != null && !username.isBlank() && !username.equals(user.getUsername())) {
+            LambdaQueryWrapper<UserDO> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(UserDO::getUsername, username);
+            queryWrapper.eq(UserDO::getDeleted, 0);
+            queryWrapper.ne(UserDO::getId, userId);
+            if (userMapper.selectCount(queryWrapper) > 0) {
+                throw new IllegalArgumentException("用户名已存在");
+            }
+            user.setUsername(username);
+        }
+        if (password != null && !password.isBlank()) {
+            user.setPassword(BCrypt.hashpw(password));
+        }
+        if (role != null && !role.isBlank()) {
+            user.setRole(role);
+        }
+        user.setUpdateTime(LocalDateTime.now());
+        userMapper.updateById(user);
+        return convertToVO(user, null);
+    }
+
+    @Override
     public void deleteUser(String userId) {
         UserDO user = new UserDO();
         user.setId(userId);

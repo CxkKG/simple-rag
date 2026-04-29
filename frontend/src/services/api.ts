@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
-import { API_CONFIG, Message, KnowledgeBase, SimpleRagDocument, User, SystemConfig, ChatSession } from '../types'
+import { API_CONFIG, Message, KnowledgeBase, SimpleRagDocument, User, SystemConfig, ChatSession, DocumentContentPage } from '../types'
 
 const TOKEN_KEY = 'ra_token'
 
@@ -144,6 +144,13 @@ export class ApiService {
       request<{ data: SimpleRagDocument }>({
         method: 'get',
         url: `/knowledge/document/${id}`,
+      }),
+
+    getContent: (id: string, pageNum?: number, pageSize?: number) =>
+      request<{ data: string | DocumentContentPage }>({
+        method: 'get',
+        url: `/knowledge/document/${id}/content`,
+        params: pageNum || pageSize ? { pageNum, pageSize } : undefined,
       }),
 
     delete: (id: string) =>

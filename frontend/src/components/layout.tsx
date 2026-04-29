@@ -68,7 +68,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       />
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-education-blue-100 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static shadow-lg lg:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-education-blue-100 transform transition-transform duration-300 ease-in-out lg:translate-x-0 shadow-lg lg:shadow-none overflow-y-auto ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -202,7 +202,7 @@ export function Layout({ children }: LayoutProps) {
     <div className="flex min-h-screen bg-education-blue-50">
       <Sidebar isOpen={isOpen} setIsOpen={setIsOpen} />
 
-      <div className="flex-1 flex flex-col w-0 lg:ml-0 transition-all duration-300">
+      <div className="flex-1 flex flex-col w-0 lg:ml-64 transition-all duration-300">
         <Header setIsOpen={setIsOpen} />
 
         <main className="flex-1 p-6 lg:p-8 overflow-x-hidden">

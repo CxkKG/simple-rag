@@ -5,6 +5,7 @@ import com.cxk.simple_rag.knowledge.dto.QueryDocumentRequest;
 import com.cxk.simple_rag.knowledge.dto.UploadDocumentRequest;
 import com.cxk.simple_rag.knowledge.service.KnowledgeBaseService;
 import com.cxk.simple_rag.knowledge.service.KnowledgeDocumentService;
+import com.cxk.simple_rag.knowledge.vo.KnowledgeDocumentContentVO;
 import com.cxk.simple_rag.knowledge.vo.KnowledgeDocumentVO;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -116,6 +117,31 @@ public class KnowledgeDocumentController {
         response.put("code", 0);
         response.put("message", "success");
         response.put("data", documentVO);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/content")
+    public ResponseEntity<Map<String, Object>> getDocumentContent(
+            @PathVariable("id") String docId,
+            @RequestParam(value = "pageNum", required = false) Integer pageNum,
+            @RequestParam(value = "pageSize", required = false) Integer pageSize) {
+
+        Object data;
+        if (pageNum == null && pageSize == null) {
+            data = documentService.getDocumentContent(docId);
+        } else {
+            KnowledgeDocumentContentVO contentVO = documentService.getDocumentContent(
+                    docId,
+                    pageNum != null ? pageNum : 1,
+                    pageSize != null ? pageSize : 2000);
+            data = contentVO;
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "success");
+        response.put("data", data);
 
         return ResponseEntity.ok(response);
     }

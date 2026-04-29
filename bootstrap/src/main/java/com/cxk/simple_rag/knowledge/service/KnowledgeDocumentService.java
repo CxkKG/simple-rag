@@ -3,6 +3,7 @@ package com.cxk.simple_rag.knowledge.service;
 import com.cxk.simple_rag.knowledge.dto.QueryDocumentRequest;
 import com.cxk.simple_rag.knowledge.dto.UploadDocumentRequest;
 import com.cxk.simple_rag.knowledge.entity.KnowledgeDocumentDO;
+import com.cxk.simple_rag.knowledge.vo.KnowledgeDocumentContentVO;
 import com.cxk.simple_rag.knowledge.vo.KnowledgeDocumentVO;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,6 +31,10 @@ public interface KnowledgeDocumentService {
     Page<KnowledgeDocumentVO> queryDocuments(QueryDocumentRequest request);
 
     KnowledgeDocumentVO getDocument(String docId);
+
+    String getDocumentContent(String docId);
+
+    KnowledgeDocumentContentVO getDocumentContent(String docId, int pageNum, int pageSize);
 
     KnowledgeDocumentDO getDocumentById(String docId);
 

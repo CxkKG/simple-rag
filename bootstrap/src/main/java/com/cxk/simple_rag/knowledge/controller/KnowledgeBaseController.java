@@ -1,6 +1,7 @@
 package com.cxk.simple_rag.knowledge.controller;
 
 import com.cxk.simple_rag.knowledge.service.KnowledgeBaseService;
+import com.cxk.simple_rag.knowledge.service.KnowledgeDocumentService;
 import com.cxk.simple_rag.knowledge.vo.KnowledgeBaseVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,7 @@ import java.util.Map;
 public class KnowledgeBaseController {
 
     private final KnowledgeBaseService knowledgeBaseService;
+    private final KnowledgeDocumentService documentService;
 
     @PostMapping
     public ResponseEntity<Map<String, Object>> createKnowledgeBase(
@@ -63,6 +65,7 @@ public class KnowledgeBaseController {
             @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
 
         List<KnowledgeBaseVO> knowledgeBases = knowledgeBaseService.listKnowledgeBases(pageNum, pageSize);
+        knowledgeBases.forEach(kb -> kb.setDocumentCount(documentService.countDocumentsByKbId(kb.getId())));
         int total = knowledgeBases.size(); // TODO: 需要添加 getTotal 方法
 
         Map<String, Object> response = new HashMap<>();
