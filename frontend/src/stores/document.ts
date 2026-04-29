@@ -35,24 +35,28 @@ interface DocumentStore {
   clearError: () => void
 }
 
-const normalizeDocument = (doc: any): SimpleRagDocument => ({
-  id: doc.id || '',
-  kbId: doc.kbId || '',
-  kbName: doc.kbName || '',
-  docName: doc.docName || '',
-  enabled: doc.enabled ?? 0,
-  chunkCount: doc.chunkCount ?? 0,
-  fileUrl: doc.fileUrl || '',
-  fileType: doc.fileType || '',
-  fileSize: doc.fileSize ?? 0,
-  processMode: doc.processMode || '',
-  status: (doc.status as DocumentStatus) || DocumentStatus.Pending,
-  sourceType: doc.sourceType || '',
-  summary: doc.summary || '',
-  keywords: doc.keywords || '',
-  createdAt: doc.createTime || doc.createdAt || new Date().toISOString(),
-  updatedAt: doc.updateTime || doc.updatedAt,
-})
+const normalizeDocument = (doc: any): SimpleRagDocument => {
+  // 将后端的 status 字段转换为小写，确保与 DocumentStatus 枚举匹配
+  const status = (doc.status || 'pending').toLowerCase() as DocumentStatus
+  return {
+    id: doc.id || '',
+    kbId: doc.kbId || '',
+    kbName: doc.kbName || '',
+    docName: doc.docName || '',
+    enabled: doc.enabled ?? 0,
+    chunkCount: doc.chunkCount ?? 0,
+    fileUrl: doc.fileUrl || '',
+    fileType: doc.fileType || '',
+    fileSize: doc.fileSize ?? 0,
+    processMode: doc.processMode || '',
+    status: status,
+    sourceType: doc.sourceType || '',
+    summary: doc.summary || '',
+    keywords: doc.keywords || '',
+    createdAt: doc.createTime || doc.createdAt || new Date().toISOString(),
+    updatedAt: doc.updateTime || doc.updatedAt,
+  }
+}
 
 export const useDocumentStore = create<DocumentStore>((set, get) => ({
   documents: [],

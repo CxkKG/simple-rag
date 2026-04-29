@@ -5,6 +5,7 @@ import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { SimpleRagDocument, KnowledgeBase } from '@/types'
 import {
@@ -56,6 +57,12 @@ export default function DocumentsPage() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [uploadFile, setUploadFile] = useState<File | null>(null)
   const [uploadDocName, setUploadDocName] = useState<string>('')
+  const [selectedDoc, setSelectedDoc] = useState<SimpleRagDocument | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+  const [editDocName, setEditDocName] = useState('')
+  const [editSummary, setEditSummary] = useState('')
+  const [editKeywords, setEditKeywords] = useState('')
 
   const { documents, isLoading, queryDocuments, deleteDocuments, total, selectedIds, toggleSelectId, clearSelectedIds, uploadDocument } = useDocumentStore()
   const { knowledgeBases, fetchKnowledgeBases } = useKnowledgeBaseStore()
@@ -120,6 +127,63 @@ export default function DocumentsPage() {
     setUploadFile(null)
     setUploadDocName('')
     setSelectedKbId('')
+  }
+
+  // 打开编辑模态框
+  const handleEditDocument = (doc: SimpleRagDocument) => {
+    setSelectedDoc(doc)
+    setEditDocName(doc.docName)
+    setEditSummary(doc.summary || '')
+    setEditKeywords(doc.keywords || '')
+    setIsEditModalOpen(true)
+  }
+
+  // 保存编辑
+  const handleSaveEdit = async () => {
+    if (!selectedDoc) return
+    try {
+      const keywordsArray = editKeywords.split(',').map(k => k.trim()).filter(k => k)
+      await useDocumentStore.getState().updateDocumentInfo(selectedDoc.id, {
+        docName: editDocName,
+        summary: editSummary,
+        keywords: keywordsArray
+      })
+      setIsEditModalOpen(false)
+      setSelectedDoc(null)
+    } catch (error) {
+      console.error('Failed to update document:', error)
+      alert('更新失败: ' + (error instanceof Error ? error.message : '未知错误'))
+    }
+  }
+
+  // 处理解析向量
+  const handleChunkDocument = async (docId: string) => {
+    try {
+      await useDocumentStore.getState().triggerChunking(docId)
+      alert('解析任务已提交')
+    } catch (error) {
+      console.error('Failed to trigger chunking:', error)
+      alert('解析失败: ' + (error instanceof Error ? error.message : '未知错误'))
+    }
+  }
+
+  // 打开查看模态框
+  const handleViewDocument = (doc: SimpleRagDocument) => {
+    setSelectedDoc(doc)
+    setIsViewModalOpen(true)
+  }
+
+  // 处理删除单个文档
+  const handleDeleteDocument = async (docId: string) => {
+    if (window.confirm('确定要删除这个文档吗？')) {
+      try {
+        await useDocumentStore.getState().deleteDocument(docId)
+        alert('删除成功')
+      } catch (error) {
+        console.error('Failed to delete document:', error)
+        alert('删除失败: ' + (error instanceof Error ? error.message : '未知错误'))
+      }
+    }
   }
 
   const totalPages = Math.ceil(total / pageSize)
@@ -361,23 +425,23 @@ export default function DocumentsPage() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-40">
                                 <DropdownMenuItem
-                                  onClick={() => {}}
+                                  onClick={() => handleChunkDocument(doc.id)}
                                   disabled={doc.status === 'success'}
                                 >
                                   <RefreshCw className="mr-2 h-4 w-4" />
                                   {doc.status === 'success' ? '已解析' : '解析向量'}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => {}}>
+                                <DropdownMenuItem onClick={() => handleEditDocument(doc)}>
                                   <Edit className="mr-2 h-4 w-4" />
                                   编辑
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => {}}>
+                                <DropdownMenuItem onClick={() => handleViewDocument(doc)}>
                                   <Play className="mr-2 h-4 w-4" />
                                   查看
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                    onClick={() => {}}
+                                    onClick={() => handleDeleteDocument(doc.id)}
                                     className="text-red-600 focus:text-red-600"
                                 >
                                   <Trash2 className="mr-2 h-4 w-4" />
@@ -476,6 +540,133 @@ export default function DocumentsPage() {
               </Button>
               <Button onClick={handleUploadDocument} disabled={!uploadFile || !selectedKbId}>
                 上传
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* 编辑文档模态框 */}
+        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>编辑文档</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="editDocName" className="text-sm font-medium">
+                  文档名称
+                </Label>
+                <Input
+                  id="editDocName"
+                  type="text"
+                  value={editDocName}
+                  onChange={(e) => setEditDocName(e.target.value)}
+                  placeholder="请输入文档名称"
+                  className="h-10"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editSummary" className="text-sm font-medium">
+                  摘要
+                </Label>
+                <Textarea
+                  id="editSummary"
+                  value={editSummary}
+                  onChange={(e) => setEditSummary(e.target.value)}
+                  placeholder="请输入文档摘要"
+                  className="h-24"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editKeywords" className="text-sm font-medium">
+                  关键词
+                </Label>
+                <Input
+                  id="editKeywords"
+                  type="text"
+                  value={editKeywords}
+                  onChange={(e) => setEditKeywords(e.target.value)}
+                  placeholder="用逗号分隔，例如：AI, 机器学习, 深度学习"
+                  className="h-10"
+                />
+                <p className="text-xs text-slate-500">多个关键词请用逗号分隔</p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
+                取消
+              </Button>
+              <Button onClick={handleSaveEdit}>
+                保存
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* 查看文档模态框 */}
+        <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>文档详情</DialogTitle>
+            </DialogHeader>
+            {selectedDoc && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium text-slate-500">文档ID</Label>
+                    <div className="p-2 text-sm bg-slate-50 rounded">{selectedDoc.id}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium text-slate-500">状态</Label>
+                    <div className="p-2 text-sm">
+                      <Badge variant={selectedDoc.status === 'success' ? 'default' : selectedDoc.status === 'failed' ? 'destructive' : 'secondary'}>
+                        {selectedDoc.status === 'success' ? '已完成' : selectedDoc.status === 'failed' ? '失败' : '处理中'}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium text-slate-500">文件类型</Label>
+                    <div className="p-2 text-sm bg-slate-50 rounded">{selectedDoc.fileType}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium text-slate-500">文件大小</Label>
+                    <div className="p-2 text-sm bg-slate-50 rounded">{selectedDoc.fileSize ? formatFileSize(selectedDoc.fileSize) : '-'}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium text-slate-500">分块数量</Label>
+                    <div className="p-2 text-sm bg-slate-50 rounded">{selectedDoc.chunkCount || 0}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium text-slate-500">创建时间</Label>
+                    <div className="p-2 text-sm bg-slate-50 rounded">{formatDate(selectedDoc.createdAt)}</div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-slate-500">文档摘要</Label>
+                  <div className="p-3 text-sm bg-slate-50 rounded min-h-[60px]">
+                    {selectedDoc.summary || '无摘要'}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-slate-500">关键词</Label>
+                  <div className="flex flex-wrap gap-2 p-2">
+                    {selectedDoc.keywords && selectedDoc.keywords.split(',').map((keyword, idx) => (
+                      <Badge key={idx} variant="secondary" className="text-xs">
+                        {keyword}
+                      </Badge>
+                    ))}
+                    {!selectedDoc.keywords && <span className="text-sm text-slate-400">无关键词</span>}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-slate-500">文件 URL</Label>
+                  <div className="p-2 text-sm bg-slate-50 rounded break-all">{selectedDoc.fileUrl}</div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+                关闭
               </Button>
             </DialogFooter>
           </DialogContent>
