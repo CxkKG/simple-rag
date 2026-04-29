@@ -29,6 +29,7 @@ import {
   ChevronDown,
   LogOut,
   ArrowLeft,
+  Search,
 } from 'lucide-react'
 import { formatTimeString } from '@/lib/utils'
 import {
@@ -50,6 +51,8 @@ export default function ChatPage() {
     currentSessionId,
     sessions,
     selectedKnowledgeBase,
+    searchResults,
+    isSearching,
     createSession,
     selectSession,
     fetchSessions,
@@ -57,12 +60,16 @@ export default function ChatPage() {
     sendMessage,
     clearError,
     setSelectedKnowledgeBase,
+    searchConversations,
+    clearSearch,
   } = useChatStore()
   const { knowledgeBases, fetchKnowledgeBases } = useKnowledgeBaseStore()
 
   const [inputValue, setInputValue] = useState('')
   const [isSessionsOpen, setIsSessionsOpen] = useState(true)
   const [isKBSelectOpen, setIsKBSelectOpen] = useState(false)
+  const [localSearchKeyword, setLocalSearchKeyword] = useState('')
+  const [debouncedSearchKeyword, setDebouncedSearchKeyword] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [pageLoading, setPageLoading] = useState(true)
@@ -90,6 +97,33 @@ export default function ChatPage() {
       setSelectedKnowledgeBase(knowledgeBases[0].id)
     }
   }, [knowledgeBases, selectedKnowledgeBase, setSelectedKnowledgeBase])
+
+  // 搜索防抖
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchKeyword(localSearchKeyword)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [localSearchKeyword])
+
+  useEffect(() => {
+    if (debouncedSearchKeyword.trim()) {
+      searchConversations(debouncedSearchKeyword)
+    } else {
+      clearSearch()
+    }
+  }, [debouncedSearchKeyword, searchConversations, clearSearch])
+
+  const displayedSessions = searchResults !== null ? searchResults : sessions
+
+  const handleSearchChange = (value: string) => {
+    setLocalSearchKeyword(value)
+  }
+
+  const handleClearSearch = () => {
+    setLocalSearchKeyword('')
+    clearSearch()
+  }
 
   const handleSend = async () => {
     if (!inputValue.trim()) return
@@ -130,8 +164,87 @@ export default function ChatPage() {
     }
   }
 
+  const handleSelectSession = (sessionId: string, closeSidebar?: boolean) => {
+    selectSession(sessionId).catch(console.error)
+    if (searchResults !== null) {
+      handleClearSearch()
+    }
+    if (closeSidebar) {
+      setIsSessionsOpen(false)
+    }
+  }
+
   const formatTime = (dateStr: string) => {
     return formatTimeString(dateStr)
+  }
+
+  // 搜索输入框组件
+  const searchInput = (
+    <div className="px-4 pb-2 flex-shrink-0">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-education-blue-400" />
+        <Input
+          placeholder="搜索会话..."
+          value={localSearchKeyword}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          className="pl-10 pr-8 h-9 bg-white border-education-blue-200"
+        />
+        {localSearchKeyword && (
+          <button
+            onClick={handleClearSearch}
+            className="absolute right-2 top-1/2 -translate-y-1/2"
+          >
+            <X className="h-4 w-4 text-education-blue-400 hover:text-education-blue-600" />
+          </button>
+        )}
+      </div>
+    </div>
+  )
+
+  // 会话列表渲染
+  const renderSessionList = (onSelect: (sessionId: string) => void) => {
+    if (isSearching) {
+      return (
+        <div className="flex items-center justify-center py-8 text-education-blue-500 text-sm">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-education-blue-600 mr-2"></div>
+          搜索中...
+        </div>
+      )
+    }
+
+    if (displayedSessions.length === 0) {
+      return (
+        <div className="text-center py-8 text-education-blue-500 text-sm">
+          {searchResults !== null ? '未找到匹配的会话' : '暂无会话记录'}
+        </div>
+      )
+    }
+
+    return displayedSessions.map((session) => (
+      <div
+        key={session.id}
+        onClick={() => onSelect(session.id)}
+        className={`group flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${currentSessionId === session.id ? 'bg-education-blue-50 border border-education-blue-200' : 'hover:bg-education-blue-100 border border-transparent'}`}
+      >
+        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${currentSessionId === session.id ? 'bg-education-blue-600' : 'bg-education-blue-300'}`}>
+          <ChatBubble className="w-4 h-4 text-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-education-blue-900 truncate">{session.title}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs text-education-blue-600 truncate">{formatTimeString(session.updatedAt)}</span>
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="iconSm"
+          onClick={(e) => handleDeleteSession(e, session.id)}
+          className="opacity-0 group-hover:opacity-100 h-8 w-8 text-education-blue-400 hover:text-red-600"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    ))
   }
 
   if (isLoading || pageLoading) {
@@ -160,6 +273,7 @@ export default function ChatPage() {
             <X className="h-4 w-4" />
           </Button>
         </div>
+        {isSessionsOpen && searchInput}
         <div className="p-4 flex-shrink-0">
           <Button onClick={handleCreateSession} className="w-full bg-gradient-to-r from-education-blue-600 to-education-blue-500 hover:from-education-blue-700 hover:to-education-blue-600 mb-4">
             <Plus className="w-4 h-4 mr-2" />
@@ -167,39 +281,7 @@ export default function ChatPage() {
           </Button>
         </div>
         <div className="px-4 pb-4 space-y-2 overflow-y-auto flex-1 min-h-0 hide-scrollbar">
-          {sessions.length === 0 ? (
-            <div className="text-center py-8 text-education-blue-500 text-sm">
-              暂无会话记录
-            </div>
-          ) : (
-            sessions.map((session) => (
-              <div
-                key={session.id}
-                onClick={() => {
-                  selectSession(session.id).catch(console.error)
-                }}
-                className={`group flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${currentSessionId === session.id ? 'bg-education-blue-50 border border-education-blue-200' : 'hover:bg-education-blue-100 border border-transparent'}`}
-              >
-                <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${currentSessionId === session.id ? 'bg-education-blue-600' : 'bg-education-blue-300'}`}>
-                  <ChatBubble className="w-4 h-4 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-education-blue-900 truncate">{session.title}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-education-blue-600 truncate">{formatTimeString(session.updatedAt)}</span>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="iconSm"
-                  onClick={(e) => handleDeleteSession(e, session.id)}
-                  className="opacity-0 group-hover:opacity-100 h-8 w-8 text-education-blue-400 hover:text-red-600"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))
-          )}
+          {renderSessionList((id) => handleSelectSession(id))}
         </div>
       </div>
 
@@ -212,6 +294,7 @@ export default function ChatPage() {
             <X className="h-4 w-4" />
           </Button>
         </div>
+        {isSessionsOpen && searchInput}
         <div className="p-4 flex-shrink-0">
           <Button onClick={handleCreateSession} className="w-full bg-gradient-to-r from-education-blue-600 to-education-blue-500 hover:from-education-blue-700 hover:to-education-blue-600 mb-4">
             <Plus className="w-4 h-4 mr-2" />
@@ -219,40 +302,7 @@ export default function ChatPage() {
           </Button>
         </div>
         <div className="px-4 pb-4 space-y-2 overflow-y-auto flex-1 min-h-0 hide-scrollbar">
-          {sessions.length === 0 ? (
-            <div className="text-center py-8 text-education-blue-500 text-sm">
-              暂无会话记录
-            </div>
-          ) : (
-            sessions.map((session) => (
-              <div
-                key={session.id}
-                onClick={() => {
-                  selectSession(session.id).catch(console.error)
-                  setIsSessionsOpen(false)
-                }}
-                className={`group flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${currentSessionId === session.id ? 'bg-education-blue-50 border border-education-blue-200' : 'hover:bg-education-blue-100 border border-transparent'}`}
-              >
-                <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${currentSessionId === session.id ? 'bg-education-blue-600' : 'bg-education-blue-300'}`}>
-                  <ChatBubble className="w-4 h-4 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-education-blue-900 truncate">{session.title}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-education-blue-600 truncate">{formatTimeString(session.updatedAt)}</span>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="iconSm"
-                  onClick={(e) => handleDeleteSession(e, session.id)}
-                  className="opacity-0 group-hover:opacity-100 h-8 w-8 text-education-blue-400 hover:text-red-600"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))
-          )}
+          {renderSessionList((id) => handleSelectSession(id, true))}
         </div>
       </div>
 
@@ -292,9 +342,6 @@ export default function ChatPage() {
                         onClick={() => {
                           setSelectedKnowledgeBase(kb.id)
                           setIsKBSelectOpen(false)
-                          if (messages.length === 0) {
-                            createSession(kb.id).catch(console.error)
-                          }
                         }}
                         className="px-4 py-3 hover:bg-education-blue-50 cursor-pointer border-b border-education-blue-100 last:border-0"
                       >
@@ -317,12 +364,12 @@ export default function ChatPage() {
             {hasRole(UserRole.Admin) && (
               <>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/dashboard')}>
-                  <ArrowLeft className="w-4 h-4" />
+                  <ArrowLeft className="w-4 w-4" />
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Settings className="w-4 h-4" />
+                      <Settings className="w-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
@@ -370,27 +417,9 @@ export default function ChatPage() {
                   <BookOpen className="w-8 h-8 text-education-blue-600" />
                 </div>
                 <h2 className="text-2xl font-semibold text-education-blue-900 mb-2">开始新的对话</h2>
-                <p className="text-education-blue-600 mb-8 max-w-md mx-auto">
+                <p className="text-education-blue-600 max-w-md mx-auto">
                   选择一个课程资源库，开始向 AI 提问吧。我会根据资源库中的内容为您提供答案。
                 </p>
-                {knowledgeBases.length > 0 && (
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {knowledgeBases.slice(0, 3).map((kb) => (
-                      <Button
-                        key={kb.id}
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedKnowledgeBase(kb.id)
-                          createSession(kb.id).catch(console.error)
-                        }}
-                        className="border-education-blue-200 hover:bg-education-blue-50"
-                      >
-                        <BookOpen className="w-4 h-4 mr-2" />
-                        {kb.name}
-                      </Button>
-                    ))}
-                  </div>
-                )}
               </div>
             ) : (
               messages.map((message) => (

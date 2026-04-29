@@ -107,6 +107,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
         knowledgeBaseDO.setDeleted(1);
         knowledgeBaseDO.setUpdateTime(LocalDateTime.now());
         knowledgeBaseMapper.updateById(knowledgeBaseDO);
+        knowledgeBaseMapper.deleteById(id);
 
         log.info("Knowledge base deleted: id={}", id);
     }

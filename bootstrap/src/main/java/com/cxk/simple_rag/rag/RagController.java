@@ -51,14 +51,36 @@ public class RagController {
 
     /**
      * 重命名会话
+     *
+     * @param conversationId 会话 ID
+     * @param request 重命名请求
      */
     @PutMapping("/conversation/{conversationId}")
-    public void renameConversation(
+    public Map<String, Object> renameConversation(
             @PathVariable String conversationId,
-            @RequestBody Map<String, String> request) {
+            @RequestBody com.cxk.simple_rag.conversation.dto.RenameConversationRequest request) {
         String userId = StpUtil.getLoginIdAsString();
-        String title = request.get("title");
-        conversationService.renameConversation(conversationId, userId, title);
+        conversationService.renameConversation(conversationId, userId, request.getTitle());
+        Map<String, Object> result = new HashMap<>();
+        result.put("conversationId", conversationId);
+        result.put("title", request.getTitle());
+        return result;
+    }
+
+    /**
+     * AI 自动总结会话标题
+     *
+     * @param conversationId 会话 ID
+     * @return 生成的新标题
+     */
+    @PostMapping("/conversation/{conversationId}/summarize")
+    public Map<String, Object> summarizeConversationTitle(@PathVariable String conversationId) {
+        String userId = StpUtil.getLoginIdAsString();
+        String title = conversationService.summarizeConversationTitle(conversationId, userId);
+        Map<String, Object> result = new HashMap<>();
+        result.put("conversationId", conversationId);
+        result.put("title", title);
+        return result;
     }
 
     /**
@@ -103,6 +125,49 @@ public class RagController {
     public void deleteConversation(@PathVariable String conversationId) {
         String userId = StpUtil.getLoginIdAsString();
         ragService.deleteConversation(conversationId, userId);
+    }
+
+    /**
+     * 搜索会话（按标题或消息内容）
+     *
+     * @param keyword 搜索关键词
+     * @param pageNum 页码
+     * @param pageSize 每页大小
+     * @return 分页会话列表
+     */
+    @GetMapping("/conversation/search")
+    public Map<String, Object> searchConversations(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        String userId = StpUtil.getLoginIdAsString();
+        com.cxk.simple_rag.conversation.dto.SearchConversationRequest request =
+                new com.cxk.simple_rag.conversation.dto.SearchConversationRequest();
+        request.setKeyword(keyword);
+        request.setPageNum(pageNum);
+        request.setPageSize(pageSize);
+
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<com.cxk.simple_rag.conversation.entity.ConversationDO> page =
+                conversationService.searchConversations(userId, request);
+
+        List<Map<String, Object>> sessionList = page.getRecords().stream().map(conv -> {
+            Map<String, Object> session = new HashMap<>();
+            session.put("conversationId", conv.getConversationId());
+            session.put("kbId", conv.getKbId());
+            session.put("title", conv.getTitle());
+            session.put("lastTime", conv.getLastTime());
+            session.put("createTime", conv.getCreateTime());
+            session.put("updateTime", conv.getUpdateTime());
+            return session;
+        }).toList();
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("data", sessionList);
+        result.put("total", page.getTotal());
+        result.put("pageNum", page.getCurrent());
+        result.put("pageSize", page.getSize());
+        result.put("pages", page.getPages());
+        return result;
     }
 
     /**

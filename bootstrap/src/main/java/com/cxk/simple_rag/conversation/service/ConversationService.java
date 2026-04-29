@@ -1,5 +1,7 @@
 package com.cxk.simple_rag.conversation.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.cxk.simple_rag.conversation.dto.SearchConversationRequest;
 import com.cxk.simple_rag.conversation.entity.ConversationDO;
 import com.cxk.simple_rag.conversation.entity.MessageDO;
 
@@ -82,4 +84,22 @@ public interface ConversationService {
      * @return 消息列表
      */
     List<MessageDO> getMessages(String conversationId);
+
+    /**
+     * 搜索会话（按标题或消息内容）
+     *
+     * @param userId 用户 ID
+     * @param request 搜索请求
+     * @return 分页会话结果
+     */
+    Page<ConversationDO> searchConversations(String userId, SearchConversationRequest request);
+
+    /**
+     * AI 自动总结会话标题
+     *
+     * @param conversationId 会话 ID
+     * @param userId 用户 ID
+     * @return 生成的标题
+     */
+    String summarizeConversationTitle(String conversationId, String userId);
 }

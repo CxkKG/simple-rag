@@ -467,6 +467,7 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
         documentDO.setDeleted(1);
         documentDO.setUpdateTime(LocalDateTime.now());
         documentMapper.updateById(documentDO);
+        documentMapper.deleteById(docId);
 
         LambdaQueryWrapper<KnowledgeChunkDO> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(KnowledgeChunkDO::getDocId, docId);
@@ -614,6 +615,7 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
         updateDO.setDeleted(1);
         updateDO.setUpdateTime(LocalDateTime.now());
         documentMapper.update(updateDO, updateWrapper);
+        documentMapper.delete(updateWrapper);
 
         // 删除对应的分块数据
         LambdaQueryWrapper<KnowledgeChunkDO> deleteChunkWrapper = new LambdaQueryWrapper<>();

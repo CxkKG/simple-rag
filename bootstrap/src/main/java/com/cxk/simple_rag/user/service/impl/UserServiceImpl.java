@@ -126,7 +126,7 @@ public class UserServiceImpl implements UserService {
         UserDO user = new UserDO();
         user.setId(userId);
         user.setDeleted(1);
-        userMapper.updateById(user);
+        userMapper.deleteById(userId);
     }
 
     private UserVO convertToVO(UserDO user, String token) {

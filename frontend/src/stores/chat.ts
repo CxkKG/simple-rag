@@ -9,6 +9,9 @@ interface ChatStore {
   currentSessionId: string | null
   sessions: { id: string; title: string; kbId: string; lastName: string; updatedAt: string }[]
   selectedKnowledgeBase: string | null
+  searchKeyword: string
+  searchResults: { id: string; title: string; kbId: string; lastName: string; updatedAt: string }[] | null
+  isSearching: boolean
 
   // Actions
   createSession: (kbId: string) => Promise<string>
@@ -18,6 +21,9 @@ interface ChatStore {
   sendMessage: (content: string) => Promise<void>
   clearError: () => void
   setSelectedKnowledgeBase: (kbId: string) => void
+  searchConversations: (keyword: string) => Promise<void>
+  clearSearch: () => void
+  summarizeTitle: (sessionId: string) => Promise<string>
 }
 
 export const useChatStore = create<ChatStore>((set, get) => ({
@@ -27,6 +33,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   currentSessionId: null,
   sessions: [],
   selectedKnowledgeBase: null,
+  searchKeyword: '',
+  searchResults: null,
+  isSearching: false,
 
   createSession: async (kbId) => {
     set({ isLoading: true, error: null })
@@ -60,8 +69,12 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       const messages = Array.isArray(response) ? response : []
       console.log('Setting messages:', messages)
 
-      // 更新消息
-      set({ messages })
+      // 更新消息，并同步当前会话对应的知识库
+      const currentSession = get().sessions.find(s => s.id === sessionId)
+      set({
+        messages,
+        ...(currentSession?.kbId ? { selectedKnowledgeBase: currentSession.kbId } : {}),
+      })
 
       // 刷新会话列表以更新最后时间
       await get().fetchSessions()
@@ -251,5 +264,58 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   clearError: () => set({ error: null }),
-  setSelectedKnowledgeBase: (kbId) => set({ selectedKnowledgeBase: kbId }),
+  setSelectedKnowledgeBase: (kbId) => set((state) => {
+    if (state.selectedKnowledgeBase === kbId) return {}
+    // 切换知识库时，如果当前会话没有消息则清除会话，避免旧会话残留
+    const shouldClearSession = state.messages.length === 0
+    return {
+      selectedKnowledgeBase: kbId,
+      ...(shouldClearSession ? { currentSessionId: null, messages: [] } : {}),
+    }
+  }),
+
+  searchConversations: async (keyword) => {
+    if (!keyword.trim()) {
+      set({ searchResults: null, searchKeyword: '' })
+      return
+    }
+    set({ isSearching: true, searchKeyword: keyword })
+    try {
+      const response = await ApiService.chat.searchConversations(keyword)
+      const sessionsData = (response as any).data || []
+      const results = sessionsData.map((session: any) => ({
+        id: session.conversationId,
+        title: session.title || '新会话',
+        kbId: session.kbId,
+        lastName: session.title || '新会话',
+        updatedAt: session.lastTime || session.updateTime || new Date().toISOString(),
+      }))
+      set({ searchResults: results })
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : 'Failed to search conversations' })
+    } finally {
+      set({ isSearching: false })
+    }
+  },
+
+  clearSearch: () => set({ searchKeyword: '', searchResults: null }),
+
+  summarizeTitle: async (sessionId) => {
+    set({ isLoading: true, error: null })
+    try {
+      const response = await ApiService.chat.summarizeTitle(sessionId)
+      const title = response.title
+      // 更新当前会话标题
+      set((state) => ({
+        sessions: state.sessions.map(s => s.id === sessionId ? { ...s, title } : s),
+        currentSessionId: sessionId,
+      }))
+      return title
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : 'Failed to summarize title' })
+      throw error
+    } finally {
+      set({ isLoading: false })
+    }
+  },
 }))

@@ -315,16 +315,29 @@ export class ApiService {
       }),
 
     renameSession: (conversationId: string, title: string) =>
-      request<void>({
+      request<{ conversationId: string; title: string }>({
         method: 'put',
         url: `/rag/conversation/${conversationId}`,
         data: { title },
+      }),
+
+    summarizeTitle: (conversationId: string) =>
+      request<{ conversationId: string; title: string }>({
+        method: 'post',
+        url: `/rag/conversation/${conversationId}/summarize`,
       }),
 
     listConversations: () =>
       request<{ data: ChatSession[]; total: number }>({
         method: 'get',
         url: '/rag/conversation/list',
+      }),
+
+    searchConversations: (keyword: string, pageNum: number = 1, pageSize: number = 10) =>
+      request<{ data: ChatSession[]; total: number; pageNum: number; pageSize: number; pages: number }>({
+        method: 'get',
+        url: '/rag/conversation/search',
+        params: { keyword, pageNum, pageSize },
       }),
 
     streamChat: (kbId: string, question: string, conversationId?: string, topK: number = 3) => {
