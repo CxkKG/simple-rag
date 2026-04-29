@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,7 +98,7 @@ public class KnowledgeDocumentController {
 
         String docName = (String) request.get("docName");
         String summary = (String) request.get("summary");
-        List<String> keywords = (List<String>) request.get("keywords");
+        List<String> keywords = parseKeywords(request.get("keywords"));
 
         documentService.updateDocumentInfo(docId, docName, summary, keywords);
 
@@ -210,5 +211,22 @@ public class KnowledgeDocumentController {
         response.put("data", null);
 
         return ResponseEntity.ok(response);
+    }
+
+    private List<String> parseKeywords(Object keywords) {
+        if (keywords == null) {
+            return null;
+        }
+        if (keywords instanceof List<?> keywordList) {
+            return keywordList.stream()
+                    .map(String::valueOf)
+                    .map(String::trim)
+                    .filter(keyword -> !keyword.isEmpty())
+                    .toList();
+        }
+        return Arrays.stream(String.valueOf(keywords).split(","))
+                .map(String::trim)
+                .filter(keyword -> !keyword.isEmpty())
+                .toList();
     }
 }

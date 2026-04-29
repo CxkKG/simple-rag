@@ -44,7 +44,8 @@ public class VectorSearchService {
             float[] queryVector = queryChunks.get(0).getEmbedding();
 
             // 在 Milvus 中搜索
-            List<MilvusService.SearchResultWrapper> milvusResults = milvusService.vectorSearch(kbId, queryVector, topK);
+            List<MilvusService.SearchResultWrapper> milvusResults = milvusService.vectorSearch(
+                    milvusService.resolveCollectionName(kbId), queryVector, topK);
 
             // 转换为统一格式
             List<SearchResult> results = new ArrayList<>();
@@ -95,7 +96,7 @@ public class VectorSearchService {
      * @param kbId 知识库 ID
      */
     public void deleteKnowledgeBaseVectors(String kbId) {
-        milvusService.dropCollection(kbId);
+        milvusService.dropCollection(milvusService.resolveCollectionName(kbId));
         log.info("Knowledge base vectors deleted: kbId={}", kbId);
     }
 

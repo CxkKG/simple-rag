@@ -42,6 +42,8 @@ public interface KnowledgeDocumentService {
 
     void deleteDocuments(List<String> docIds);
 
+    void deleteDocumentsByKbId(String kbId);
+
     void rebuildVectors(String docId);
 
     void updateSummaryAndKeywords(String docId, String summary, List<String> keywords);

@@ -4,10 +4,11 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cxk.simple_rag.knowledge.entity.KnowledgeBaseDO;
-import com.cxk.simple_rag.knowledge.entity.KnowledgeDocumentDO;
 import com.cxk.simple_rag.knowledge.mapper.KnowledgeBaseMapper;
 import com.cxk.simple_rag.knowledge.service.KnowledgeBaseService;
+import com.cxk.simple_rag.knowledge.service.KnowledgeDocumentService;
 import com.cxk.simple_rag.knowledge.vo.KnowledgeBaseVO;
+import com.cxk.simple_rag.vector.MilvusService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,8 @@ import java.util.UUID;
 public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
 
     private final KnowledgeBaseMapper knowledgeBaseMapper;
+    private final KnowledgeDocumentService knowledgeDocumentService;
+    private final MilvusService milvusService;
 
     @Override
     public KnowledgeBaseVO createKnowledgeBase(String name, String embeddingModel, String createdBy) {
@@ -100,10 +103,17 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteKnowledgeBase(String id) {
+        if (StrUtil.isBlank(id)) {
+            throw new IllegalArgumentException("Knowledge base id cannot be empty");
+        }
+
         KnowledgeBaseDO knowledgeBaseDO = knowledgeBaseMapper.selectById(id);
         if (knowledgeBaseDO == null) {
             throw new IllegalArgumentException("Knowledge base not found: " + id);
         }
+
+        knowledgeDocumentService.deleteDocumentsByKbId(id);
+        milvusService.dropCollection(milvusService.resolveCollectionName(id));
 
         knowledgeBaseDO.setDeleted(1);
         knowledgeBaseDO.setUpdateTime(LocalDateTime.now());

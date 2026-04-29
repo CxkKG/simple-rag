@@ -188,6 +188,17 @@ public class MilvusService {
         }
     }
 
+    public String resolveCollectionName(String kbId) {
+        if (kbId == null || kbId.isBlank()) {
+            throw new IllegalArgumentException("Knowledge base id cannot be empty");
+        }
+        char firstChar = kbId.charAt(0);
+        if (!Character.isLetter(firstChar) && firstChar != '_') {
+            return "kb_" + kbId;
+        }
+        return kbId;
+    }
+
     /**
      * 删除知识库集合
      *
@@ -195,6 +206,14 @@ public class MilvusService {
      */
     public void dropCollection(String collectionName) {
         try {
+            HasCollectionReq hasReq = HasCollectionReq.builder()
+                    .collectionName(collectionName)
+                    .build();
+            if (!Boolean.TRUE.equals(milvusClient.hasCollection(hasReq))) {
+                log.info("Collection does not exist, skip drop: {}", collectionName);
+                return;
+            }
+
             // 先释放集合
             releaseCollection(collectionName);
 
@@ -205,6 +224,7 @@ public class MilvusService {
             log.info("Collection dropped: {}", collectionName);
         } catch (Exception e) {
             log.error("Failed to drop collection: {}", collectionName, e);
+            throw new RuntimeException("Failed to drop Milvus collection: " + collectionName, e);
         }
     }
 
@@ -295,6 +315,14 @@ public class MilvusService {
      */
     public void deleteByDocId(String collectionName, String docId) {
         try {
+            HasCollectionReq hasReq = HasCollectionReq.builder()
+                    .collectionName(collectionName)
+                    .build();
+            if (!Boolean.TRUE.equals(milvusClient.hasCollection(hasReq))) {
+                log.info("Collection does not exist, skip deleting vectors: collection={}, docId={}", collectionName, docId);
+                return;
+            }
+
             String expr = "doc_id == \"" + docId + "\"";
             DeleteReq deleteReq = DeleteReq.builder()
                     .collectionName(collectionName)
@@ -305,6 +333,7 @@ public class MilvusService {
         } catch (Exception e) {
             log.error("Failed to delete vectors by docId: collection={}, docId={}",
                     collectionName, docId, e);
+            throw new RuntimeException("Failed to delete Milvus vectors by docId: " + docId, e);
         }
     }
 

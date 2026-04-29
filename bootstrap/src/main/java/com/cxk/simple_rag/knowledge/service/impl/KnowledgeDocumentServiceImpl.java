@@ -14,14 +14,15 @@ import com.cxk.simple_rag.core.parser.ParserSelector;
 import com.cxk.simple_rag.core.parser.ParserType;
 import com.cxk.simple_rag.knowledge.dto.QueryDocumentRequest;
 import com.cxk.simple_rag.knowledge.dto.UploadDocumentRequest;
+import com.cxk.simple_rag.knowledge.entity.KnowledgeBaseDO;
 import com.cxk.simple_rag.knowledge.entity.KnowledgeChunkDO;
 import com.cxk.simple_rag.knowledge.entity.KnowledgeDocumentChunkLogDO;
 import com.cxk.simple_rag.knowledge.entity.KnowledgeDocumentDO;
+import com.cxk.simple_rag.knowledge.mapper.KnowledgeBaseMapper;
 import com.cxk.simple_rag.knowledge.mapper.KnowledgeChunkMapper;
 import com.cxk.simple_rag.knowledge.mapper.KnowledgeDocumentChunkLogMapper;
 import com.cxk.simple_rag.knowledge.mapper.KnowledgeDocumentMapper;
 import com.cxk.simple_rag.knowledge.mq.KnowledgeDocumentChunkProducer;
-import com.cxk.simple_rag.knowledge.service.KnowledgeBaseService;
 import com.cxk.simple_rag.knowledge.service.KnowledgeDocumentService;
 import com.cxk.simple_rag.knowledge.vo.KnowledgeDocumentContentVO;
 import com.cxk.simple_rag.knowledge.vo.KnowledgeDocumentVO;
@@ -40,6 +41,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -58,6 +60,7 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
     private static final int MAX_PREVIEW_CHARACTERS = 500000;
 
     private final KnowledgeDocumentMapper documentMapper;
+    private final KnowledgeBaseMapper knowledgeBaseMapper;
     private final KnowledgeChunkMapper chunkMapper;
     private final KnowledgeDocumentChunkLogMapper chunkLogMapper;
     private final ParserSelector parserSelector;
@@ -66,7 +69,6 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
     private final RustFsStorageService rustFsStorageService;
     private final MilvusService milvusService;
     private final KnowledgeDocumentChunkProducer chunkProducer;
-    private final KnowledgeBaseService knowledgeBaseService;
     private final AISummaryService aiSummaryService;
 
     private final Map<String, ChunkingStrategy> strategyCache = Map.of(
@@ -74,12 +76,14 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
     );
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public KnowledgeDocumentVO uploadDocument(UploadDocumentRequest request) {
         return uploadDocument(request.getKbId(), request.getFile(), request.getDocName(),
                 request.getProcessMode(), request.getChunkStrategy(), request.getChunkConfig());
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public KnowledgeDocumentVO uploadDocument(String kbId, MultipartFile file, String docName,
                                                String processMode, String chunkStrategy, String chunkConfig) {
         Instant startTime = Instant.now();
@@ -87,34 +91,39 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File cannot be empty");
         }
+        getKnowledgeBaseDO(kbId);
 
         String fileUrl = rustFsStorageService.uploadFile(file, "documents/" + kbId);
+        try {
+            KnowledgeDocumentDO documentDO = new KnowledgeDocumentDO();
+            documentDO.setId(generateDocId());
+            documentDO.setKbId(kbId);
+            documentDO.setDocName(StrUtil.isNotBlank(docName) ? docName : file.getOriginalFilename());
+            documentDO.setEnabled(1);
+            documentDO.setChunkCount(0);
+            documentDO.setFileUrl(fileUrl);
+            documentDO.setFileType(getFileType(file));
+            documentDO.setFileSize(file.getSize());
+            documentDO.setProcessMode(StrUtil.isNotBlank(processMode) ? processMode : "chunk");
+            documentDO.setStatus("pending");
+            documentDO.setSourceType("file");
+            documentDO.setChunkStrategy(StrUtil.isNotBlank(chunkStrategy) ? chunkStrategy : "structure_aware");
+            documentDO.setChunkConfig(chunkConfig);
+            documentDO.setCreatedBy("system");
+            documentDO.setCreateTime(LocalDateTime.now());
+            documentDO.setUpdateTime(LocalDateTime.now());
+            documentDO.setDeleted(0);
 
-        KnowledgeDocumentDO documentDO = new KnowledgeDocumentDO();
-        documentDO.setId(generateDocId());
-        documentDO.setKbId(kbId);
-        documentDO.setDocName(StrUtil.isNotBlank(docName) ? docName : file.getOriginalFilename());
-        documentDO.setEnabled(1);
-        documentDO.setChunkCount(0);
-        documentDO.setFileUrl(fileUrl);
-        documentDO.setFileType(getFileType(file));
-        documentDO.setFileSize(file.getSize());
-        documentDO.setProcessMode(StrUtil.isNotBlank(processMode) ? processMode : "chunk");
-        documentDO.setStatus("pending");
-        documentDO.setSourceType("file");
-        documentDO.setChunkStrategy(StrUtil.isNotBlank(chunkStrategy) ? chunkStrategy : "structure_aware");
-        documentDO.setChunkConfig(chunkConfig);
-        documentDO.setCreatedBy("system");
-        documentDO.setCreateTime(LocalDateTime.now());
-        documentDO.setUpdateTime(LocalDateTime.now());
-        documentDO.setDeleted(0);
+            documentMapper.insert(documentDO);
 
-        documentMapper.insert(documentDO);
+            log.info("Document uploaded: docId={}, kbId={}, fileName={}, size={}",
+                    documentDO.getId(), kbId, documentDO.getDocName(), file.getSize());
 
-        log.info("Document uploaded: docId={}, kbId={}, fileName={}, size={}",
-                documentDO.getId(), kbId, documentDO.getDocName(), file.getSize());
-
-        return toVO(documentDO);
+            return toVO(documentDO);
+        } catch (RuntimeException e) {
+            rustFsStorageService.deleteFile(fileUrl);
+            throw e;
+        }
     }
 
     @Override
@@ -281,18 +290,12 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
         String docId = documentDO.getId();
         String kbId = documentDO.getKbId();
 
-        // Milvus 集合名称必须以字母或下划线开头，不能以数字开头
-        // 如果 kbId 以数字开头，添加前缀
-        String collectionName = kbId;
-        if (kbId != null && kbId.length() > 0 && !Character.isLetter(kbId.charAt(0)) && kbId.charAt(0) != '_') {
-            collectionName = "kb_" + kbId;
-            log.debug("Converted kbId to collection name: {} -> {}", kbId, collectionName);
-        }
+        String collectionName = getMilvusCollectionName(kbId);
 
         // 确保 Milvus 集合存在（自动创建索引并加载）
         try {
             // 获取知识库以获取描述
-            var knowledgeBase = knowledgeBaseService.getKnowledgeBase(kbId);
+            KnowledgeBaseDO knowledgeBase = getKnowledgeBaseDO(kbId);
             String description = knowledgeBase.getName();
             milvusService.createCollection(collectionName, description);
             log.info("Collection ensured: collectionName={}, description={}", collectionName, description);
@@ -342,7 +345,7 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
         }
 
         // 批量插入向量到 Milvus
-        var knowledgeBase = knowledgeBaseService.getKnowledgeBase(kbId);
+        KnowledgeBaseDO knowledgeBase = getKnowledgeBaseDO(kbId);
         String description = knowledgeBase.getName();
         milvusService.batchInsertVectors(collectionName, docId, vectorDataList, description);
 
@@ -364,6 +367,21 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
 
     private InputStream getFileInputStream(String fileUrl) {
         return rustFsStorageService.downloadFile(fileUrl);
+    }
+
+    private KnowledgeBaseDO getKnowledgeBaseDO(String kbId) {
+        if (StrUtil.isBlank(kbId)) {
+            throw new IllegalArgumentException("Knowledge base id cannot be empty");
+        }
+        KnowledgeBaseDO knowledgeBase = knowledgeBaseMapper.selectById(kbId);
+        if (knowledgeBase == null) {
+            throw new IllegalArgumentException("Knowledge base not found: " + kbId);
+        }
+        return knowledgeBase;
+    }
+
+    private String getMilvusCollectionName(String kbId) {
+        return milvusService.resolveCollectionName(kbId);
     }
 
     private String getEmbeddingModel(String kbId) {
@@ -410,7 +428,7 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
         // 获取所属知识库名称
         String kbName = null;
         try {
-            var knowledgeBase = knowledgeBaseService.getKnowledgeBase(documentDO.getKbId());
+            KnowledgeBaseDO knowledgeBase = getKnowledgeBaseDO(documentDO.getKbId());
             kbName = knowledgeBase.getName();
         } catch (Exception e) {
             log.warn("Failed to get knowledge base name for docId: {}, kbId: {}", documentDO.getId(), documentDO.getKbId(), e);
@@ -505,19 +523,16 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteDocument(String docId) {
+        if (StrUtil.isBlank(docId)) {
+            throw new IllegalArgumentException("Document id cannot be empty");
+        }
+
         KnowledgeDocumentDO documentDO = documentMapper.selectById(docId);
         if (documentDO == null) {
             throw new IllegalArgumentException("Document not found: " + docId);
         }
 
-        documentDO.setDeleted(1);
-        documentDO.setUpdateTime(LocalDateTime.now());
-        documentMapper.updateById(documentDO);
-        documentMapper.deleteById(docId);
-
-        LambdaQueryWrapper<KnowledgeChunkDO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(KnowledgeChunkDO::getDocId, docId);
-        chunkMapper.delete(wrapper);
+        deleteDocumentData(documentDO);
 
         log.info("Document deleted: docId={}", docId);
     }
@@ -552,6 +567,10 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
             throw new IllegalArgumentException("Document not found: " + docId);
         }
 
+        if (keywords == null) {
+            keywords = List.of();
+        }
+
         documentDO.setSummary(summary);
         documentDO.setKeywords(String.join(",", keywords));
         documentDO.setUpdateTime(LocalDateTime.now());
@@ -564,20 +583,24 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateDocumentInfo(String docId, String docName, String summary, List<String> keywords) {
+        if (StrUtil.isBlank(docId)) {
+            throw new IllegalArgumentException("Document id cannot be empty");
+        }
+
         KnowledgeDocumentDO documentDO = documentMapper.selectById(docId);
         if (documentDO == null) {
             throw new IllegalArgumentException("Document not found: " + docId);
         }
 
         if (StrUtil.isNotBlank(docName)) {
-            documentDO.setDocName(docName);
+            documentDO.setDocName(docName.trim());
         }
 
-        if (StrUtil.isNotBlank(summary)) {
+        if (summary != null) {
             documentDO.setSummary(summary);
         }
 
-        if (keywords != null && !keywords.isEmpty()) {
+        if (keywords != null) {
             documentDO.setKeywords(String.join(",", keywords));
         }
 
@@ -654,21 +677,91 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
             return;
         }
 
-        // 逻辑删除文档
-        LambdaQueryWrapper<KnowledgeDocumentDO> updateWrapper = new LambdaQueryWrapper<>();
-        updateWrapper.in(KnowledgeDocumentDO::getId, docIds);
-        KnowledgeDocumentDO updateDO = new KnowledgeDocumentDO();
-        updateDO.setDeleted(1);
-        updateDO.setUpdateTime(LocalDateTime.now());
-        documentMapper.update(updateDO, updateWrapper);
-        documentMapper.delete(updateWrapper);
+        List<String> validDocIds = docIds.stream()
+                .filter(StrUtil::isNotBlank)
+                .distinct()
+                .toList();
+        if (validDocIds.isEmpty()) {
+            return;
+        }
 
-        // 删除对应的分块数据
+        LambdaQueryWrapper<KnowledgeDocumentDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(KnowledgeDocumentDO::getId, validDocIds);
+        List<KnowledgeDocumentDO> documents = documentMapper.selectList(wrapper);
+        if (documents.isEmpty()) {
+            log.warn("No documents found to delete: docIds={}", validDocIds);
+            return;
+        }
+
+        deleteDocumentData(documents);
+
+        log.info("Documents deleted: docIds={}", validDocIds);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteDocumentsByKbId(String kbId) {
+        if (StrUtil.isBlank(kbId)) {
+            throw new IllegalArgumentException("Knowledge base id cannot be empty");
+        }
+
+        LambdaQueryWrapper<KnowledgeDocumentDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(KnowledgeDocumentDO::getKbId, kbId);
+        List<KnowledgeDocumentDO> documents = documentMapper.selectList(wrapper);
+        if (documents.isEmpty()) {
+            log.info("No documents to delete for knowledge base: kbId={}", kbId);
+            return;
+        }
+
+        deleteDocumentData(documents);
+
+        log.info("Knowledge base documents deleted: kbId={}, count={}", kbId, documents.size());
+    }
+
+    private void deleteDocumentData(KnowledgeDocumentDO documentDO) {
+        deleteDocumentData(Collections.singletonList(documentDO));
+    }
+
+    private void deleteDocumentData(List<KnowledgeDocumentDO> documents) {
+        if (documents == null || documents.isEmpty()) {
+            return;
+        }
+
+        for (KnowledgeDocumentDO document : documents) {
+            if (document == null || StrUtil.isBlank(document.getId())) {
+                continue;
+            }
+            milvusService.deleteByDocId(getMilvusCollectionName(document.getKbId()), document.getId());
+            deleteStoredFile(document);
+        }
+
+        List<String> docIds = documents.stream()
+                .map(KnowledgeDocumentDO::getId)
+                .filter(StrUtil::isNotBlank)
+                .distinct()
+                .toList();
+        if (docIds.isEmpty()) {
+            return;
+        }
+
+        LambdaQueryWrapper<KnowledgeDocumentChunkLogDO> deleteLogWrapper = new LambdaQueryWrapper<>();
+        deleteLogWrapper.in(KnowledgeDocumentChunkLogDO::getDocId, docIds);
+        chunkLogMapper.delete(deleteLogWrapper);
+
         LambdaQueryWrapper<KnowledgeChunkDO> deleteChunkWrapper = new LambdaQueryWrapper<>();
         deleteChunkWrapper.in(KnowledgeChunkDO::getDocId, docIds);
         chunkMapper.delete(deleteChunkWrapper);
 
-        log.info("Documents deleted: docIds={}", docIds);
+        LambdaQueryWrapper<KnowledgeDocumentDO> deleteDocumentWrapper = new LambdaQueryWrapper<>();
+        deleteDocumentWrapper.in(KnowledgeDocumentDO::getId, docIds);
+        documentMapper.delete(deleteDocumentWrapper);
+    }
+
+    private void deleteStoredFile(KnowledgeDocumentDO document) {
+        if (StrUtil.isBlank(document.getFileUrl())) {
+            return;
+        }
+        rustFsStorageService.deleteFile(document.getFileUrl());
     }
 
     @Override
