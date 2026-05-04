@@ -718,3 +718,67 @@ COMMENT ON COLUMN t_ingestion_task_node.output_json IS '节点输出JSON(全量)
 COMMENT ON COLUMN t_ingestion_task_node.create_time IS '创建时间';
 COMMENT ON COLUMN t_ingestion_task_node.update_time IS '更新时间';
 COMMENT ON COLUMN t_ingestion_task_node.deleted IS '是否删除 0：正常 1：删除';
+
+-- t_learning_record
+CREATE TABLE IF NOT EXISTS t_learning_record (
+    id              VARCHAR(20) PRIMARY KEY,
+    user_id         VARCHAR(20)  NOT NULL,
+    kb_id           VARCHAR(20)  NOT NULL,
+    conversation_id VARCHAR(64),
+    message_id      VARCHAR(20),
+    question        TEXT         NOT NULL,
+    answer          TEXT,
+    knowledge_tags  TEXT,
+    create_time     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    update_time     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    deleted         SMALLINT     DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_lr_user_kb_time ON t_learning_record (user_id, kb_id, create_time DESC);
+CREATE INDEX IF NOT EXISTS idx_lr_user_time ON t_learning_record (user_id, create_time DESC);
+
+COMMENT ON TABLE t_learning_record IS '学习记录表';
+COMMENT ON COLUMN t_learning_record.id IS 'ID';
+COMMENT ON COLUMN t_learning_record.user_id IS '用户ID';
+COMMENT ON COLUMN t_learning_record.kb_id IS '课程(知识库)ID';
+COMMENT ON COLUMN t_learning_record.conversation_id IS '会话ID';
+COMMENT ON COLUMN t_learning_record.message_id IS '消息ID';
+COMMENT ON COLUMN t_learning_record.question IS '用户问题';
+COMMENT ON COLUMN t_learning_record.answer IS 'AI 回答';
+COMMENT ON COLUMN t_learning_record.knowledge_tags IS '知识点标签(逗号分隔)';
+COMMENT ON COLUMN t_learning_record.create_time IS '创建时间';
+COMMENT ON COLUMN t_learning_record.update_time IS '更新时间';
+COMMENT ON COLUMN t_learning_record.deleted IS '是否删除 0：正常 1：删除';
+
+-- t_review_reminder
+CREATE TABLE IF NOT EXISTS t_review_reminder (
+    id               VARCHAR(20) PRIMARY KEY,
+    user_id          VARCHAR(20) NOT NULL,
+    kb_id            VARCHAR(20),
+    topic            VARCHAR(255) NOT NULL,
+    remark           TEXT,
+    raw_text         TEXT,
+    remind_time      TIMESTAMP   NOT NULL,
+    status           SMALLINT    DEFAULT 0,
+    notified_at      TIMESTAMP,
+    source_record_id VARCHAR(20),
+    create_time      TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    update_time      TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    deleted          SMALLINT    DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_rr_user_status_time ON t_review_reminder (user_id, status, remind_time);
+CREATE INDEX IF NOT EXISTS idx_rr_status_time ON t_review_reminder (status, remind_time);
+
+COMMENT ON TABLE t_review_reminder IS '复习提醒表';
+COMMENT ON COLUMN t_review_reminder.id IS 'ID';
+COMMENT ON COLUMN t_review_reminder.user_id IS '用户ID';
+COMMENT ON COLUMN t_review_reminder.kb_id IS '关联课程(知识库)ID';
+COMMENT ON COLUMN t_review_reminder.topic IS '复习主题/知识点';
+COMMENT ON COLUMN t_review_reminder.remark IS '备注';
+COMMENT ON COLUMN t_review_reminder.raw_text IS '用户原始输入';
+COMMENT ON COLUMN t_review_reminder.remind_time IS '提醒时间';
+COMMENT ON COLUMN t_review_reminder.status IS '状态 0：待提醒 1：已提醒 2：已完成 3：已取消';
+COMMENT ON COLUMN t_review_reminder.notified_at IS '实际通知时间';
+COMMENT ON COLUMN t_review_reminder.source_record_id IS '来源学习记录ID';
+COMMENT ON COLUMN t_review_reminder.create_time IS '创建时间';
+COMMENT ON COLUMN t_review_reminder.update_time IS '更新时间';
+COMMENT ON COLUMN t_review_reminder.deleted IS '是否删除 0：正常 1：删除';

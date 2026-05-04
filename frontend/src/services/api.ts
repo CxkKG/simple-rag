@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
-import { API_CONFIG, Message, KnowledgeBase, SimpleRagDocument, User, SystemConfig, ChatSession, DocumentContentPage } from '../types'
+import { API_CONFIG, Message, KnowledgeBase, SimpleRagDocument, User, SystemConfig, ChatSession, DocumentContentPage, LearningRecord, KnowledgePointStat, ReviewReminder, ParsedReminder } from '../types'
 
 const TOKEN_KEY = 'ra_token'
 
@@ -290,6 +290,113 @@ export class ApiService {
       request<{ data: { knowledgeBaseCount: number; documentCount: number; userCount: number } }>({
         method: 'get',
         url: '/dashboard/stats',
+      }),
+  }
+
+  // 学习记录 API
+  static learningRecord = {
+    page: (data: {
+      kbId?: string
+      keyword?: string
+      tag?: string
+      startTime?: string
+      endTime?: string
+      pageNum?: number
+      pageSize?: number
+    }) =>
+      request<{ data: LearningRecord[]; total: number; pageNum: number; pageSize: number; pages: number }>({
+        method: 'post',
+        url: '/api/learning-records/page',
+        data,
+      }),
+
+    getById: (id: string) =>
+      request<{ data: LearningRecord }>({
+        method: 'get',
+        url: `/api/learning-records/${id}`,
+      }),
+
+    delete: (id: string) =>
+      request<{ data: null }>({
+        method: 'delete',
+        url: `/api/learning-records/${id}`,
+      }),
+
+    knowledgePoints: (params?: { kbId?: string; sortBy?: 'count' | 'lastTime'; limit?: number }) =>
+      request<{ data: KnowledgePointStat[]; total: number }>({
+        method: 'get',
+        url: '/api/learning-records/knowledge-points',
+        params,
+      }),
+  }
+
+  // 复习提醒 API
+  static reviewReminder = {
+    create: (data: {
+      rawText?: string
+      topic?: string
+      remark?: string
+      kbId?: string
+      sourceRecordId?: string
+      remindTime?: string
+    }) =>
+      request<{ data: ReviewReminder }>({
+        method: 'post',
+        url: '/api/review-reminders',
+        data,
+      }),
+
+    parse: (rawText: string) =>
+      request<{ data: ParsedReminder }>({
+        method: 'post',
+        url: '/api/review-reminders/parse',
+        data: { rawText },
+      }),
+
+    page: (data: {
+      kbId?: string
+      status?: number
+      startTime?: string
+      endTime?: string
+      pageNum?: number
+      pageSize?: number
+    }) =>
+      request<{ data: ReviewReminder[]; total: number; pageNum: number; pageSize: number; pages: number }>({
+        method: 'post',
+        url: '/api/review-reminders/page',
+        data,
+      }),
+
+    getById: (id: string) =>
+      request<{ data: ReviewReminder }>({
+        method: 'get',
+        url: `/api/review-reminders/${id}`,
+      }),
+
+    update: (id: string, data: { topic?: string; remark?: string; remindTime?: string; status?: number }) =>
+      request<{ data: ReviewReminder }>({
+        method: 'put',
+        url: `/api/review-reminders/${id}`,
+        data,
+      }),
+
+    delete: (id: string) =>
+      request<{ data: null }>({
+        method: 'delete',
+        url: `/api/review-reminders/${id}`,
+      }),
+
+    due: (ack: boolean = false) =>
+      request<{ data: ReviewReminder[]; total: number }>({
+        method: 'get',
+        url: '/api/review-reminders/due',
+        params: { ack },
+      }),
+
+    ack: (id: string) =>
+      request<{ data: null }>({
+        method: 'post',
+        url: `/api/review-reminders/${id}/ack`,
       }),
   }
 

@@ -30,6 +30,8 @@ import {
   LogOut,
   ArrowLeft,
   Search,
+  BookMarked,
+  AlarmClock,
 } from 'lucide-react'
 import { formatTimeString } from '@/lib/utils'
 import {
@@ -395,6 +397,15 @@ export default function ChatPage() {
                 <div className="px-2 py-1.5 text-sm font-medium">
                   {user.username}
                 </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate('/learning-records')}>
+                  <BookMarked className="w-4 h-4 mr-2" />
+                  学习记录
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/review-reminders')}>
+                  <AlarmClock className="w-4 h-4 mr-2" />
+                  复习提醒
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={async () => {
                   await logout()

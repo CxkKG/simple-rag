@@ -10,6 +10,7 @@ import com.cxk.simple_rag.conversation.entity.MessageDO;
 import com.cxk.simple_rag.conversation.mapper.ConversationMapper;
 import com.cxk.simple_rag.conversation.mapper.MessageMapper;
 import com.cxk.simple_rag.conversation.service.ConversationService;
+import com.cxk.simple_rag.learning.service.LearningRecordService;
 import com.cxk.simple_rag.llm.LLMService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,7 @@ public class ConversationServiceImpl implements ConversationService {
     private final ConversationMapper conversationMapper;
     private final MessageMapper messageMapper;
     private final LLMService llmService;
+    private final LearningRecordService learningRecordService;
 
     @Override
     public String createConversation(String kbId, String userId) {
@@ -133,8 +135,37 @@ public class ConversationServiceImpl implements ConversationService {
         conversation.setUpdateTime(now);
         conversationMapper.updateById(conversation);
 
+        // AI 答复入库后，捕获学习记录（与最近一条用户提问配对）
+        if ("assistant".equalsIgnoreCase(role)) {
+            try {
+                String lastQuestion = findLastUserQuestion(conversationId, message.getId());
+                if (StrUtil.isNotBlank(lastQuestion)) {
+                    learningRecordService.captureFromChat(
+                            conversation.getUserId(),
+                            conversation.getKbId(),
+                            conversationId,
+                            message.getId(),
+                            lastQuestion,
+                            content);
+                }
+            } catch (Exception e) {
+                log.warn("Capture learning record failed: conversationId={}, error={}", conversationId, e.getMessage());
+            }
+        }
+
         log.debug("Message added: conversationId={}, role={}", conversationId, role);
         return message.getId();
+    }
+
+    private String findLastUserQuestion(String conversationId, String excludeMessageId) {
+        LambdaQueryWrapper<MessageDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(MessageDO::getConversationId, conversationId)
+                .eq(MessageDO::getRole, "user")
+                .ne(MessageDO::getId, excludeMessageId)
+                .orderByDesc(MessageDO::getCreateTime)
+                .last("LIMIT 1");
+        MessageDO last = messageMapper.selectOne(wrapper);
+        return last == null ? null : last.getContent();
     }
 
     @Override

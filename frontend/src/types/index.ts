@@ -132,3 +132,50 @@ export interface ChatSession {
   createTime: string
   updateTime: string
 }
+
+// 学习记录
+export interface LearningRecord {
+  id: string
+  userId: string
+  kbId: string
+  conversationId?: string
+  messageId?: string
+  question: string
+  answer?: string
+  knowledgeTags?: string
+  createTime: string
+  updateTime?: string
+}
+
+// 知识点频次统计
+export interface KnowledgePointStat {
+  tag: string
+  kbId?: string
+  count: number
+  lastTime?: string
+}
+
+// 复习提醒
+export interface ReviewReminder {
+  id: string
+  userId: string
+  kbId?: string
+  topic: string
+  remark?: string
+  rawText?: string
+  remindTime: string
+  // 0-待提醒，1-已提醒，2-已完成，3-已取消
+  status: number
+  notifiedAt?: string
+  sourceRecordId?: string
+  createTime: string
+  updateTime?: string
+}
+
+// 时间表达式解析结果
+export interface ParsedReminder {
+  remindTime: string
+  topic?: string
+  remark?: string
+  source?: string
+}

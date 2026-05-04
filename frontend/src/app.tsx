@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { AuthenticationProvider, useAuthentication } from '@/hooks/useAuthentication'
+import { useReviewReminderNotifier, requestNotificationPermission } from '@/hooks/useReviewReminderNotifier'
+import { ReviewReminderPopup } from '@/components/ReviewReminderPopup'
 import KnowledgeBasePage from '@/pages/KnowledgeBasePage'
 import UserPage from '@/pages/UserPage'
 import SystemSettingsPage from '@/pages/SystemSettingsPage'
@@ -9,12 +11,34 @@ import DocumentsPage from '@/pages/DocumentsPage'
 import ChatPage from '@/pages/ChatPage'
 import LoginPage from '@/pages/LoginPage'
 import RegisterPage from '@/pages/RegisterPage'
+import LearningRecordsPage from '@/pages/LearningRecordsPage'
+import ReviewRemindersPage from '@/pages/ReviewRemindersPage'
 import { Layout } from '@/components/layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { BookOpen, FileText, Users } from 'lucide-react'
 import { ApiService } from '@/services/api'
 import { Helmet } from 'react-helmet-async'
 import { UserRole } from '@/types'
+
+function GlobalReviewReminder() {
+  const { isAuthenticated } = useAuthentication()
+  const navigate = useNavigate()
+  useReviewReminderNotifier({
+    enabled: isAuthenticated,
+    onNavigate: () => navigate('/review-reminders'),
+  })
+  useEffect(() => {
+    if (isAuthenticated) {
+      requestNotificationPermission()
+    }
+  }, [isAuthenticated])
+  return null
+}
+
+function GlobalReviewReminderPopup() {
+  const { isAuthenticated } = useAuthentication()
+  return <ReviewReminderPopup enabled={isAuthenticated} />
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthentication()
@@ -117,6 +141,8 @@ export default function App() {
   return (
     <AuthenticationProvider>
       <BrowserRouter>
+        <GlobalReviewReminder />
+        <GlobalReviewReminderPopup />
         <Helmet>
           <title>智能课程助手</title>
         </Helmet>
@@ -129,6 +155,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ChatPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learning-records"
+            element={
+              <ProtectedRoute>
+                <LearningRecordsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/review-reminders"
+            element={
+              <ProtectedRoute>
+                <ReviewRemindersPage />
               </ProtectedRoute>
             }
           />
