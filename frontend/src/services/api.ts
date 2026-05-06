@@ -454,8 +454,8 @@ export class ApiService {
         params: { keyword, pageNum, pageSize },
       }),
 
-    streamChat: (kbId: string, question: string, conversationId?: string, topK: number = 3) => {
-      const params = new URLSearchParams({ kbId, question, topK: topK.toString() })
+    streamChat: (kbId: string, question: string, conversationId?: string, topK: number = 3, webSearch: boolean = false) => {
+      const params = new URLSearchParams({ kbId, question, topK: topK.toString(), webSearch: webSearch ? 'true' : 'false' })
       if (conversationId) {
         params.append('conversationId', conversationId)
       }

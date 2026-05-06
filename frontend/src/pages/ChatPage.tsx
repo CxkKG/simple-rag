@@ -32,6 +32,7 @@ import {
   Search,
   BookMarked,
   AlarmClock,
+  Globe,
 } from 'lucide-react'
 import { formatTimeString } from '@/lib/utils'
 import {
@@ -55,6 +56,7 @@ export default function ChatPage() {
     selectedKnowledgeBase,
     searchResults,
     isSearching,
+    webSearchEnabled,
     createSession,
     selectSession,
     fetchSessions,
@@ -64,6 +66,7 @@ export default function ChatPage() {
     setSelectedKnowledgeBase,
     searchConversations,
     clearSearch,
+    setWebSearchEnabled,
   } = useChatStore()
   const { knowledgeBases, fetchKnowledgeBases } = useKnowledgeBaseStore()
 
@@ -481,28 +484,53 @@ export default function ChatPage() {
 
         {/* 输入区域 */}
         <div className="border-t border-education-blue-100 bg-white p-4 flex-shrink-0">
-          <div className="max-w-3xl mx-auto relative">
-            <Input
-              ref={inputRef}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSend()
-                }
-              }}
-              placeholder="输入您的问题..."
-              className="h-12 pl-4 pr-12"
-              disabled={chatIsLoading}
-            />
-            <Button
-              onClick={handleSend}
-              disabled={!inputValue.trim() || chatIsLoading}
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 bg-gradient-to-r from-education-blue-600 to-education-blue-500 hover:from-education-blue-700 hover:to-education-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-full shadow-sm"
-            >
-              <Send className="w-5 h-5" />
-            </Button>
+          <div className="max-w-3xl mx-auto">
+            {/* 工具栏：联网搜索开关 */}
+            <div className="flex items-center gap-2 mb-2">
+              <button
+                type="button"
+                onClick={() => setWebSearchEnabled(!webSearchEnabled)}
+                className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-medium border transition-colors ${
+                  webSearchEnabled
+                    ? 'bg-education-blue-600 text-white border-education-blue-600 hover:bg-education-blue-700'
+                    : 'bg-white text-education-blue-600 border-education-blue-200 hover:bg-education-blue-50'
+                }`}
+                title={webSearchEnabled ? '已开启联网搜索（知识库未命中时自动兜底）' : '点击开启联网搜索'}
+              >
+                <Globe className="w-3.5 h-3.5" />
+                <span>联网搜索</span>
+                <span className={`ml-1 inline-block w-1.5 h-1.5 rounded-full ${webSearchEnabled ? 'bg-white' : 'bg-education-blue-300'}`} />
+              </button>
+              {webSearchEnabled && (
+                <span className="text-xs text-education-blue-500">
+                  知识库未命中时将自动调用联网搜索
+                </span>
+              )}
+            </div>
+
+            <div className="relative">
+              <Input
+                ref={inputRef}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    handleSend()
+                  }
+                }}
+                placeholder="输入您的问题..."
+                className="h-12 pl-4 pr-12"
+                disabled={chatIsLoading}
+              />
+              <Button
+                onClick={handleSend}
+                disabled={!inputValue.trim() || chatIsLoading}
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 bg-gradient-to-r from-education-blue-600 to-education-blue-500 hover:from-education-blue-700 hover:to-education-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-full shadow-sm"
+              >
+                <Send className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
           <p className="text-center text-xs text-education-blue-500 mt-3">
             AI 生成的内容可能存在错误，请注意核实。

@@ -95,9 +95,10 @@ public class RagController {
     public Map<String, Object> chat(
             @RequestParam String conversationId,
             @RequestParam String question,
-            @RequestParam(defaultValue = "3") int topK) {
+            @RequestParam(defaultValue = "3") int topK,
+            @RequestParam(defaultValue = "false") boolean webSearch) {
         String userId = StpUtil.getLoginIdAsString();
-        String answer = ragService.chat(conversationId, question, topK, userId);
+        String answer = ragService.chat(conversationId, question, topK, userId, webSearch);
 
         Map<String, Object> result = new HashMap<>();
         result.put("answer", answer);
@@ -216,11 +217,12 @@ public class RagController {
     public Map<String, Object> query(
             @RequestParam String kbId,
             @RequestParam String question,
-            @RequestParam(defaultValue = "3") int topK) {
+            @RequestParam(defaultValue = "3") int topK,
+            @RequestParam(defaultValue = "false") boolean webSearch) {
         String userId = StpUtil.getLoginIdAsString();
         // 创建临时会话
         String conversationId = ragService.createConversation(kbId, userId);
-        String answer = ragService.chat(conversationId, question, topK, userId);
+        String answer = ragService.chat(conversationId, question, topK, userId, webSearch);
 
         Map<String, Object> result = new HashMap<>();
         result.put("answer", answer);
@@ -243,7 +245,8 @@ public class RagController {
             @RequestParam String kbId,
             @RequestParam String question,
             @RequestParam(required = false) String conversationId,
-            @RequestParam(defaultValue = "3") int topK) {
+            @RequestParam(defaultValue = "3") int topK,
+            @RequestParam(defaultValue = "false") boolean webSearch) {
 
         String userId = StpUtil.getLoginIdAsString();
 
@@ -263,7 +266,6 @@ public class RagController {
             String finalConvId = conversationId;
 
             try {
-                // 设置完成回调，确保资源正确释放
                 String finalConvId1 = finalConvId;
                 emitter.onCompletion(() -> {
                     log.info("SSE connection completed: conversationId={}", finalConvId1);
@@ -282,72 +284,59 @@ public class RagController {
                     completed.set(true);
                 });
 
-                // 如果没有会话 ID，创建新的
                 if (finalConvId == null || finalConvId.trim().isEmpty()) {
                     finalConvId = ragService.createConversation(kbId, userId);
                 }
 
-                // 发送会话 ID
                 emitter.send(SseEmitter.event()
                         .name("conversationId")
                         .data(finalConvId));
 
-                // 发送开始事件
                 emitter.send(SseEmitter.event().name("start").data("start"));
 
-                // 向量检索
-                List<VectorSearchService.SearchResult> searchResults = vectorSearchService.search(kbId, question, topK);
+                // 统一走 RagService.prepareRetrievalContext —— 知识库未命中时按 webSearch 开关兜底
+                RagService.RetrievalResult retrieval = ragService.prepareRetrievalContext(
+                        kbId, question, topK, webSearch);
 
-                // 发送检索结果
+                // 通知前端检索来源（KNOWLEDGE_BASE / WEB_SEARCH / FALLBACK_HINT）
+                String sourceType = retrieval.isFallbackHint()
+                        ? "FALLBACK_HINT"
+                        : (retrieval.isUsedWebSearch()
+                                ? RagService.SOURCE_TYPE_WEB_SEARCH
+                                : RagService.SOURCE_TYPE_KNOWLEDGE_BASE);
                 emitter.send(SseEmitter.event()
                         .name("retrieved")
-                        .data(Map.of("count", searchResults.size())));
+                        .data(Map.of(
+                                "sourceType", sourceType,
+                                "count", retrieval.getSources() != null ? retrieval.getSources().size() : 0)));
 
-                // 构建上下文
-                StringBuilder contextBuilder = new StringBuilder();
-                for (int i = 0; i < searchResults.size(); i++) {
-                    VectorSearchService.SearchResult result = searchResults.get(i);
-                    contextBuilder.append("[").append(i + 1).append("] ")
-                            .append(result.getContent())
-                            .append("\n\n");
+                String fullAnswer;
+                if (retrieval.isFallbackHint()) {
+                    // 知识库未命中且未开启联网搜索 → 直接把提示文案推给前端，不调用 LLM
+                    fullAnswer = retrieval.getDirectAnswer();
+                    emitter.send(SseEmitter.event().name("content").data(fullAnswer));
+                } else {
+                    emitter.send(SseEmitter.event().name("context").data(retrieval.getPromptContext()));
+
+                    String systemPrompt = ragService.systemPromptFor(retrieval.isUsedWebSearch());
+
+                    StringBuilder buf = new StringBuilder();
+                    llmService.streamGenerate(systemPrompt, retrieval.getPromptContext(), emitter, buf::append);
+                    fullAnswer = buf.toString();
                 }
 
-                // 发送上下文
-                emitter.send(SseEmitter.event().name("context").data(contextBuilder.toString()));
-
-                // 构建系统提示词
-                String systemPrompt = "你是一个智能助手，能够根据提供的知识库内容回答用户的问题。" +
-                        "请仔细阅读提供的信息，用简洁明了的语言回答问题。" +
-                        "如果提供的信息不足以回答问题，请如实告知用户。" +
-                        "回答中引用的信息请标注对应的编号 [1]、[2] 等。";
-
-                // 构建用户消息
-                String userMessage = contextBuilder.toString() + "\n\n请根据以上信息回答用户的问题：" + question;
-
-                // 用于累积完整回答
-                StringBuilder fullAnswer = new StringBuilder();
-
-                // 调用 LLM 流式生成回答
-                llmService.streamGenerate(systemPrompt, userMessage, emitter, text -> {
-                    // 内容消费回调，累积完整回答
-                    fullAnswer.append(text);
-                });
-
-                // 检查是否在流式过程中已完成
                 if (completed.get()) {
                     log.warn("Stream already completed, skipping save");
                     return;
                 }
 
-                // 发送完成事件
                 emitter.send(SseEmitter.event().name("end").data("end"));
 
-                // 保存对话记录
                 ragService.saveMessage(finalConvId, "user", question);
-                ragService.saveMessage(finalConvId, "assistant", fullAnswer.toString());
+                ragService.saveMessage(finalConvId, "assistant", fullAnswer);
 
-                log.info("Stream chat completed: conversationId={}, question={}, answerLength={}",
-                        finalConvId, question, fullAnswer.length());
+                log.info("Stream chat completed: conversationId={}, question={}, webSearch={}, sourceType={}, answerLength={}",
+                        finalConvId, question, webSearch, sourceType, fullAnswer.length());
 
             } catch (Exception e) {
                 log.error("Stream chat error: conversationId={}", finalConvId, e);

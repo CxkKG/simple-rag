@@ -95,6 +95,12 @@
             <artifactId>hutool-all</artifactId>
         </dependency>
 
+        <!-- Spring AI MCP Client (联网搜索 / Web Search 通过 MCP) -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-mcp-client</artifactId>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>

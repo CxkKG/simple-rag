@@ -12,6 +12,7 @@ interface ChatStore {
   searchKeyword: string
   searchResults: { id: string; title: string; kbId: string; lastName: string; updatedAt: string }[] | null
   isSearching: boolean
+  webSearchEnabled: boolean
 
   // Actions
   createSession: (kbId: string) => Promise<string>
@@ -24,6 +25,7 @@ interface ChatStore {
   searchConversations: (keyword: string) => Promise<void>
   clearSearch: () => void
   summarizeTitle: (sessionId: string) => Promise<string>
+  setWebSearchEnabled: (enabled: boolean) => void
 }
 
 export const useChatStore = create<ChatStore>((set, get) => ({
@@ -36,6 +38,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   searchKeyword: '',
   searchResults: null,
   isSearching: false,
+  webSearchEnabled: false,
 
   createSession: async (kbId) => {
     set({ isLoading: true, error: null })
@@ -157,7 +160,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     try {
       // 使用 EventSource 接收流式响应
       const kbId = selectedKnowledgeBase!
-      const streamPath = ApiService.chat.streamChat(kbId, content, sessionId)
+      const { webSearchEnabled } = get()
+      const streamPath = ApiService.chat.streamChat(kbId, content, sessionId, 3, webSearchEnabled)
       // 构建完整的 URL（EventSource 不支持 axios 拦截器，需要完整 URL）
       const baseURL = import.meta.env.VITE_API_BASE_URL || window.location.origin + '/api/simple-rag'
       const streamUrl = baseURL + streamPath
@@ -299,6 +303,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   clearSearch: () => set({ searchKeyword: '', searchResults: null }),
+
+  setWebSearchEnabled: (enabled) => set({ webSearchEnabled: enabled }),
 
   summarizeTitle: async (sessionId) => {
     set({ isLoading: true, error: null })
