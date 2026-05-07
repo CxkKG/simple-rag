@@ -68,6 +68,7 @@ export default function ChatPage() {
     searchConversations,
     clearSearch,
     setWebSearchEnabled,
+    summarizeTitle,
   } = useChatStore()
   const { knowledgeBases, fetchKnowledgeBases } = useKnowledgeBaseStore()
 
@@ -139,12 +140,26 @@ export default function ChatPage() {
       if (!currentSessionId && selectedKnowledgeBase) {
         const sessionId = await createSession(selectedKnowledgeBase)
         await selectSession(sessionId)
+        // 为新创建的会话生成AI标题
+        try {
+          await summarizeTitle(sessionId)
+        } catch (err) {
+          console.warn('Failed to generate session title for new session:', err)
+        }
       } else if (!currentSessionId && !selectedKnowledgeBase) {
         alert('请先选择知识库')
         return
       }
 
       await sendMessage(inputValue)
+      // 尝试为新会话生成AI标题
+      if (currentSessionId) {
+        try {
+          await summarizeTitle(currentSessionId)
+        } catch (err) {
+          console.warn('Failed to generate session title:', err)
+        }
+      }
       setInputValue('')
       inputRef.current?.focus()
     } catch (err) {
@@ -172,6 +187,15 @@ export default function ChatPage() {
 
   const handleSelectSession = (sessionId: string, closeSidebar?: boolean) => {
     selectSession(sessionId).catch(console.error)
+    // 尝试为选中的会话生成AI标题（如果还是默认标题）
+    const session = sessions.find(s => s.id === sessionId)
+    if (session && (session.title === '新会话' || session.title === 'New Session')) {
+      try {
+        summarizeTitle(sessionId).catch(console.error)
+      } catch (err) {
+        console.warn('Failed to generate session title for selected session:', err)
+      }
+    }
     if (searchResults !== null) {
       handleClearSearch()
     }
