@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAuthentication } from '@/hooks/useAuthentication'
 import { useDocumentStore } from '@/stores/document'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
@@ -68,6 +68,7 @@ export default function DocumentsPage() {
   const [documentContentPage, setDocumentContentPage] = useState<DocumentContentPage | null>(null)
   const [isContentLoading, setIsContentLoading] = useState(false)
   const [contentError, setContentError] = useState('')
+  const [fileTypes, setFileTypes] = useState<string[]>([])
   const contentPageSize = 3000
 
   const { documents, isLoading, queryDocuments, deleteDocuments, total, selectedIds, toggleSelectId, clearSelectedIds, uploadDocument, fetchDocumentContent } = useDocumentStore()
@@ -88,10 +89,42 @@ export default function DocumentsPage() {
     { key: 'actions', width: 88, minWidth: 76, maxWidth: 120 },
   ])
 
+  // 状态映射
+  const statusOptions = [
+    { value: 'pending', label: '待处理' },
+    { value: 'running', label: '处理中' },
+    { value: 'success', label: '已完成' },
+    { value: 'failed', label: '失败' },
+  ]
+
   // 获取知识库列表
   useEffect(() => {
     fetchKnowledgeBases()
   }, [fetchKnowledgeBases])
+
+  // 加载文件类型选项
+  useEffect(() => {
+    // 使用现有的queryDocuments API获取文档数据，然后提取唯一的fileType
+    const loadFileTypes = async () => {
+      try {
+        // 查询前10个文档来获取文件类型
+        const response = await queryDocuments({
+          pageNum: 1,
+          pageSize: 10
+        })
+        
+        // 提取唯一的fileType
+        const types = Array.from(new Set(response.data.map(doc => doc.fileType)))
+        setFileTypes(types)
+      } catch (error) {
+        console.error('Failed to load file types:', error)
+        // 如果查询失败，使用默认的文件类型
+        setFileTypes(['pdf', 'word', 'excel', 'csv', 'powerpoint', 'markdown', 'text', 'other'])
+      }
+    }
+    
+    loadFileTypes()
+  }, [queryDocuments])
 
   // 查询文档
   useEffect(() => {
@@ -295,25 +328,33 @@ export default function DocumentsPage() {
               <Label htmlFor="status" className="text-sm font-medium">
                 状态
               </Label>
-              <Input
+              <select
                 id="status"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                placeholder="所有状态"
-                className="h-10"
-              />
+                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="">所有状态</option>
+                {statusOptions.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="fileType" className="text-sm font-medium">
                 文件类型
               </Label>
-              <Input
+              <select
                 id="fileType"
                 value={fileType}
                 onChange={(e) => setFileType(e.target.value)}
-                placeholder="所有类型"
-                className="h-10"
-              />
+                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="">所有类型</option>
+                {fileTypes.map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="kbId" className="text-sm font-medium">
