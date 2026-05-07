@@ -43,6 +43,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer'
 
 export default function ChatPage() {
   const navigate = useNavigate()
@@ -458,8 +459,8 @@ export default function ChatPage() {
                         ? 'bg-education-blue-600 text-white rounded-tr-none'
                         : 'bg-education-blue-50 text-education-blue-900 rounded-tl-none border border-education-blue-100'
                     }`}>
-                      <div className="prose prose-education-blue max-w-none leading-relaxed whitespace-pre-wrap">
-                        {message.content}
+                      <div className="prose prose-education-blue max-w-none leading-relaxed">
+                        <MarkdownRenderer content={message.content} />
                       </div>
                     </div>
                   </div>

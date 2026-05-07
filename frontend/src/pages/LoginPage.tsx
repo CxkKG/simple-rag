@@ -135,7 +135,7 @@ export default function LoginPage() {
         </Card>
 
         <div className="text-center text-sm text-education-blue-500">
-          <p>&copy; 2024 智能课程学习助手. All rights reserved.</p>
+          <p>&copy; 2026 智能课程学习助手. All rights reserved.</p>
         </div>
       </div>
     </div>

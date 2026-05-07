@@ -2,6 +2,7 @@ import { AlertCircle, ChevronLeft, ChevronRight, FileText, RefreshCw } from 'luc
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DocumentContentPage } from '@/types'
+import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer'
 
 interface DocumentContentViewerProps {
   contentPage: DocumentContentPage | null
@@ -29,18 +30,7 @@ const getDisplayType = (fileType?: string) => {
   return type.toUpperCase()
 }
 
-const renderMarkdown = (content: string) => {
-  return content.split('\n').map((line, index) => {
-    const trimmed = line.trim()
-    if (!trimmed) return <div key={index} className="h-3" />
-    if (trimmed.startsWith('### ')) return <h4 key={index} className="mt-4 text-base font-semibold text-slate-900">{trimmed.slice(4)}</h4>
-    if (trimmed.startsWith('## ')) return <h3 key={index} className="mt-5 text-lg font-semibold text-slate-900">{trimmed.slice(3)}</h3>
-    if (trimmed.startsWith('# ')) return <h2 key={index} className="mt-6 text-xl font-bold text-slate-950">{trimmed.slice(2)}</h2>
-    if (/^[-*]\s+/.test(trimmed)) return <p key={index} className="pl-4 leading-7 text-slate-700">• {trimmed.slice(2)}</p>
-    if (/^\d+\.\s+/.test(trimmed)) return <p key={index} className="pl-4 leading-7 text-slate-700">{trimmed}</p>
-    return <p key={index} className="leading-7 text-slate-700">{line}</p>
-  })
-}
+
 
 const renderTableContent = (content: string) => {
   const rows = content
@@ -73,7 +63,7 @@ const renderTableContent = (content: string) => {
 
 const renderContent = (content: string, fileType?: string) => {
   const type = normalizeFileType(fileType)
-  if (type === 'markdown') return <div className="space-y-1">{renderMarkdown(content)}</div>
+  if (type === 'markdown') return <MarkdownRenderer content={content} />
   if (type === 'excel' || type === 'csv') return renderTableContent(content) || <pre className="whitespace-pre-wrap break-words font-mono text-sm leading-7 text-slate-700">{content}</pre>
   return <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-7 text-slate-700">{content}</pre>
 }
