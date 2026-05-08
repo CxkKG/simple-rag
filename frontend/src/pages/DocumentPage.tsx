@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { SimpleRagDocument, DocumentContentPage } from '@/types'
-import { DocumentContentViewer } from '@/features/document/DocumentContentViewer'
+import { SimpleRagDocument } from '@/types'
+import { RawFileViewer } from '@/features/document/RawFileViewer'
 import {
   Table,
   TableBody,
@@ -64,13 +64,9 @@ export default function DocumentPage() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
   const [viewingDoc, setViewingDoc] = useState<SimpleRagDocument | null>(null)
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
-  const [documentContentPage, setDocumentContentPage] = useState<DocumentContentPage | null>(null)
-  const [isContentLoading, setIsContentLoading] = useState(false)
-  const [contentError, setContentError] = useState('')
-  const contentPageSize = 3000
 
   const { knowledgeBases, fetchKnowledgeBaseById } = useKnowledgeBaseStore()
-  const { documents, isLoading, fetchDocuments, deleteDocument, total, uploadDocument, triggerChunking, updateDocumentInfo, fetchDocumentContent } = useDocumentStore()
+  const { documents, isLoading, fetchDocuments, deleteDocument, total, uploadDocument, triggerChunking, updateDocumentInfo } = useDocumentStore()
 
   const navigate = useNavigate()
   const { user } = useAuthentication()
@@ -121,27 +117,10 @@ export default function DocumentPage() {
     setIsEditDialogOpen(true)
   }
 
-  const loadDocumentContent = async (docId: string, page = 1) => {
-    setIsContentLoading(true)
-    setContentError('')
-    try {
-      const content = await fetchDocumentContent(docId, page, contentPageSize)
-      setDocumentContentPage(content)
-    } catch (err) {
-      setDocumentContentPage(null)
-      setContentError(err instanceof Error ? err.message : '加载文档内容失败')
-    } finally {
-      setIsContentLoading(false)
-    }
-  }
-
-  const handleOpenViewDialog = async (doc: SimpleRagDocument) => {
+  const handleOpenViewDialog = (doc: SimpleRagDocument) => {
     setViewingDoc(doc)
     setSelectedDocId(doc.id)
-    setDocumentContentPage(null)
-    setContentError('')
     setIsViewDialogOpen(true)
-    await loadDocumentContent(doc.id)
   }
 
   const handleSaveDocumentInfo = async () => {
@@ -526,13 +505,10 @@ export default function DocumentPage() {
               <DialogTitle>{viewingDoc?.docName || '查看文档'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-3">
-              <DocumentContentViewer
-                contentPage={documentContentPage}
+              <RawFileViewer
+                docId={viewingDoc?.id ?? null}
                 docName={viewingDoc?.docName}
                 fileType={viewingDoc?.fileType}
-                isLoading={isContentLoading}
-                error={contentError}
-                onPageChange={(page) => viewingDoc && loadDocumentContent(viewingDoc.id, page)}
               />
             </div>
             <DialogFooter>

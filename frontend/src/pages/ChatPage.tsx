@@ -44,6 +44,9 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer'
+import { RawFileViewer } from '@/features/document/RawFileViewer'
+import { ContextSource } from '@/types'
+import { FileText } from 'lucide-react'
 
 export default function ChatPage() {
   const navigate = useNavigate()
@@ -80,6 +83,20 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [pageLoading, setPageLoading] = useState(true)
+  const [previewDocId, setPreviewDocId] = useState<string | null>(null)
+  const [previewDocName, setPreviewDocName] = useState<string>('')
+  const [previewFileType, setPreviewFileType] = useState<string | undefined>(undefined)
+
+  const handleOpenPreview = (source: ContextSource) => {
+    if (!source.docId) return
+    setPreviewDocId(source.docId)
+    setPreviewDocName(source.docName || '知识库文档')
+    setPreviewFileType(source.fileType)
+  }
+
+  const handleClosePreview = () => {
+    setPreviewDocId(null)
+  }
 
   useEffect(() => {
     if (user && knowledgeBases.length === 0) {
@@ -487,6 +504,60 @@ export default function ChatPage() {
                         <MarkdownRenderer content={message.content} />
                       </div>
                     </div>
+                    {message.role === 'assistant' && message.contextSources && message.contextSources.length > 0 && (
+                      <div className="mt-2 rounded-xl border border-education-blue-100 bg-white/70 px-3 py-2">
+                        <p className="mb-1.5 text-xs font-medium text-education-blue-700">引用来源</p>
+                        <ul className="space-y-1">
+                          {message.contextSources.map((src, idx) => {
+                            const key = `${message.id}-src-${idx}`
+                            if (src.type === 'KNOWLEDGE_BASE') {
+                              const label = src.docName || src.docId || `知识片段 ${idx + 1}`
+                              return (
+                                <li key={key} className="flex items-center gap-2 text-xs text-education-blue-800">
+                                  <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-education-blue-100 px-1.5 text-[10px] font-semibold text-education-blue-700">[{idx + 1}]</span>
+                                  <FileText className="h-3.5 w-3.5 shrink-0 text-education-blue-500" />
+                                  {src.docId ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenPreview(src)}
+                                      className="truncate text-left text-education-blue-700 underline-offset-2 hover:underline"
+                                      title={label}
+                                    >
+                                      {label}
+                                    </button>
+                                  ) : (
+                                    <span className="truncate">{label}</span>
+                                  )}
+                                </li>
+                              )
+                            }
+                            if (src.type === 'WEB_SEARCH') {
+                              const label = src.title || src.url || `网页 ${idx + 1}`
+                              return (
+                                <li key={key} className="flex items-center gap-2 text-xs text-education-blue-800">
+                                  <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-education-blue-100 px-1.5 text-[10px] font-semibold text-education-blue-700">[{idx + 1}]</span>
+                                  <Globe className="h-3.5 w-3.5 shrink-0 text-education-blue-500" />
+                                  {src.url ? (
+                                    <a
+                                      href={src.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="truncate text-education-blue-700 underline-offset-2 hover:underline"
+                                      title={label}
+                                    >
+                                      {label}
+                                    </a>
+                                  ) : (
+                                    <span className="truncate">{label}</span>
+                                  )}
+                                </li>
+                              )
+                            }
+                            return null
+                          })}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
@@ -563,6 +634,22 @@ export default function ChatPage() {
         </div>
       </div>
     </div>
+
+    <Dialog open={!!previewDocId} onOpenChange={(open) => { if (!open) handleClosePreview() }}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle className="truncate">{previewDocName || '文档预览'}</DialogTitle>
+        </DialogHeader>
+        <RawFileViewer
+          docId={previewDocId}
+          docName={previewDocName}
+          fileType={previewFileType}
+        />
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={handleClosePreview}>关闭</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </>
   )
 }

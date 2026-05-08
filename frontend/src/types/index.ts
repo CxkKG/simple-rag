@@ -112,6 +112,23 @@ export interface SystemConfig {
   category: string
 }
 
+// 上下文引用来源（知识库 / 联网搜索）
+export interface ContextSource {
+  type: 'KNOWLEDGE_BASE' | 'WEB_SEARCH' | string
+  // 知识库字段
+  chunkId?: string
+  docId?: string
+  docName?: string
+  fileUrl?: string
+  fileType?: string
+  score?: number
+  // 联网搜索字段
+  title?: string
+  url?: string
+  // 通用：原文片段
+  content?: string
+}
+
 // 消息类型（用于聊天会话）
 export interface Message {
   id?: string
@@ -119,6 +136,7 @@ export interface Message {
   role: 'user' | 'assistant' | 'system'
   content: string
   createdAt?: string
+  contextSources?: ContextSource[]
 }
 
 // 聊天会话类型

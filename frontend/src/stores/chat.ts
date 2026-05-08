@@ -191,6 +191,24 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           console.log('Received conversationId:', event.data)
         })
 
+        // 接收检索结果 —— 将引用来源挂到当前助手消息上
+        eventSource.addEventListener('retrieved', (event) => {
+          try {
+            const payload = JSON.parse(event.data)
+            const sources = Array.isArray(payload?.sources) ? payload.sources : []
+            set((state) => {
+              const newMessages = state.messages.map(msg =>
+                msg.id === currentAssistantMessageId
+                  ? { ...msg, contextSources: sources }
+                  : msg
+              )
+              return { messages: newMessages }
+            })
+          } catch (err) {
+            console.warn('Failed to parse retrieved event:', err)
+          }
+        })
+
         // 接收内容片段
         eventSource.addEventListener('content', (event) => {
           const chunk = event.data

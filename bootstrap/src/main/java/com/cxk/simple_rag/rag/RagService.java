@@ -1,10 +1,14 @@
 package com.cxk.simple_rag.rag;
 
 import com.cxk.simple_rag.conversation.service.ConversationService;
+import com.cxk.simple_rag.knowledge.entity.KnowledgeDocumentDO;
+import com.cxk.simple_rag.knowledge.mapper.KnowledgeDocumentMapper;
 import com.cxk.simple_rag.llm.LLMService;
 import com.cxk.simple_rag.vector.VectorSearchService;
 import com.cxk.simple_rag.websearch.WebSearchProperties;
 import com.cxk.simple_rag.websearch.WebSearchService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,8 +17,12 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -38,6 +46,8 @@ public class RagService {
     private final LLMService llmService;
     private final WebSearchService webSearchService;
     private final WebSearchProperties webSearchProperties;
+    private final KnowledgeDocumentMapper knowledgeDocumentMapper;
+    private final ObjectMapper objectMapper;
 
     // 简单的会话存储（生产环境建议使用 Redis）
     private final Map<String, Conversation> conversations = new ConcurrentHashMap<>();
@@ -82,7 +92,7 @@ public class RagService {
         }
 
         conversationService.addMessage(conversationId, "user", question, null);
-        conversationService.addMessage(conversationId, "assistant", answer, null);
+        conversationService.addMessage(conversationId, "assistant", answer, serializeSources(retrieval.getSources()));
 
         log.info("Chat completed: conversationId={}, question={}, webSearch={}, usedWebSearch={}, answerLength={}",
                 conversationId, question, webSearch, retrieval.isUsedWebSearch(), answer.length());
@@ -214,6 +224,43 @@ public class RagService {
     }
 
     /**
+     * 保存助手消息并携带引用来源 JSON
+     */
+    public void saveAssistantMessage(String conversationId, String content, List<ContextSource> sources) {
+        conversationService.addMessage(conversationId, "assistant", content, serializeSources(sources));
+    }
+
+    /**
+     * 将引用来源序列化为 JSON 字符串，失败时回退为 null 不阻断主流程。
+     */
+    public String serializeSources(List<ContextSource> sources) {
+        if (sources == null || sources.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(sources);
+        } catch (Exception e) {
+            log.warn("Failed to serialize context sources, fallback to null", e);
+            return null;
+        }
+    }
+
+    /**
+     * 将 JSON 字符串反序列化为引用来源列表，失败时返回空列表不阻断主流程。
+     */
+    public List<ContextSource> deserializeSources(String json) {
+        if (json == null || json.isBlank()) {
+            return Collections.emptyList();
+        }
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<ContextSource>>() {});
+        } catch (Exception e) {
+            log.warn("Failed to deserialize context sources: {}", json, e);
+            return Collections.emptyList();
+        }
+    }
+
+    /**
      * 获取会话历史
      */
     public List<Message> getConversationHistory(String conversationId, String userId) {
@@ -230,6 +277,7 @@ public class RagService {
             message.setContent(messageDO.getContent());
             message.setTimestamp(messageDO.getCreateTime().toInstant()
                     .atZone(java.time.ZoneId.systemDefault()).toLocalDateTime());
+            message.setContextSources(deserializeSources(messageDO.getContextSources()));
             messages.add(message);
         }
         return messages;
@@ -245,6 +293,33 @@ public class RagService {
 
     private List<ContextSource> extractContextSources(List<VectorSearchService.SearchResult> results) {
         List<ContextSource> sources = new ArrayList<>();
+        if (results == null || results.isEmpty()) {
+            return sources;
+        }
+
+        // 批量拉取文档元数据，避免 N+1 查询
+        Set<String> docIds = new LinkedHashSet<>();
+        for (VectorSearchService.SearchResult r : results) {
+            if (r.getDocId() != null && !r.getDocId().isBlank()) {
+                docIds.add(r.getDocId());
+            }
+        }
+        Map<String, KnowledgeDocumentDO> docMap = new HashMap<>();
+        if (!docIds.isEmpty()) {
+            try {
+                List<KnowledgeDocumentDO> docs = knowledgeDocumentMapper.selectBatchIds(docIds);
+                if (docs != null) {
+                    for (KnowledgeDocumentDO doc : docs) {
+                        if (doc != null && doc.getId() != null) {
+                            docMap.put(doc.getId(), doc);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to batch load knowledge documents for sources: docIds={}", docIds, e);
+            }
+        }
+
         for (VectorSearchService.SearchResult result : results) {
             ContextSource source = new ContextSource();
             source.setType(SOURCE_TYPE_KNOWLEDGE_BASE);
@@ -252,6 +327,14 @@ public class RagService {
             source.setDocId(result.getDocId());
             source.setScore(result.getScore());
             source.setContent(result.getContent());
+
+            KnowledgeDocumentDO doc = docMap.get(result.getDocId());
+            if (doc != null) {
+                source.setDocName(doc.getDocName());
+                // fileUrl 存放的是 RustFS 对象键（与存储路径一致，无需二次拼接）
+                source.setFileUrl(doc.getFileUrl());
+                source.setFileType(doc.getFileType());
+            }
             sources.add(source);
         }
         return sources;
@@ -320,5 +403,9 @@ public class RagService {
         private String url;
         // 通用：原文片段
         private String content;
+        // 知识库文档元数据（用于前端展示来源文件名及预览跳转，R1/R4）
+        private String docName;
+        private String fileUrl;
+        private String fileType;
     }
 }

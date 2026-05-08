@@ -304,11 +304,13 @@ public class RagController {
                         : (retrieval.isUsedWebSearch()
                                 ? RagService.SOURCE_TYPE_WEB_SEARCH
                                 : RagService.SOURCE_TYPE_KNOWLEDGE_BASE);
+                Map<String, Object> retrievedPayload = new HashMap<>();
+                retrievedPayload.put("sourceType", sourceType);
+                retrievedPayload.put("count", retrieval.getSources() != null ? retrieval.getSources().size() : 0);
+                retrievedPayload.put("sources", retrieval.getSources() != null ? retrieval.getSources() : Collections.emptyList());
                 emitter.send(SseEmitter.event()
                         .name("retrieved")
-                        .data(Map.of(
-                                "sourceType", sourceType,
-                                "count", retrieval.getSources() != null ? retrieval.getSources().size() : 0)));
+                        .data(retrievedPayload));
 
                 String fullAnswer;
                 if (retrieval.isFallbackHint()) {
@@ -333,7 +335,7 @@ public class RagController {
                 emitter.send(SseEmitter.event().name("end").data("end"));
 
                 ragService.saveMessage(finalConvId, "user", question);
-                ragService.saveMessage(finalConvId, "assistant", fullAnswer);
+                ragService.saveAssistantMessage(finalConvId, fullAnswer, retrieval.getSources());
 
                 log.info("Stream chat completed: conversationId={}, question={}, webSearch={}, sourceType={}, answerLength={}",
                         finalConvId, question, webSearch, sourceType, fullAnswer.length());

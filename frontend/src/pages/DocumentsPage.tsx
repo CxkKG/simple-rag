@@ -7,8 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { SimpleRagDocument, KnowledgeBase, DocumentContentPage } from '@/types'
-import { DocumentContentViewer } from '@/features/document/DocumentContentViewer'
+import { SimpleRagDocument, KnowledgeBase } from '@/types'
+import { RawFileViewer } from '@/features/document/RawFileViewer'
 import {
   Table,
   TableBody,
@@ -65,13 +65,9 @@ export default function DocumentsPage() {
   const [editDocName, setEditDocName] = useState('')
   const [editSummary, setEditSummary] = useState('')
   const [editKeywords, setEditKeywords] = useState('')
-  const [documentContentPage, setDocumentContentPage] = useState<DocumentContentPage | null>(null)
-  const [isContentLoading, setIsContentLoading] = useState(false)
-  const [contentError, setContentError] = useState('')
   const [fileTypes, setFileTypes] = useState<string[]>([])
-  const contentPageSize = 3000
 
-  const { documents, isLoading, queryDocuments, deleteDocuments, total, selectedIds, toggleSelectId, clearSelectedIds, uploadDocument, fetchDocumentContent } = useDocumentStore()
+  const { documents, isLoading, queryDocuments, deleteDocuments, total, selectedIds, toggleSelectId, clearSelectedIds, uploadDocument } = useDocumentStore()
   const { knowledgeBases, fetchKnowledgeBases } = useKnowledgeBaseStore()
 
   const navigate = useNavigate()
@@ -235,26 +231,9 @@ export default function DocumentsPage() {
     }
   }
 
-  const loadDocumentContent = async (docId: string, page = 1) => {
-    setIsContentLoading(true)
-    setContentError('')
-    try {
-      const content = await fetchDocumentContent(docId, page, contentPageSize)
-      setDocumentContentPage(content)
-    } catch (error) {
-      setDocumentContentPage(null)
-      setContentError(error instanceof Error ? error.message : '加载文档内容失败')
-    } finally {
-      setIsContentLoading(false)
-    }
-  }
-
   const handleViewDocument = async (doc: SimpleRagDocument) => {
     setSelectedDoc(doc)
-    setDocumentContentPage(null)
-    setContentError('')
     setIsViewModalOpen(true)
-    await loadDocumentContent(doc.id)
   }
 
   // 处理删除单个文档
@@ -716,7 +695,7 @@ export default function DocumentsPage() {
             </DialogHeader>
             {selectedDoc && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                {/* <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                   <div className="rounded-lg bg-slate-50 p-3">
                     <Label className="text-xs font-medium text-slate-500">状态</Label>
                     <div className="mt-2">
@@ -737,14 +716,11 @@ export default function DocumentsPage() {
                     <Label className="text-xs font-medium text-slate-500">分块数量</Label>
                     <div className="mt-2 text-sm text-slate-700">{selectedDoc.chunkCount || 0}</div>
                   </div>
-                </div>
-                <DocumentContentViewer
-                  contentPage={documentContentPage}
+                </div> */}
+                <RawFileViewer
+                  docId={selectedDoc.id}
                   docName={selectedDoc.docName}
                   fileType={selectedDoc.fileType}
-                  isLoading={isContentLoading}
-                  error={contentError}
-                  onPageChange={(page) => loadDocumentContent(selectedDoc.id, page)}
                 />
               </div>
             )}

@@ -7,13 +7,20 @@ import com.cxk.simple_rag.knowledge.service.KnowledgeBaseService;
 import com.cxk.simple_rag.knowledge.service.KnowledgeDocumentService;
 import com.cxk.simple_rag.knowledge.vo.KnowledgeDocumentContentVO;
 import com.cxk.simple_rag.knowledge.vo.KnowledgeDocumentVO;
+import com.cxk.simple_rag.storage.RustFsStorageService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.InputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -32,6 +39,7 @@ public class KnowledgeDocumentController {
 
     private final KnowledgeDocumentService documentService;
     private final KnowledgeBaseService knowledgeBaseService;
+    private final RustFsStorageService rustFsStorageService;
 
     @PostMapping("/upload")
     public ResponseEntity<Map<String, Object>> uploadDocument(
@@ -145,6 +153,56 @@ public class KnowledgeDocumentController {
         response.put("data", data);
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 下载/在线查看文档原始文件（未经解析、未分块、未向量化）。
+     * 直接从 RustFS 流式读取原始字节，由前端按文件类型决定渲染方式（PDF/图片/文本/下载）。
+     */
+    @GetMapping("/{id}/raw")
+    public ResponseEntity<InputStreamResource> getDocumentRaw(@PathVariable("id") String docId) {
+        KnowledgeDocumentVO documentVO = documentService.getDocument(docId);
+        if (documentVO == null || documentVO.getFileUrl() == null || documentVO.getFileUrl().isBlank()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        String objectKey = documentVO.getFileUrl();
+        InputStream stream = rustFsStorageService.downloadFile(objectKey);
+        InputStreamResource resource = new InputStreamResource(stream);
+
+        MediaType contentType = resolveMediaType(documentVO.getFileType(), objectKey);
+        String filename = documentVO.getDocName() != null && !documentVO.getDocName().isBlank()
+                ? documentVO.getDocName()
+                : objectKey.substring(objectKey.lastIndexOf('/') + 1);
+        String encoded = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
+
+        return ResponseEntity.ok()
+                .contentType(contentType)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=\"" + encoded + "\"; filename*=UTF-8''" + encoded)
+                .header(HttpHeaders.CACHE_CONTROL, "private, max-age=300")
+                .body(resource);
+    }
+
+    private MediaType resolveMediaType(String fileType, String objectKey) {
+        String type = fileType != null ? fileType.toLowerCase() : "";
+        String ext = objectKey != null && objectKey.lastIndexOf('.') >= 0
+                ? objectKey.substring(objectKey.lastIndexOf('.') + 1).toLowerCase()
+                : "";
+        return switch (type.isEmpty() ? ext : type) {
+            case "pdf" -> MediaType.APPLICATION_PDF;
+            case "png" -> MediaType.IMAGE_PNG;
+            case "jpg", "jpeg" -> MediaType.IMAGE_JPEG;
+            case "gif" -> MediaType.IMAGE_GIF;
+            case "txt", "text", "md", "markdown", "csv" -> new MediaType("text", "plain", StandardCharsets.UTF_8);
+            case "html", "htm" -> MediaType.TEXT_HTML;
+            case "json" -> MediaType.APPLICATION_JSON;
+            case "doc" -> MediaType.parseMediaType("application/msword");
+            case "docx", "word" -> MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+            case "xls" -> MediaType.parseMediaType("application/vnd.ms-excel");
+            case "xlsx", "excel" -> MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            default -> MediaType.APPLICATION_OCTET_STREAM;
+        };
     }
 
     @DeleteMapping("/{id}")

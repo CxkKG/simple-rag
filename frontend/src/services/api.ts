@@ -153,6 +153,10 @@ export class ApiService {
         params: pageNum || pageSize ? { pageNum, pageSize } : undefined,
       }),
 
+    // 获取文件原始字节（直接从 RustFS 流式返回，不经过解析/分块/向量化）
+    getRaw: (id: string) =>
+      service.get<Blob>(`/knowledge/document/${id}/raw`, { responseType: 'blob' }),
+
     delete: (id: string) =>
       request<{ data: null }>({
         method: 'delete',
