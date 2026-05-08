@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog'
 import {
   MessageSquare as ChatBubble,
@@ -33,6 +34,7 @@ import {
   BookMarked,
   AlarmClock,
   Globe,
+  Edit3,
 } from 'lucide-react'
 import { formatTimeString } from '@/lib/utils'
 import {
@@ -72,6 +74,7 @@ export default function ChatPage() {
     clearSearch,
     setWebSearchEnabled,
     summarizeTitle,
+    renameSession,
   } = useChatStore()
   const { knowledgeBases, fetchKnowledgeBases } = useKnowledgeBaseStore()
 
@@ -86,6 +89,9 @@ export default function ChatPage() {
   const [previewDocId, setPreviewDocId] = useState<string | null>(null)
   const [previewDocName, setPreviewDocName] = useState<string>('')
   const [previewFileType, setPreviewFileType] = useState<string | undefined>(undefined)
+  const [renameSessionId, setRenameSessionId] = useState<string | null>(null)
+  const [renameTitle, setRenameTitle] = useState('')
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false)
 
   const handleOpenPreview = (source: ContextSource) => {
     if (!source.docId) return
@@ -202,6 +208,16 @@ export default function ChatPage() {
     }
   }
 
+  const handleRenameSession = (e: React.MouseEvent, sessionId: string) => {
+    e.stopPropagation()
+    const session = sessions.find(s => s.id === sessionId)
+    if (session) {
+      setRenameSessionId(sessionId)
+      setRenameTitle(session.title)
+      setIsRenameDialogOpen(true)
+    }
+  }
+
   const handleSelectSession = (sessionId: string, closeSidebar?: boolean) => {
     selectSession(sessionId).catch(console.error)
     // 尝试为选中的会话生成AI标题（如果还是默认标题）
@@ -282,14 +298,24 @@ export default function ChatPage() {
             <span className="text-xs text-education-blue-600 truncate">{formatTimeString(session.updatedAt)}</span>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="iconSm"
-          onClick={(e) => handleDeleteSession(e, session.id)}
-          className="opacity-0 group-hover:opacity-100 h-8 w-8 text-education-blue-400 hover:text-red-600"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="iconSm"
+            onClick={(e) => handleRenameSession(e, session.id)}
+            className="opacity-0 group-hover:opacity-100 h-8 w-8 text-education-blue-400 hover:text-education-green-600"
+          >
+            <Edit3 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="iconSm"
+            onClick={(e) => handleDeleteSession(e, session.id)}
+            className="opacity-0 group-hover:opacity-100 h-8 w-8 text-education-blue-400 hover:text-red-600"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     ))
   }
@@ -616,15 +642,18 @@ export default function ChatPage() {
                   }
                 }}
                 placeholder="输入您的问题..."
-                className="h-12 pl-4 pr-12"
+                // 🔧 修改：添加 rounded-full 实现胶囊圆角，调整 padding 适配图标
+                className="h-12 pl-5 pr-14 rounded-full border-education-blue-200 focus:ring-2 focus:ring-education-blue-500 focus:border-transparent"
                 disabled={chatIsLoading}
               />
               <Button
                 onClick={handleSend}
                 disabled={!inputValue.trim() || chatIsLoading}
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 bg-gradient-to-r from-education-blue-600 to-education-blue-500 hover:from-education-blue-700 hover:to-education-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-full shadow-sm"
+                // 按钮尺寸保持不变 (h-10 w-10)，仅调整内部图标
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 h-10 w-10 bg-gradient-to-r from-education-blue-600 to-education-blue-500 hover:from-education-blue-700 hover:to-education-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-full shadow-sm transition-transform hover:scale-105 active:scale-95"
               >
-                <Send className="w-5 h-5" />
+                {/* 🔧 修改：图标从 w-5 h-5 增大到 w-6 h-6，比例更协调 */}
+                <Send className="w-6 h-6" />
               </Button>
             </div>
           </div>
@@ -647,6 +676,45 @@ export default function ChatPage() {
         />
         <DialogFooter>
           <Button type="button" variant="outline" onClick={handleClosePreview}>关闭</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* 重命名会话对话框 */}
+    <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>重命名会话</DialogTitle>
+          <DialogDescription>请输入新的会话标题</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <Input
+            id="title"
+            value={renameTitle}
+            onChange={(e) => setRenameTitle(e.target.value)}
+            className="col-span-3"
+            placeholder="请输入会话标题"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsRenameDialogOpen(false)}>
+            取消
+          </Button>
+          <Button
+            onClick={async () => {
+              if (renameSessionId && renameTitle.trim()) {
+                try {
+                  await renameSession(renameSessionId, renameTitle.trim())
+                  setIsRenameDialogOpen(false)
+                } catch (error) {
+                  console.error('Failed to rename session:', error)
+                  alert('重命名失败: ' + (error instanceof Error ? error.message : '未知错误'))
+                }
+              }
+            }}
+          >
+            确认
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

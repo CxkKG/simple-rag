@@ -25,6 +25,7 @@ interface ChatStore {
   searchConversations: (keyword: string) => Promise<void>
   clearSearch: () => void
   summarizeTitle: (sessionId: string) => Promise<string>
+  renameSession: (sessionId: string, title: string) => Promise<void>
   setWebSearchEnabled: (enabled: boolean) => void
 }
 
@@ -337,6 +338,22 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       return title
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to summarize title' })
+      throw error
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+
+  renameSession: async (sessionId, title) => {
+    set({ isLoading: true, error: null })
+    try {
+      await ApiService.chat.renameSession(sessionId, title)
+      // 更新会话列表中的标题
+      set((state) => ({
+        sessions: state.sessions.map(s => s.id === sessionId ? { ...s, title } : s),
+      }))
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : 'Failed to rename session' })
       throw error
     } finally {
       set({ isLoading: false })
