@@ -34,6 +34,7 @@ public class SystemConfigController {
         AIConfigDTO.Bailian bailian = new AIConfigDTO.Bailian();
         bailian.setApiKey(aiConfig.getProviders().getBailian().getApiKey());
         bailian.setModel(aiConfig.getProviders().getBailian().getModel());
+        bailian.setBaseUrl(aiConfig.getProviders().getBailian().getBaseUrl());
         providers.setBailian(bailian);
         
         AIConfigDTO.Siliconflow siliconflow = new AIConfigDTO.Siliconflow();
@@ -48,6 +49,41 @@ public class SystemConfigController {
         providers.setOllama(ollama);
         
         dto.setProviders(providers);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "success");
+        response.put("data", dto);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 更新 AI 配置
+     * 注意：这里只更新内存中的配置，不会持久化到 application.yaml
+     */
+    @PutMapping("/ai")
+    public ResponseEntity<Map<String, Object>> updateAIConfig(
+            @RequestBody AIConfigDTO dto) {
+        
+        if (dto.getProviders() != null) {
+            if (dto.getProviders().getBailian() != null) {
+                aiConfig.getProviders().getBailian().setApiKey(dto.getProviders().getBailian().getApiKey());
+                aiConfig.getProviders().getBailian().setModel(dto.getProviders().getBailian().getModel());
+                aiConfig.getProviders().getBailian().setBaseUrl(dto.getProviders().getBailian().getBaseUrl());
+            }
+            if (dto.getProviders().getSiliconflow() != null) {
+                aiConfig.getProviders().getSiliconflow().setApiKey(dto.getProviders().getSiliconflow().getApiKey());
+                aiConfig.getProviders().getSiliconflow().setModel(dto.getProviders().getSiliconflow().getModel());
+                aiConfig.getProviders().getSiliconflow().setBaseUrl(dto.getProviders().getSiliconflow().getBaseUrl());
+            }
+            if (dto.getProviders().getOllama() != null) {
+                aiConfig.getProviders().getOllama().setBaseUrl(dto.getProviders().getOllama().getBaseUrl());
+                aiConfig.getProviders().getOllama().setModel(dto.getProviders().getOllama().getModel());
+            }
+        }
+
+        log.info("AI config updated");
 
         Map<String, Object> response = new HashMap<>();
         response.put("code", 0);

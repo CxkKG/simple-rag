@@ -43,6 +43,7 @@ public class AIConfig {
     public static class Bailian {
         private String apiKey = "";
         private String model = "qwen-plus";
+        private String baseUrl = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation";
     }
 
     @Data

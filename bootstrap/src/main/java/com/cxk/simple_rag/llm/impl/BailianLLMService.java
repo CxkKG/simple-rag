@@ -62,7 +62,7 @@ public class BailianLLMService implements LLMService {
         request.put("input", input);
         request.put("parameters", parameters);
 
-        String url = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation";
+        String url = config.getBaseUrl();
         String body = JSONUtil.toJsonStr(request);
 
         log.debug("Sending request to Bailian: model={}, url={}", config.getModel(), url);
@@ -146,7 +146,7 @@ public class BailianLLMService implements LLMService {
         request.put("input", input);
         request.put("parameters", parameters);
 
-        String url = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation";
+        String url = config.getBaseUrl();
         String body = JSONUtil.toJsonStr(request);
 
         log.debug("Sending stream request to Bailian: model={}, url={}", config.getModel(), url);

@@ -301,7 +301,7 @@ export class ApiService {
       request<{
         data: {
           providers: {
-            bailian: { apiKey: string; model: string }
+            bailian: { apiKey: string; model: string; baseUrl: string }
             siliconflow: { apiKey: string; model: string; baseUrl: string }
             ollama: { baseUrl: string; model: string }
           }
@@ -309,6 +309,27 @@ export class ApiService {
       }>({
         method: 'get',
         url: '/system/config/ai',
+      }),
+
+    updateAIConfig: (data: {
+      providers: {
+        bailian: { apiKey: string; model: string; baseUrl: string }
+        siliconflow: { apiKey: string; model: string; baseUrl: string }
+        ollama: { baseUrl: string; model: string }
+      }
+    }) =>
+      request<{
+        data: {
+          providers: {
+            bailian: { apiKey: string; model: string; baseUrl: string }
+            siliconflow: { apiKey: string; model: string; baseUrl: string }
+            ollama: { baseUrl: string; model: string }
+          }
+        }
+      }>({
+        method: 'put',
+        url: '/system/config/ai',
+        data,
       }),
 
     // Embedding 配置

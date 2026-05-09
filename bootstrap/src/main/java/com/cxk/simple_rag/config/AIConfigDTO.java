@@ -22,6 +22,7 @@ public class AIConfigDTO {
     public static class Bailian {
         private String apiKey;
         private String model;
+        private String baseUrl;
     }
 
     @Data

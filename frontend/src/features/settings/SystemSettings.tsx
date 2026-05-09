@@ -14,7 +14,7 @@ import { ApiService } from '@/services/api'
 
 interface AIConfig {
   providers: {
-    bailian: { apiKey: string; model: string }
+    bailian: { apiKey: string; model: string; baseUrl: string }
     siliconflow: { apiKey: string; model: string; baseUrl: string }
     ollama: { baseUrl: string; model: string }
   }
@@ -36,7 +36,8 @@ export function SystemSettings() {
   const [aiConfig, setAIConfig] = useState<AIConfig | null>(null)
   const [embeddingConfig, setEmbeddingConfig] = useState<EmbeddingConfig | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
+  const [isSavingAI, setIsSavingAI] = useState(false)
+  const [isSavingEmbedding, setIsSavingEmbedding] = useState(false)
 
   // 加载配置
   useEffect(() => {
@@ -60,19 +61,35 @@ export function SystemSettings() {
     }
   }
 
+  // 保存 AI 配置
+  const handleSaveAI = async () => {
+    if (!aiConfig) return
+    
+    setIsSavingAI(true)
+    try {
+      await ApiService.system.updateAIConfig(aiConfig)
+      alert('AI 配置保存成功（注意：仅保存到内存，重启后失效）')
+    } catch (error) {
+      console.error('Failed to save AI config:', error)
+      alert('保存 AI 配置失败')
+    } finally {
+      setIsSavingAI(false)
+    }
+  }
+
   // 保存 Embedding 配置
   const handleSaveEmbedding = async () => {
     if (!embeddingConfig) return
     
-    setIsSaving(true)
+    setIsSavingEmbedding(true)
     try {
       await ApiService.system.updateEmbeddingConfig(embeddingConfig)
-      alert('配置保存成功（注意：仅保存到内存，重启后失效）')
+      alert('Embedding 配置保存成功（注意：仅保存到内存，重启后失效）')
     } catch (error) {
       console.error('Failed to save config:', error)
       alert('保存配置失败')
     } finally {
-      setIsSaving(false)
+      setIsSavingEmbedding(false)
     }
   }
 
@@ -102,6 +119,12 @@ export function SystemSettings() {
     })
   }
 
+  // 脱敏显示 API Key（前后五位）
+  const maskApiKey = (apiKey: string) => {
+    if (!apiKey || apiKey.length <= 10) return apiKey
+    return `${apiKey.slice(0, 5)}${'*'.repeat(apiKey.length - 10)}${apiKey.slice(-5)}`
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -120,16 +143,22 @@ export function SystemSettings() {
       {/* AI 模型配置 */}
       <Card className="border-0 shadow-lg shadow-education-blue-200/50">
         <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm">
-              <Brain className="h-5 w-5 text-purple-600" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm">
+                <Brain className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <CardTitle className="text-lg font-semibold text-purple-900">AI 模型配置</CardTitle>
+                <CardDescription className="text-purple-600">
+                  配置 LLM 模型的 API 密钥和参数
+                </CardDescription>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-lg font-semibold text-purple-900">AI 模型配置</CardTitle>
-              <CardDescription className="text-purple-600">
-                配置 LLM 模型的 API 密钥和参数（只读，请修改 application.yaml）
-              </CardDescription>
-            </div>
+            <Button onClick={handleSaveAI} disabled={isSavingAI}>
+              <Save className="h-4 w-4 mr-2" />
+              {isSavingAI ? '保存中...' : '保存配置'}
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="pt-6 space-y-6">
@@ -138,12 +167,12 @@ export function SystemSettings() {
             <h3 className="text-sm font-semibold text-education-blue-800 border-b pb-2">
               阿里云百炼 (Bailian)
             </h3>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <Label>API Key</Label>
                 <Input
                   type="password"
-                  value={aiConfig?.providers.bailian.apiKey || ''}
+                  value={maskApiKey(aiConfig?.providers.bailian.apiKey || '')}
                   onChange={(e) => updateAIField('bailian', 'apiKey', e.target.value)}
                   placeholder="sk-..."
                 />
@@ -154,6 +183,14 @@ export function SystemSettings() {
                   value={aiConfig?.providers.bailian.model || ''}
                   onChange={(e) => updateAIField('bailian', 'model', e.target.value)}
                   placeholder="qwen-plus"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Base URL</Label>
+                <Input
+                  value={aiConfig?.providers.bailian.baseUrl || ''}
+                  onChange={(e) => updateAIField('bailian', 'baseUrl', e.target.value)}
+                  placeholder="https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
                 />
               </div>
             </div>
@@ -169,7 +206,7 @@ export function SystemSettings() {
                 <Label>API Key</Label>
                 <Input
                   type="password"
-                  value={aiConfig?.providers.siliconflow.apiKey || ''}
+                  value={maskApiKey(aiConfig?.providers.siliconflow.apiKey || '')}
                   onChange={(e) => updateAIField('siliconflow', 'apiKey', e.target.value)}
                   placeholder="sk-..."
                 />
@@ -235,9 +272,9 @@ export function SystemSettings() {
                 </CardDescription>
               </div>
             </div>
-            <Button onClick={handleSaveEmbedding} disabled={isSaving}>
+            <Button onClick={handleSaveEmbedding} disabled={isSavingEmbedding}>
               <Save className="h-4 w-4 mr-2" />
-              {isSaving ? '保存中...' : '保存配置'}
+              {isSavingEmbedding ? '保存中...' : '保存配置'}
             </Button>
           </div>
         </CardHeader>
@@ -266,7 +303,7 @@ export function SystemSettings() {
                 <Label>API Key</Label>
                 <Input
                   type="password"
-                  value={embeddingConfig?.siliconflowApiKey || ''}
+                  value={maskApiKey(embeddingConfig?.siliconflowApiKey || '')}
                   onChange={(e) => updateEmbeddingField('siliconflowApiKey', e.target.value)}
                   placeholder="sk-..."
                 />
@@ -300,7 +337,7 @@ export function SystemSettings() {
                 <Label>API Key</Label>
                 <Input
                   type="password"
-                  value={embeddingConfig?.bailianApiKey || ''}
+                  value={maskApiKey(embeddingConfig?.bailianApiKey || '')}
                   onChange={(e) => updateEmbeddingField('bailianApiKey', e.target.value)}
                   placeholder="sk-..."
                 />
