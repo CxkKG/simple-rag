@@ -81,6 +81,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 }
 
 function DashboardPage() {
+  const navigate = useNavigate()
   const [stats, setStats] = useState({
     knowledgeBaseCount: 0,
     documentCount: 0,
@@ -102,34 +103,43 @@ function DashboardPage() {
         <p className="text-muted-foreground">欢迎使用智能课程学习助手，轻松获取学习资源和知识问答</p>
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="border-education-blue-100 bg-education-blue-50/50">
+        <Card 
+          className="border-education-blue-100 bg-education-blue-50/50 cursor-pointer hover:shadow-lg hover:bg-education-blue-50 transition-all duration-200"
+          onClick={() => navigate('/knowledge-bases')}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-education-blue-800">课程资源库</CardTitle>
             <BookOpen className="h-4 w-4 text-education-blue-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-education-blue-900">{stats.knowledgeBaseCount}</div>
-            <p className="text-xs text-education-blue-600">个知识库</p>
+            <p className="text-xs text-education-blue-600">个知识库（点击跳转）</p>
           </CardContent>
         </Card>
-        <Card className="border-education-green-100 bg-education-green-50/50">
+        <Card 
+          className="border-education-green-100 bg-education-green-50/50 cursor-pointer hover:shadow-lg hover:bg-education-green-50 transition-all duration-200"
+          onClick={() => navigate('/documents')}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-education-green-800">学习文档</CardTitle>
             <FileText className="h-4 w-4 text-education-green-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-education-green-900">{stats.documentCount}</div>
-            <p className="text-xs text-education-green-600">篇文档</p>
+            <p className="text-xs text-education-green-600">篇文档（点击跳转）</p>
           </CardContent>
         </Card>
-        <Card className="border-education-orange-100 bg-education-orange-50/50">
+        <Card 
+          className="border-education-orange-100 bg-education-orange-50/50 cursor-pointer hover:shadow-lg hover:bg-education-orange-50 transition-all duration-200"
+          onClick={() => navigate('/users')}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-education-orange-800">学习用户</CardTitle>
             <Users className="h-4 w-4 text-education-orange-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-education-orange-900">{stats.userCount}</div>
-            <p className="text-xs text-education-orange-600">位学习者</p>
+            <p className="text-xs text-education-orange-600">位学习者（点击跳转）</p>
           </CardContent>
         </Card>
       </div>
