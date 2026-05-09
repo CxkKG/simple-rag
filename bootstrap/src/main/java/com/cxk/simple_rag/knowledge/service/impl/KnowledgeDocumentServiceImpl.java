@@ -1,5 +1,6 @@
 package com.cxk.simple_rag.knowledge.service.impl;
 
+import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -27,6 +28,8 @@ import com.cxk.simple_rag.knowledge.service.KnowledgeDocumentService;
 import com.cxk.simple_rag.knowledge.vo.KnowledgeDocumentContentVO;
 import com.cxk.simple_rag.knowledge.vo.KnowledgeDocumentVO;
 import com.cxk.simple_rag.storage.RustFsStorageService;
+import com.cxk.simple_rag.user.entity.UserDO;
+import com.cxk.simple_rag.user.mapper.UserMapper;
 import com.cxk.simple_rag.vector.MilvusService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -70,6 +73,7 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
     private final MilvusService milvusService;
     private final KnowledgeDocumentChunkProducer chunkProducer;
     private final AISummaryService aiSummaryService;
+    private final UserMapper userMapper;
 
     private final Map<String, ChunkingStrategy> strategyCache = Map.of(
             "structure_aware", new StructureAwareTextChunker()
@@ -79,13 +83,13 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
     @Transactional(rollbackFor = Exception.class)
     public KnowledgeDocumentVO uploadDocument(UploadDocumentRequest request) {
         return uploadDocument(request.getKbId(), request.getFile(), request.getDocName(),
-                request.getProcessMode(), request.getChunkStrategy(), request.getChunkConfig());
+                request.getCreatedBy(), request.getProcessMode(), request.getChunkStrategy(), request.getChunkConfig());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public KnowledgeDocumentVO uploadDocument(String kbId, MultipartFile file, String docName,
-                                               String processMode, String chunkStrategy, String chunkConfig) {
+                                               String createdBy, String processMode, String chunkStrategy, String chunkConfig) {
         Instant startTime = Instant.now();
 
         if (file == null || file.isEmpty()) {
@@ -109,15 +113,17 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
             documentDO.setSourceType("file");
             documentDO.setChunkStrategy(StrUtil.isNotBlank(chunkStrategy) ? chunkStrategy : "structure_aware");
             documentDO.setChunkConfig(chunkConfig);
-            documentDO.setCreatedBy("system");
+            // 使用前端传递的创建人，如果为空则从当前登录用户获取
+            String actualCreatedBy = StrUtil.isNotBlank(createdBy) ? createdBy : getCurrentUsername();
+            documentDO.setCreatedBy(actualCreatedBy);
             documentDO.setCreateTime(LocalDateTime.now());
             documentDO.setUpdateTime(LocalDateTime.now());
             documentDO.setDeleted(0);
 
             documentMapper.insert(documentDO);
 
-            log.info("Document uploaded: docId={}, kbId={}, fileName={}, size={}",
-                    documentDO.getId(), kbId, documentDO.getDocName(), file.getSize());
+            log.info("Document uploaded: docId={}, kbId={}, fileName={}, size={}, createdBy={}",
+                    documentDO.getId(), kbId, documentDO.getDocName(), file.getSize(), actualCreatedBy);
 
             return toVO(documentDO);
         } catch (RuntimeException e) {
@@ -450,6 +456,7 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
                 .sourceType(documentDO.getSourceType())
                 .summary(documentDO.getSummary())
                 .keywords(documentDO.getKeywords())
+                .createdBy(documentDO.getCreatedBy())
                 .createTime(documentDO.getCreateTime())
                 .updateTime(documentDO.getUpdateTime())
                 .build();
@@ -770,5 +777,30 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
         wrapper.eq(KnowledgeDocumentDO::getKbId, kbId)
                 .eq(KnowledgeDocumentDO::getDeleted, 0);
         return Math.toIntExact(documentMapper.selectCount(wrapper));
+    }
+
+    /**
+     * 获取当前登录用户的用户名
+     * 如果未登录或获取失败，返回 "system"
+     */
+    private String getCurrentUsername() {
+        try {
+            // 从 Sa-Token 获取当前登录用户ID
+            String userId = StpUtil.getLoginIdAsString();
+            if (StrUtil.isBlank(userId)) {
+                return "system";
+            }
+            
+            // 根据用户ID查询用户信息
+            UserDO user = userMapper.selectById(userId);
+            if (user != null && StrUtil.isNotBlank(user.getUsername())) {
+                return user.getUsername();
+            }
+            
+            return "system";
+        } catch (Exception e) {
+            log.warn("Failed to get current user, using default 'system'", e);
+            return "system";
+        }
     }
 }

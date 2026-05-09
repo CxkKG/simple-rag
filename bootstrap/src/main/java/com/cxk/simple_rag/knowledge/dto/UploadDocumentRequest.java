@@ -19,6 +19,8 @@ public class UploadDocumentRequest {
 
     private String docName;
 
+    private String createdBy;
+
     private String processMode;
 
     private String chunkStrategy;

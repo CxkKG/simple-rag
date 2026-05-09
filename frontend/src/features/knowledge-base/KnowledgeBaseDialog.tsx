@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useAuthentication } from '@/hooks/useAuthentication'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,9 +20,9 @@ interface KnowledgeBaseDialogProps {
 }
 
 export function KnowledgeBaseDialog({ open, onOpenChange, kb }: KnowledgeBaseDialogProps) {
+  const { user } = useAuthentication()
   const [name, setName] = useState('')
   const [embeddingModel, setEmbeddingModel] = useState('text-embedding-ada-002')
-  const [createdBy, setCreatedBy] = useState('admin')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -32,11 +33,9 @@ export function KnowledgeBaseDialog({ open, onOpenChange, kb }: KnowledgeBaseDia
     if (open && kb) {
       setName(kb.name || '')
       setEmbeddingModel(kb.embeddingModel || 'text-embedding-ada-002')
-      setCreatedBy(kb.createdBy || 'admin')
     } else if (open) {
       setName('')
       setEmbeddingModel('text-embedding-ada-002')
-      setCreatedBy('admin')
     }
   }, [open, kb])
 
@@ -49,6 +48,8 @@ export function KnowledgeBaseDialog({ open, onOpenChange, kb }: KnowledgeBaseDia
       if (kb) {
         await updateKnowledgeBase(kb.id, { name })
       } else {
+        // 使用当前登录用户的用户名作为创建人
+        const createdBy = user?.username || 'system'
         await createKnowledgeBase({ name, embeddingModel, createdBy })
       }
       onOpenChange(false)
@@ -96,18 +97,16 @@ export function KnowledgeBaseDialog({ open, onOpenChange, kb }: KnowledgeBaseDia
               placeholder="text-embedding-ada-002"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="createdBy" className="text-sm font-medium">
-              创建人
-            </Label>
-            <Input
-              id="createdBy"
-              value={createdBy}
-              onChange={(e) => setCreatedBy(e.target.value)}
-              required
-              placeholder="admin"
-            />
-          </div>
+          {!kb && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                创建人
+              </Label>
+              <div className="rounded-md bg-education-blue-50 px-3 py-2 text-sm text-education-blue-900 border border-education-blue-200">
+                {user?.username || 'system'}
+              </div>
+            </div>
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               取消

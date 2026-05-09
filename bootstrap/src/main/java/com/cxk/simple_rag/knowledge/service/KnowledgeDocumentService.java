@@ -20,7 +20,7 @@ public interface KnowledgeDocumentService {
     KnowledgeDocumentVO uploadDocument(UploadDocumentRequest request);
 
     KnowledgeDocumentVO uploadDocument(String kbId, MultipartFile file, String docName,
-                                        String processMode, String chunkStrategy, String chunkConfig);
+                                        String createdBy, String processMode, String chunkStrategy, String chunkConfig);
 
     void triggerChunking(String docId);
 

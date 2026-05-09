@@ -46,6 +46,7 @@ public class KnowledgeDocumentController {
             @RequestParam("kbId") String kbId,
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "docName", required = false) String docName,
+            @RequestParam(value = "createdBy", required = false) String createdBy,
             @RequestParam(value = "processMode", required = false, defaultValue = "chunk") String processMode,
             @RequestParam(value = "chunkStrategy", required = false, defaultValue = "structure_aware") String chunkStrategy,
             @RequestParam(value = "chunkConfig", required = false) String chunkConfig) {
@@ -54,6 +55,7 @@ public class KnowledgeDocumentController {
                 .kbId(kbId)
                 .file(file)
                 .docName(docName)
+                .createdBy(createdBy)
                 .processMode(processMode)
                 .chunkStrategy(chunkStrategy)
                 .chunkConfig(chunkConfig)

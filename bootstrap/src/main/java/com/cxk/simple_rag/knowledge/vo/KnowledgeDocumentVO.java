@@ -44,6 +44,8 @@ public class KnowledgeDocumentVO {
 
     private String keywords;
 
+    private String createdBy;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;

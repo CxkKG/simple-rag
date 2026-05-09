@@ -77,6 +77,7 @@ export interface SimpleRagDocument {
   sourceType?: string
   summary?: string
   keywords?: string
+  createdBy?: string
   createdAt: string
   updatedAt?: string
 }

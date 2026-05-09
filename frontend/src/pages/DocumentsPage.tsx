@@ -81,6 +81,7 @@ export default function DocumentsPage() {
     { key: 'summary', width: 220, minWidth: 160, maxWidth: 520 },
     { key: 'keywords', width: 220, minWidth: 150, maxWidth: 420 },
     { key: 'status', width: 100, minWidth: 90, maxWidth: 150 },
+    { key: 'createdBy', width: 120, minWidth: 100, maxWidth: 180 },
     { key: 'createdAt', width: 150, minWidth: 130, maxWidth: 220 },
     { key: 'actions', width: 88, minWidth: 76, maxWidth: 120 },
   ])
@@ -183,7 +184,8 @@ export default function DocumentsPage() {
     if (!uploadFile || !selectedKbId) {
       return
     }
-    await uploadDocument(selectedKbId, uploadFile, uploadDocName)
+    const createdBy = user?.username || 'system'
+    await uploadDocument(selectedKbId, uploadFile, uploadDocName, createdBy)
     setIsUploadModalOpen(false)
     setUploadFile(null)
     setUploadDocName('')
@@ -397,6 +399,7 @@ export default function DocumentsPage() {
                   <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('summary')}>摘要<span {...tableColumns.getResizeHandleProps('summary')} /></TableHead>
                   <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('keywords')}>关键词<span {...tableColumns.getResizeHandleProps('keywords')} /></TableHead>
                   <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('status')}>状态<span {...tableColumns.getResizeHandleProps('status')} /></TableHead>
+                  <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('createdBy')}>创建人<span {...tableColumns.getResizeHandleProps('createdBy')} /></TableHead>
                   <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('createdAt')}>创建时间<span {...tableColumns.getResizeHandleProps('createdAt')} /></TableHead>
                   <TableHead className="relative group text-right text-education-blue-800" style={tableColumns.getColumnStyle('actions')}>操作<span {...tableColumns.getResizeHandleProps('actions')} /></TableHead>
                 </TableRow>
@@ -404,7 +407,7 @@ export default function DocumentsPage() {
               <TableBody>
                 {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="h-24 text-center">
+                      <TableCell colSpan={11} className="h-24 text-center">
                         <div className="flex items-center justify-center gap-2">
                           <RefreshCw className="h-4 w-4 animate-spin text-slate-400" />
                           <span className="text-sm text-slate-500">加载中...</span>
@@ -413,7 +416,7 @@ export default function DocumentsPage() {
                     </TableRow>
                 ) : documents.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="h-24 text-center">
+                      <TableCell colSpan={11} className="h-24 text-center">
                         <div className="flex flex-col items-center justify-center gap-2 text-slate-500">
                           <FileText className="h-8 w-8 text-slate-300" />
                           <span className="text-sm">暂无文档</span>
@@ -484,6 +487,14 @@ export default function DocumentsPage() {
                                           ? '待处理'
                                           : '处理中'}
                             </Badge>
+                          </TableCell>
+                          <TableCell className="py-2" style={tableColumns.getColumnStyle('createdBy')}>
+                            <div className="flex min-w-0 items-center gap-2">
+                              <div className="h-6 w-6 shrink-0 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-medium">
+                                {doc.createdBy?.[0]?.toUpperCase() || 'S'}
+                              </div>
+                              <span className="truncate text-sm text-slate-600" title={doc.createdBy || '-'}>{doc.createdBy || '-'}</span>
+                            </div>
                           </TableCell>
                           <TableCell className="py-2 text-sm text-slate-500" style={tableColumns.getColumnStyle('createdAt')}>
                             <span className="block truncate">{formatDate(doc.createdAt)}</span>

@@ -24,7 +24,7 @@ interface DocumentStore {
   }) => Promise<void>
   fetchDocumentById: (id: string) => Promise<void>
   fetchDocumentContent: (id: string, pageNum?: number, pageSize?: number) => Promise<DocumentContentPage>
-  uploadDocument: (kbId: string, file: File, docName?: string) => Promise<void>
+  uploadDocument: (kbId: string, file: File, docName?: string, createdBy?: string) => Promise<void>
   deleteDocument: (id: string) => Promise<void>
   deleteDocuments: (docIds: string[]) => Promise<void>
   triggerChunking: (id: string) => Promise<void>
@@ -55,6 +55,7 @@ const normalizeDocument = (doc: any): SimpleRagDocument => {
     sourceType: doc.sourceType || '',
     summary: doc.summary || '',
     keywords: doc.keywords || '',
+    createdBy: doc.createdBy || '',
     createdAt: doc.createTime || doc.createdAt || new Date().toISOString(),
     updatedAt: doc.updateTime || doc.updatedAt,
   }
@@ -170,13 +171,14 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     }
   },
 
-  uploadDocument: async (kbId, file, docName) => {
+  uploadDocument: async (kbId, file, docName, createdBy) => {
     set({ isLoading: true, error: null })
     try {
       const formData = new FormData()
       formData.append('kbId', kbId)
       formData.append('file', file)
       if (docName) formData.append('docName', docName)
+      if (createdBy) formData.append('createdBy', createdBy)
       const response = await ApiService.document.upload(formData)
       set({ documents: [...get().documents, normalizeDocument(response.data)] })
     } catch (error) {
