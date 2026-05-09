@@ -9,6 +9,7 @@ import lombok.Data;
  */
 @Data
 public class AIConfigDTO {
+    private String provider;
     private Providers providers;
 
     @Data

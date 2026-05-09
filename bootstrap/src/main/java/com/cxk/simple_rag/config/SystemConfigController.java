@@ -28,6 +28,7 @@ public class SystemConfigController {
     @GetMapping("/ai")
     public ResponseEntity<Map<String, Object>> getAIConfig() {
         AIConfigDTO dto = new AIConfigDTO();
+        dto.setProvider(aiConfig.getProvider());
         
         AIConfigDTO.Providers providers = new AIConfigDTO.Providers();
         
@@ -66,6 +67,11 @@ public class SystemConfigController {
     public ResponseEntity<Map<String, Object>> updateAIConfig(
             @RequestBody AIConfigDTO dto) {
         
+        // 更新 provider
+        if (dto.getProvider() != null) {
+            aiConfig.setProvider(dto.getProvider());
+        }
+        
         if (dto.getProviders() != null) {
             if (dto.getProviders().getBailian() != null) {
                 aiConfig.getProviders().getBailian().setApiKey(dto.getProviders().getBailian().getApiKey());
@@ -83,7 +89,7 @@ public class SystemConfigController {
             }
         }
 
-        log.info("AI config updated");
+        log.info("AI config updated: provider={}", dto.getProvider());
 
         Map<String, Object> response = new HashMap<>();
         response.put("code", 0);

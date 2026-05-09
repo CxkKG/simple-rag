@@ -300,6 +300,7 @@ export class ApiService {
     getAIConfig: () =>
       request<{
         data: {
+          provider: string
           providers: {
             bailian: { apiKey: string; model: string; baseUrl: string }
             siliconflow: { apiKey: string; model: string; baseUrl: string }
@@ -312,6 +313,7 @@ export class ApiService {
       }),
 
     updateAIConfig: (data: {
+      provider: string
       providers: {
         bailian: { apiKey: string; model: string; baseUrl: string }
         siliconflow: { apiKey: string; model: string; baseUrl: string }

@@ -17,6 +17,11 @@ import java.util.Map;
 public class AIConfig {
 
     /**
+     * 当前使用的 AI 提供商
+     */
+    private String provider = "bailian";
+
+    /**
      * LLM 提供商配置
      */
     private Providers providers = new Providers();
@@ -49,7 +54,7 @@ public class AIConfig {
     @Data
     public static class Siliconflow {
         private String apiKey = "";
-        private String model = "deepseek-ai/DeepSeek-V2.5";
+        private String model = "deepseek-ai/DeepSeek-V3.2";
         private String baseUrl = "https://api.siliconflow.cn/v1";
     }
 

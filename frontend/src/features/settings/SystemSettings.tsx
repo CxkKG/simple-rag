@@ -13,6 +13,7 @@ import { Brain, Cpu, Save, RefreshCw } from 'lucide-react'
 import { ApiService } from '@/services/api'
 
 interface AIConfig {
+  provider: string
   providers: {
     bailian: { apiKey: string; model: string; baseUrl: string }
     siliconflow: { apiKey: string; model: string; baseUrl: string }
@@ -162,6 +163,28 @@ export function SystemSettings() {
           </div>
         </CardHeader>
         <CardContent className="pt-6 space-y-6">
+          {/* AI 提供商选择 */}
+          <div className="space-y-2">
+            <Label>AI 提供商</Label>
+            <select
+              value={aiConfig?.provider || 'bailian'}
+              onChange={(e) => {
+                if (!aiConfig) return
+                setAIConfig({
+                  ...aiConfig,
+                  provider: e.target.value,
+                })
+              }}
+              className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="bailian">阿里云百炼 (Bailian)</option>
+              <option value="siliconflow">SiliconFlow</option>
+              <option value="ollama">Ollama (本地)</option>
+            </select>
+            <p className="text-xs text-muted-foreground">
+              当前使用：{aiConfig?.provider === 'bailian' ? '阿里云百炼' : aiConfig?.provider === 'siliconflow' ? 'SiliconFlow' : 'Ollama'}
+            </p>
+          </div>
           {/* Bailian */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-education-blue-800 border-b pb-2">
