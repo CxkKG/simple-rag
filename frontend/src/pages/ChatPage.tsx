@@ -35,8 +35,9 @@ import {
   AlarmClock,
   Globe,
   Edit3,
+  Check,
 } from 'lucide-react'
-import { formatTimeString } from '@/lib/utils'
+import { formatTimeString, formatSessionTime } from '@/lib/utils'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -283,41 +284,66 @@ export default function ChatPage() {
       )
     }
 
-    return displayedSessions.map((session) => (
-      <div
-        key={session.id}
-        onClick={() => onSelect(session.id)}
-        className={`group flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${currentSessionId === session.id ? 'bg-education-blue-50 border border-education-blue-200' : 'hover:bg-education-blue-100 border border-transparent'}`}
-      >
-        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${currentSessionId === session.id ? 'bg-education-blue-600' : 'bg-education-blue-300'}`}>
-          <ChatBubble className="w-4 h-4 text-white" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-education-blue-900 truncate">{session.title}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs text-education-blue-600 truncate">{formatTimeString(session.updatedAt)}</span>
+    // 按时间段分组
+    const groupedSessions: Record<string, typeof displayedSessions> = {
+      '今天': [],
+      '昨天': [],
+      '过去7天': [],
+      '过去30天': [],
+      '更早': [],
+    }
+
+    displayedSessions.forEach(session => {
+      const timeLabel = formatSessionTime(session.updatedAt)
+      if (groupedSessions[timeLabel]) {
+        groupedSessions[timeLabel].push(session)
+      } else {
+        groupedSessions['更早'].push(session)
+      }
+    })
+
+    // 渲染分组
+    return Object.entries(groupedSessions).flatMap(([label, sessions]) => {
+      if (sessions.length === 0) return []
+      
+      return [
+        <div key={label} className="px-3 py-2 text-xs font-semibold text-education-blue-500 uppercase tracking-wide">
+          {label}
+        </div>,
+        ...sessions.map((session) => (
+          <div
+            key={session.id}
+            onClick={() => onSelect(session.id)}
+            className={`group flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${currentSessionId === session.id ? 'bg-education-blue-50 border border-education-blue-200' : 'hover:bg-education-blue-100 border border-transparent'}`}
+          >
+            <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${currentSessionId === session.id ? 'bg-education-blue-600' : 'bg-education-blue-300'}`}>
+              <ChatBubble className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-education-blue-900 truncate">{session.title}</p>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="iconSm"
+                onClick={(e) => handleRenameSession(e, session.id)}
+                className="opacity-0 group-hover:opacity-100 h-8 w-8 text-education-blue-400 hover:text-education-green-600"
+              >
+                <Edit3 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="iconSm"
+                onClick={(e) => handleDeleteSession(e, session.id)}
+                className="opacity-0 group-hover:opacity-100 h-8 w-8 text-education-blue-400 hover:text-red-600"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="iconSm"
-            onClick={(e) => handleRenameSession(e, session.id)}
-            className="opacity-0 group-hover:opacity-100 h-8 w-8 text-education-blue-400 hover:text-education-green-600"
-          >
-            <Edit3 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="iconSm"
-            onClick={(e) => handleDeleteSession(e, session.id)}
-            className="opacity-0 group-hover:opacity-100 h-8 w-8 text-education-blue-400 hover:text-red-600"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    ))
+        ))
+      ]
+    })
   }
 
   if (isLoading || pageLoading) {
@@ -606,23 +632,19 @@ export default function ChatPage() {
 
         {/* 输入区域 */}
         <div className="border-t border-education-blue-100 bg-white p-4 flex-shrink-0">
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-4xl mx-auto">
             {/* 工具栏：联网搜索开关 */}
-            <div className="flex items-center gap-2 mb-2">
-              <button
-                type="button"
-                onClick={() => setWebSearchEnabled(!webSearchEnabled)}
-                className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-medium border transition-colors ${
-                  webSearchEnabled
-                    ? 'bg-education-blue-600 text-white border-education-blue-600 hover:bg-education-blue-700'
-                    : 'bg-white text-education-blue-600 border-education-blue-200 hover:bg-education-blue-50'
-                }`}
-                title={webSearchEnabled ? '已开启联网搜索（知识库未命中时自动兜底）' : '点击开启联网搜索'}
-              >
-                <Globe className="w-3.5 h-3.5" />
-                <span>联网搜索</span>
-                <span className={`ml-1 inline-block w-1.5 h-1.5 rounded-full ${webSearchEnabled ? 'bg-white' : 'bg-education-blue-300'}`} />
-              </button>
+            <div className="flex items-center gap-3 mb-2">
+              <label className="inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={webSearchEnabled}
+                  onChange={() => setWebSearchEnabled(!webSearchEnabled)}
+                />
+                <div className="relative w-11 h-6 bg-education-blue-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-education-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-education-blue-600"></div>
+                <span className="ml-2 text-sm font-medium text-education-blue-700">联网搜索</span>
+              </label>
               {webSearchEnabled && (
                 <span className="text-xs text-education-blue-500">
                   知识库未命中时将自动调用联网搜索
@@ -642,18 +664,15 @@ export default function ChatPage() {
                   }
                 }}
                 placeholder="输入您的问题..."
-                // 🔧 修改：添加 rounded-full 实现胶囊圆角，调整 padding 适配图标
-                className="h-12 pl-5 pr-14 rounded-full border-education-blue-200 focus:ring-2 focus:ring-education-blue-500 focus:border-transparent"
+                className="h-12 pl-5 pr-14 rounded-full border-education-blue-200 focus:ring-2 focus:ring-education-blue-500"
                 disabled={chatIsLoading}
               />
               <Button
                 onClick={handleSend}
                 disabled={!inputValue.trim() || chatIsLoading}
-                // 按钮尺寸保持不变 (h-10 w-10)，仅调整内部图标
                 className="absolute right-1.5 top-1/2 -translate-y-1/2 h-10 w-10 bg-gradient-to-r from-education-blue-600 to-education-blue-500 hover:from-education-blue-700 hover:to-education-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-full shadow-sm transition-transform hover:scale-105 active:scale-95"
               >
-                {/* 🔧 修改：图标从 w-5 h-5 增大到 w-6 h-6，比例更协调 */}
-                <Send className="w-6 h-6" />
+                <Send className="w-6 h-6" style={{ marginLeft: '-1px', marginTop: '-1px' }} />
               </Button>
             </div>
           </div>

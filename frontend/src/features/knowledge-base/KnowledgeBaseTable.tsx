@@ -155,6 +155,8 @@ export function KnowledgeBaseTable() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [pageNum, setPageNum] = useState(1)
   const [pageSize, setPageLength] = useState(10)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [deletingKb, setDeletingKb] = useState<KnowledgeBase | null>(null)
 
   const { knowledgeBases, isLoading, total, deleteKnowledgeBase, fetchKnowledgeBases } = useKnowledgeBaseStore()
 
@@ -172,12 +174,18 @@ export function KnowledgeBaseTable() {
     fetchKnowledgeBases(pageNum, pageSize)
   }, [pageNum, pageSize, fetchKnowledgeBases])
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  const handleDelete = async (kb: KnowledgeBase, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (window.confirm('确定要删除这个知识库吗？')) {
-      await deleteKnowledgeBase(id)
-      await fetchKnowledgeBases(pageNum, pageSize)
-    }
+    setDeletingKb(kb)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!deletingKb) return
+    await deleteKnowledgeBase(deletingKb.id)
+    await fetchKnowledgeBases(pageNum, pageSize)
+    setIsDeleteDialogOpen(false)
+    setDeletingKb(null)
   }
 
   const handleEdit = (kb: KnowledgeBase, e: React.MouseEvent) => {
@@ -312,7 +320,7 @@ export function KnowledgeBaseTable() {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator className="bg-education-blue-50" />
                             <DropdownMenuItem
-                              onClick={(e) => handleDelete(kb.id, e as any)}
+                              onClick={(e) => handleDelete(kb, e as any)}
                               className="cursor-pointer rounded-lg px-3 py-2 text-red-600 focus:bg-red-50 focus:text-red-700"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
@@ -362,6 +370,54 @@ export function KnowledgeBaseTable() {
         onOpenChange={handleDialogOpenChange}
         kb={editingKb}
       />
+
+      {/* 删除确认对话框 */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-red-600">确认删除知识库</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="rounded-lg bg-red-50 border border-red-200 p-4 mb-4">
+              <p className="text-sm font-medium text-red-800 mb-2">
+                ⚠️ 警告：此操作不可撤销
+              </p>
+              <p className="text-sm text-red-700">
+                您正在删除知识库 <strong className="font-semibold">「{deletingKb?.name}」</strong>
+              </p>
+            </div>
+            <div className="space-y-2 text-sm text-slate-700">
+              <p>此操作将同步删除以下内容：</p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>该知识库下的 <strong className="font-semibold">{deletingKb?.documentCount ?? 0} 个文档</strong></li>
+                <li>所有相关的向量数据</li>
+                <li>所有相关的文件存储</li>
+              </ul>
+              <p className="mt-3 font-medium text-slate-800">
+                是否确认执行此删除操作？
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsDeleteDialogOpen(false)
+                setDeletingKb(null)
+              }}
+            >
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              确认删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
