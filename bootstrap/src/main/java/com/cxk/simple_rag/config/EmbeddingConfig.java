@@ -38,10 +38,4 @@ public class EmbeddingConfig {
      */
     private String ollamaBaseUrl = "http://localhost:11434";
     private String ollamaModel = "bge-large-zh";
-
-    /**
-     * 默认 Embedding 模型（用于向量检索等场景）
-     * 如果不指定，将根据 provider 自动选择对应的默认模型
-     */
-    private String defaultModel;
 }

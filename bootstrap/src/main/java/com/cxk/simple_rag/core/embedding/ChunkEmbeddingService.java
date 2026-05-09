@@ -39,9 +39,6 @@ public class ChunkEmbeddingService {
      */
     public String getDefaultModel() {
         String provider = embeddingConfig.getProvider();
-        if (embeddingConfig.getDefaultModel() != null && !embeddingConfig.getDefaultModel().isBlank()) {
-            return embeddingConfig.getDefaultModel();
-        }
         return switch (provider) {
             case "siliconflow" -> embeddingConfig.getSiliconflowModel();
             case "bailian" -> embeddingConfig.getBailianModel();
