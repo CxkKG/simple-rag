@@ -12,7 +12,7 @@ interface KnowledgeBaseStore {
   // Actions
   fetchKnowledgeBases: (pageNum?: number, pageSize?: number) => Promise<void>
   fetchKnowledgeBaseById: (id: string) => Promise<void>
-  createKnowledgeBase: (data: Pick<KnowledgeBase, 'name' | 'embeddingModel'> & { createdBy?: string }) => Promise<void>
+  createKnowledgeBase: (data: Pick<KnowledgeBase, 'name'> & { embeddingModel?: string; createdBy?: string }) => Promise<void>
   updateKnowledgeBase: (id: string, data: Pick<KnowledgeBase, 'name'>) => Promise<void>
   deleteKnowledgeBase: (id: string) => Promise<void>
   setSelectedKnowledgeBase: (kb: KnowledgeBase | null) => void

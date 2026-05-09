@@ -40,7 +40,9 @@ public class VectorSearchService {
             queryChunk.setContent(query);
             queryChunks.add(queryChunk);
 
-            chunkEmbeddingService.embed(queryChunks, "BAAI/bge-large-zh-v1.5");
+            // 从配置中动态获取 Embedding 模型
+            String embeddingModel = chunkEmbeddingService.getDefaultModel();
+            chunkEmbeddingService.embed(queryChunks, embeddingModel);
             float[] queryVector = queryChunks.get(0).getEmbedding();
 
             // 在 Milvus 中搜索

@@ -1,5 +1,6 @@
 package com.cxk.simple_rag.dashboard.controller;
 
+import com.cxk.simple_rag.core.embedding.ChunkEmbeddingService;
 import com.cxk.simple_rag.knowledge.service.KnowledgeBaseService;
 import com.cxk.simple_rag.knowledge.service.KnowledgeDocumentService;
 import com.cxk.simple_rag.user.service.UserService;
@@ -25,6 +26,7 @@ public class DashboardController {
     private final KnowledgeBaseService knowledgeBaseService;
     private final KnowledgeDocumentService knowledgeDocumentService;
     private final UserService userService;
+    private final ChunkEmbeddingService chunkEmbeddingService;
 
     /**
      * 获取仪表板统计数据
@@ -43,6 +45,23 @@ public class DashboardController {
         data.put("userCount", userService.getTotalUsers());
 
         response.put("data", data);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 获取系统默认 Embedding 模型
+     *
+     * @return 默认模型信息
+     */
+    @GetMapping("/config/embedding-model")
+    public ResponseEntity<Map<String, Object>> getDefaultEmbeddingModel() {
+        String defaultModel = chunkEmbeddingService.getDefaultModel();
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "success");
+        response.put("data", Map.of("defaultModel", defaultModel));
+        
         return ResponseEntity.ok(response);
     }
 }

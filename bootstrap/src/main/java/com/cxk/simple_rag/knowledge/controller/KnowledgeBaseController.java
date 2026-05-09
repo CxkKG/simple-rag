@@ -1,9 +1,11 @@
 package com.cxk.simple_rag.knowledge.controller;
 
+import com.cxk.simple_rag.core.embedding.ChunkEmbeddingService;
 import com.cxk.simple_rag.knowledge.service.KnowledgeBaseService;
 import com.cxk.simple_rag.knowledge.service.KnowledgeDocumentService;
 import com.cxk.simple_rag.knowledge.vo.KnowledgeBaseVO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +18,7 @@ import java.util.Map;
  *
  * @author wangxin
  */
+@Slf4j
 @RestController
 @RequestMapping("/knowledge/base")
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ public class KnowledgeBaseController {
 
     private final KnowledgeBaseService knowledgeBaseService;
     private final KnowledgeDocumentService documentService;
+    private final ChunkEmbeddingService chunkEmbeddingService;
 
     @PostMapping
     public ResponseEntity<Map<String, Object>> createKnowledgeBase(
@@ -32,8 +36,14 @@ public class KnowledgeBaseController {
         String embeddingModel = request.get("embeddingModel");
         String createdBy = request.get("createdBy");
 
-        if (name == null || embeddingModel == null) {
-            throw new IllegalArgumentException("name and embeddingModel are required");
+        if (name == null) {
+            throw new IllegalArgumentException("name is required");
+        }
+
+        // 如果未指定 embeddingModel，使用系统配置的默认模型
+        if (embeddingModel == null || embeddingModel.isBlank()) {
+            embeddingModel = chunkEmbeddingService.getDefaultModel();
+            log.info("Using default embedding model: {}", embeddingModel);
         }
 
         KnowledgeBaseVO knowledgeBaseVO = knowledgeBaseService.createKnowledgeBase(

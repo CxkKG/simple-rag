@@ -41,7 +41,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
             throw new IllegalArgumentException("Embedding model cannot be empty");
         }
 
-        String collectionName = "kb_" + UUID.randomUUID().toString().replace("-", "");
+        String collectionName = UUID.randomUUID().toString().replace("-", "");
 
         KnowledgeBaseDO knowledgeBaseDO = new KnowledgeBaseDO();
         knowledgeBaseDO.setId(generateId());

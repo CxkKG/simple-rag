@@ -391,8 +391,8 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
     }
 
     private String getEmbeddingModel(String kbId) {
-        // 使用默认的 Embedding 模型
-        return "BAAI/bge-large-zh-v1.5";
+        // 从配置中动态获取 Embedding 模型
+        return chunkEmbeddingService.getDefaultModel();
     }
 
     private String generateDocId() {

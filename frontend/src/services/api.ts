@@ -78,9 +78,18 @@ export class ApiService {
       }),
   }
 
+  // 系统配置 API
+  static config = {
+    getDefaultEmbeddingModel: () =>
+      request<{ data: { defaultModel: string } }>({
+        method: 'get',
+        url: '/dashboard/config/embedding-model',
+      }),
+  }
+
   // 知识库 API
   static knowledgeBase = {
-    create: (data: { name: string; embeddingModel: string; createdBy?: string }) =>
+    create: (data: { name: string; embeddingModel?: string; createdBy?: string }) =>
       request<{ data: KnowledgeBase }>({
         method: 'post',
         url: '/knowledge/base',

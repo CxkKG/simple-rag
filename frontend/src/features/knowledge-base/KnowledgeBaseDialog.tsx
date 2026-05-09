@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import type { KnowledgeBase } from '@/types'
+import { ApiService } from '@/services/api'
 
 interface KnowledgeBaseDialogProps {
   open: boolean
@@ -22,20 +23,32 @@ interface KnowledgeBaseDialogProps {
 export function KnowledgeBaseDialog({ open, onOpenChange, kb }: KnowledgeBaseDialogProps) {
   const { user } = useAuthentication()
   const [name, setName] = useState('')
-  const [embeddingModel, setEmbeddingModel] = useState('text-embedding-ada-002')
+  const [defaultModel, setDefaultModel] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
   const createKnowledgeBase = useKnowledgeBaseStore((s) => s.createKnowledgeBase)
   const updateKnowledgeBase = useKnowledgeBaseStore((s) => s.updateKnowledgeBase)
 
+  // 获取默认 Embedding 模型
+  useEffect(() => {
+    if (open && !kb) {
+      ApiService.config.getDefaultEmbeddingModel()
+        .then(response => {
+          setDefaultModel(response.data.defaultModel)
+        })
+        .catch(err => {
+          console.error('Failed to get default embedding model:', err)
+          setDefaultModel('BAAI/bge-large-zh-v1.5') // fallback
+        })
+    }
+  }, [open, kb])
+
   useEffect(() => {
     if (open && kb) {
       setName(kb.name || '')
-      setEmbeddingModel(kb.embeddingModel || 'text-embedding-ada-002')
     } else if (open) {
       setName('')
-      setEmbeddingModel('text-embedding-ada-002')
     }
   }, [open, kb])
 
@@ -49,8 +62,9 @@ export function KnowledgeBaseDialog({ open, onOpenChange, kb }: KnowledgeBaseDia
         await updateKnowledgeBase(kb.id, { name })
       } else {
         // 使用当前登录用户的用户名作为创建人
+        // embeddingModel 由后端自动使用系统配置的默认模型
         const createdBy = user?.username || 'system'
-        await createKnowledgeBase({ name, embeddingModel, createdBy })
+        await createKnowledgeBase({ name, createdBy })
       }
       onOpenChange(false)
     } catch (err) {
@@ -85,18 +99,19 @@ export function KnowledgeBaseDialog({ open, onOpenChange, kb }: KnowledgeBaseDia
               placeholder="请输入知识库名称"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="model" className="text-sm font-medium">
-              Embedding 模型
-            </Label>
-            <Input
-              id="model"
-              value={embeddingModel}
-              onChange={(e) => setEmbeddingModel(e.target.value)}
-              required
-              placeholder="text-embedding-ada-002"
-            />
-          </div>
+          {!kb && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                Embedding 模型
+              </Label>
+              <div className="rounded-md bg-education-blue-50 px-3 py-2 text-sm text-education-blue-900 border border-education-blue-200">
+                <div className="font-mono font-semibold">{defaultModel || '加载中...'}</div>
+                <div className="text-xs text-education-blue-700 mt-1">
+                  系统默认配置（自动使用）
+                </div>
+              </div>
+            </div>
+          )}
           {!kb && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">

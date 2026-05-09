@@ -33,6 +33,27 @@ public class ChunkEmbeddingService {
     private final RestTemplate restTemplate = new RestTemplate();
 
     /**
+     * 获取当前 provider 对应的默认模型名称
+     *
+     * @return 模型名称
+     */
+    public String getDefaultModel() {
+        String provider = embeddingConfig.getProvider();
+        if (embeddingConfig.getDefaultModel() != null && !embeddingConfig.getDefaultModel().isBlank()) {
+            return embeddingConfig.getDefaultModel();
+        }
+        return switch (provider) {
+            case "siliconflow" -> embeddingConfig.getSiliconflowModel();
+            case "bailian" -> embeddingConfig.getBailianModel();
+            case "ollama" -> embeddingConfig.getOllamaModel();
+            default -> {
+                log.warn("Unknown embedding provider: {}, using siliconflow default", provider);
+                yield embeddingConfig.getSiliconflowModel();
+            }
+        };
+    }
+
+    /**
      * 批量生成向量
      *
      * @param chunks 待向量化文本
