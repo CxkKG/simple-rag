@@ -347,7 +347,7 @@ export function SystemSettings() {
                 <Input
                   value={embeddingConfig?.bailianModel || ''}
                   onChange={(e) => updateEmbeddingField('bailianModel', e.target.value)}
-                  placeholder="text-embedding-v2"
+                  placeholder="text-embedding-v4"
                 />
               </div>
               <div className="space-y-2">
@@ -355,7 +355,7 @@ export function SystemSettings() {
                 <Input
                   value={embeddingConfig?.bailianBaseUrl || ''}
                   onChange={(e) => updateEmbeddingField('bailianBaseUrl', e.target.value)}
-                  placeholder="https://dashscope.aliyuncs.com/api/v1/services/embeddings/text-embedding/generation"
+                  placeholder="https://dashscope.aliyuncs.com/api/v1/services/embeddings/text-embedding/text-embedding"
                 />
               </div>
             </div>

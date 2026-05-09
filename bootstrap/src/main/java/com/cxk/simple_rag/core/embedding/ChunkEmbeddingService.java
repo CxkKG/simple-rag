@@ -157,17 +157,21 @@ public class ChunkEmbeddingService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("Authorization", "Bearer " + embeddingConfig.getBailianApiKey());
-        headers.set("X-DashScope-SSE", "disable");
 
-        // 百炼 API 一次只处理一个文本，批量处理需要循环调用
-        List<float[]> embeddings = new ArrayList<>();
-        for (String text : texts) {
-            Map<String, Object> input = Map.of("text", text);
-            Map<String, Object> parameters = Map.of("text_type", "document");
+        // 分批处理，每批最多25条（v2模型限制）
+        List<float[]> allEmbeddings = new ArrayList<>();
+        final int BATCH_SIZE = 25;
+
+        for (int i = 0; i < texts.size(); i += BATCH_SIZE) {
+            List<String> batch = texts.subList(i, Math.min(i + BATCH_SIZE, texts.size()));
+
             Map<String, Object> body = Map.of(
                     "model", embeddingConfig.getBailianModel(),
-                    "input", input,
-                    "parameters", parameters
+                    "input", Map.of("texts", batch),  // 批量传入
+                    "parameters", Map.of(
+                            "text_type", "document",
+                            "dimension", 1024  // 指定输出维度
+                    )
             );
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
@@ -175,20 +179,24 @@ public class ChunkEmbeddingService {
 
             try {
                 JsonNode root = objectMapper.readTree(response.getBody());
-                JsonNode embeddingNode = root.get("output").get("embedding");
-                float[] embedding = new float[embeddingNode.size()];
-                for (int i = 0; i < embeddingNode.size(); i++) {
-                    embedding[i] = (float) embeddingNode.get(i).asDouble();
+                JsonNode embeddingsArray = root.get("output").get("embeddings");
+
+                for (JsonNode item : embeddingsArray) {
+                    JsonNode vec = item.get("embedding");
+                    float[] embedding = new float[vec.size()];
+                    for (int j = 0; j < vec.size(); j++) {
+                        embedding[j] = (float) vec.get(j).asDouble();
+                    }
+                    allEmbeddings.add(embedding);
                 }
-                embeddings.add(embedding);
             } catch (Exception e) {
                 log.error("Failed to parse Bailian response", e);
                 throw new RuntimeException("Failed to parse Bailian response", e);
             }
         }
 
-        log.info("Bailian API called successfully, texts={}, embeddings={}", texts.size(), embeddings.size());
-        return embeddings;
+        log.info("Bailian API called successfully, texts={}, embeddings={}", texts.size(), allEmbeddings.size());
+        return allEmbeddings;
     }
 
     /**

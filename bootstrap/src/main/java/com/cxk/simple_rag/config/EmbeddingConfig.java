@@ -31,8 +31,8 @@ public class EmbeddingConfig {
      * Bailian (阿里云百炼) 配置
      */
     private String bailianApiKey = "";
-    private String bailianModel = "text-embedding-v2";
-    private String bailianBaseUrl = "https://dashscope.aliyuncs.com/api/v1/services/embeddings/text-embedding/generation";
+    private String bailianModel = "text-embedding-v4";
+    private String bailianBaseUrl = "https://dashscope.aliyuncs.com/api/v1/services/embeddings/text-embedding/text-embedding";
 
     /**
      * Ollama 本地模型配置
