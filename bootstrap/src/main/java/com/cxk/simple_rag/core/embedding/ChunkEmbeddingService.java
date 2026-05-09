@@ -101,7 +101,7 @@ public class ChunkEmbeddingService {
      * 调用 SiliconFlow Embedding API
      */
     private List<float[]> callSiliconFlow(List<String> texts, String modelName) {
-        String url = embeddingConfig.getSiliconflowBaseUrl() + "/embeddings";
+        String url = embeddingConfig.getSiliconflowBaseUrl();
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -152,7 +152,7 @@ public class ChunkEmbeddingService {
      * 调用阿里云百炼 Embedding API
      */
     private List<float[]> callBailian(List<String> texts, String modelName) {
-        String url = "https://dashscope.aliyuncs.com/api/v1/services/embeddings/text-embedding/generation";
+        String url = embeddingConfig.getBailianBaseUrl();
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

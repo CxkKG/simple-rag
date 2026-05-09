@@ -25,13 +25,14 @@ public class EmbeddingConfig {
      */
     private String siliconflowApiKey = "";
     private String siliconflowModel = "BAAI/bge-large-zh-v1.5";
-    private String siliconflowBaseUrl = "https://api.siliconflow.cn/v1";
+    private String siliconflowBaseUrl = "https://api.siliconflow.cn/v1/embeddings";
 
     /**
      * Bailian (阿里云百炼) 配置
      */
     private String bailianApiKey = "";
     private String bailianModel = "text-embedding-v2";
+    private String bailianBaseUrl = "https://dashscope.aliyuncs.com/api/v1/services/embeddings/text-embedding/generation";
 
     /**
      * Ollama 本地模型配置

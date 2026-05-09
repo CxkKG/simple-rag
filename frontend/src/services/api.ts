@@ -295,6 +295,69 @@ export class ApiService {
         url: `/system/config/${key}`,
         data: { value },
       }),
+
+    // AI 配置
+    getAIConfig: () =>
+      request<{
+        data: {
+          providers: {
+            bailian: { apiKey: string; model: string }
+            siliconflow: { apiKey: string; model: string; baseUrl: string }
+            ollama: { baseUrl: string; model: string }
+          }
+        }
+      }>({
+        method: 'get',
+        url: '/system/config/ai',
+      }),
+
+    // Embedding 配置
+    getEmbeddingConfig: () =>
+      request<{
+        data: {
+          provider: string
+          siliconflowApiKey: string
+          siliconflowModel: string
+          siliconflowBaseUrl: string
+          bailianApiKey: string
+          bailianModel: string
+          bailianBaseUrl: string
+          ollamaBaseUrl: string
+          ollamaModel: string
+        }
+      }>({
+        method: 'get',
+        url: '/system/config/embedding',
+      }),
+
+    updateEmbeddingConfig: (data: {
+      provider: string
+      siliconflowApiKey: string
+      siliconflowModel: string
+      siliconflowBaseUrl: string
+      bailianApiKey: string
+      bailianModel: string
+      bailianBaseUrl: string
+      ollamaBaseUrl: string
+      ollamaModel: string
+    }) =>
+      request<{
+        data: {
+          provider: string
+          siliconflowApiKey: string
+          siliconflowModel: string
+          siliconflowBaseUrl: string
+          bailianApiKey: string
+          bailianModel: string
+          bailianBaseUrl: string
+          ollamaBaseUrl: string
+          ollamaModel: string
+        }
+      }>({
+        method: 'put',
+        url: '/system/config/embedding',
+        data,
+      }),
   }
 
   // 仪表板 API
