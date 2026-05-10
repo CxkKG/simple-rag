@@ -26,14 +26,54 @@ spring:
       max-file-size: 100MB
       max-request-size: 100MB
 
+  # Spring AI MCP Client 配置（用于联网搜索）
+  ai:
+    mcp:
+      client:
+        enabled: true
+        name: simple-rag-mcp-client
+        version: 1.0.0
+        # 首次启动 npx 需要下载 MCP Server 包，超时给宽一些
+        request-timeout: 120s
+        type: SYNC
+        toolcallback:
+          enabled: true
+        stdio:
+          # 注意：这里走 @ConfigurationProperties 绑定，env 值支持 ${VAR} 占位符解析；
+          # 不要再用 mcp-servers.json，那条路径是 Jackson 直读，不解析占位符。
+          connections:
+            tavily-search:
+              command: npx
+              args:
+                - "-y"
+                - "tavily-mcp@latest"
+              env:
+                TAVILY_API_KEY:
+
+# AI 模型配置
+ai:
+  providers:
+    bailian:
+      api-key: ${BAILIAN_API_KEY:sk-}
+      model: qwen-plus
+      base-url: https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation
+    siliconflow:
+      api-key: ${SILICONFLOW_API_KEY:sk-}
+      model: deepseek-ai/DeepSeek-V3.2
+      base-url: https://api.siliconflow.cn/v1
+    ollama:
+      model: deepseek-r1:1.5b
+      base-url: http://localhost:11434
+
 # Embedding 服务配置
 embedding:
   provider: siliconflow  # 支持：siliconflow, bailian, ollama
-  siliconflow-api-key: ${SILICONFLOW_API_KEY:}
+  siliconflow-api-key: ${SILICONFLOW_API_KEY:sk-}
   siliconflow-model: BAAI/bge-large-zh-v1.5
-  siliconflow-base-url: https://api.siliconflow.cn/v1
-  bailian-api-key: ${BAILIAN_API_KEY:}
-  bailian-model: text-embedding-v2
+  siliconflow-base-url: https://api.siliconflow.cn/v1/embeddings
+  bailian-api-key: ${BAILIAN_API_KEY:sk-}
+  bailian-model: text-embedding-v4
+  bailian-base-url: https://dashscope.aliyuncs.com/api/v1/services/embeddings/text-embedding/text-embedding
   ollama-base-url: http://localhost:11434
   ollama-model: bge-large-zh
 
@@ -63,6 +103,17 @@ rocketmq:
 
   chunk-topic: knowledge-chunk-topic
 
+# SA-Token 配置
+sa-token:
+  token-name: satoken
+  timeout: 86400
+  active-timeout: 1800
+  is-concurrent: true
+  is-share: true
+  token-style: uuid
+  is-read-cookie: false
+  is-read-header: true
+
 # 服务器配置
 server:
   port: 9092
@@ -87,10 +138,18 @@ logging:
     root: INFO
     com.nageoffer.ai.simple_rag: DEBUG
 
-# AI 模型配置
-ai:
-  providers:
-    bailian:
-      api-key: ${BAILIAN_API_KEY:}
-    siliconflow:
-      api-key: ${SILICONFLOW_API_KEY:}
+# 联网搜索（兜底降级）配置
+web-search:
+  # 是否允许在 RagService 中触发联网搜索（前端开关 + 此处全局开关共同决定）
+  enabled: true
+  # 向量检索 top1 分数低于该阈值视为"未找到合适回答"，触发兜底
+  score-threshold: 0.02
+  # 联网搜索返回的最大结果条数
+  top-k: 5
+  # MCP Server 暴露的搜索工具名（按优先级匹配，匹配到的第一个会被使用）
+  # 常见值：brave_web_search / tavily-search / web_search
+  tool-name-keywords:
+    - brave_web_search
+    - tavily-search
+    - web_search
+    - search
