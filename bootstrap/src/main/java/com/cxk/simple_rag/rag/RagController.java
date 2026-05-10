@@ -321,9 +321,12 @@ public class RagController {
                     emitter.send(SseEmitter.event().name("context").data(retrieval.getPromptContext()));
 
                     String systemPrompt = ragService.systemPromptFor(retrieval.isUsedWebSearch());
+                    // 带历史滑窗的多轮调用，支持跨轮上下文记忆
+                    List<LLMService.Message> messages = ragService.buildChatMessages(
+                            finalConvId, systemPrompt, retrieval.getPromptContext());
 
                     StringBuilder buf = new StringBuilder();
-                    llmService.streamGenerate(systemPrompt, retrieval.getPromptContext(), emitter, buf::append);
+                    llmService.streamGenerate(messages, emitter, buf::append);
                     fullAnswer = buf.toString();
                 }
 

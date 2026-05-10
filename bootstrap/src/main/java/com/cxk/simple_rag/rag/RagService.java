@@ -1,6 +1,7 @@
 package com.cxk.simple_rag.rag;
 
 import com.cxk.simple_rag.conversation.service.ConversationService;
+import com.cxk.simple_rag.conversation.entity.MessageDO;
 import com.cxk.simple_rag.knowledge.entity.KnowledgeDocumentDO;
 import com.cxk.simple_rag.knowledge.mapper.KnowledgeDocumentMapper;
 import com.cxk.simple_rag.llm.LLMService;
@@ -44,6 +45,11 @@ public class RagService {
 
     public static final String EMPTY_KB_HINT =
             "知识库中未找到相关内容，请开启联网搜索后重试。";
+
+    /** 多轮对话滑动窗口：最多保留近 N 轮（一轮 = 一条 user + 一条 assistant）。 */
+    private static final int HISTORY_MAX_TURNS = 6;
+    /** 历史消息总字符上限（粗略近似 token 预算，避免拼接后超模型上下文）。 */
+    private static final int HISTORY_CHAR_BUDGET = 6000;
 
     private final VectorSearchService vectorSearchService;
     private final ConversationService conversationService;
@@ -92,7 +98,10 @@ public class RagService {
             answer = retrieval.getDirectAnswer();
         } else {
             String systemPrompt = buildSystemPrompt(retrieval.isUsedWebSearch());
-            answer = llmService.generate(systemPrompt, retrieval.getPromptContext());
+            // 带历史滑窗的多轮调用，支持跨轮上下文记忆
+            List<LLMService.Message> messages = buildChatMessages(
+                    conversationId, systemPrompt, retrieval.getPromptContext());
+            answer = llmService.generate(messages);
         }
 
         // 根据回答里的 [N] 角标过滤实际被引用的来源（保持下标顺序，仅打标）
@@ -280,6 +289,87 @@ public class RagService {
      */
     public String systemPromptFor(boolean usedWebSearch) {
         return buildSystemPrompt(usedWebSearch);
+    }
+
+    /**
+     * 构造送入 LLM 的多轮消息列表：[system, ...history(滑窗), user(当前轮 RAG 上下文)]。
+     * <p>历史只取已落库的会话消息（当前轮 user/assistant 在 LLM 调用之后才写库），
+     * 角色限定为 user/assistant，并按 {@link #HISTORY_MAX_TURNS} 与
+     * {@link #HISTORY_CHAR_BUDGET} 双重裁剪，避免超 token。</p>
+     *
+     * @param conversationId      会话 ID（null/空时不带历史，等价于单轮）
+     * @param systemPrompt        本轮 system prompt（与是否联网相关，按当前轮取值）
+     * @param currentUserContent  本轮 user 消息内容（已包含 RAG 上下文 / 联网搜索片段）
+     */
+    public List<LLMService.Message> buildChatMessages(
+            String conversationId, String systemPrompt, String currentUserContent) {
+        List<LLMService.Message> messages = new ArrayList<>();
+        messages.add(new LLMService.Message("system", systemPrompt));
+        messages.addAll(loadHistoryWindow(conversationId));
+        messages.add(new LLMService.Message("user", currentUserContent));
+        return messages;
+    }
+
+    /**
+     * 加载会话历史的滑动窗口部分，已按时间正序返回 List&lt;LLMService.Message&gt;。
+     * 裁剪规则：从最新一条往前累计，不超过 maxTurns*2 条且总字符不超过 charBudget；
+     * 截取后若首条为 assistant（孤儿），逐条丢弃直到首条为 user。
+     */
+    private List<LLMService.Message> loadHistoryWindow(String conversationId) {
+        if (conversationId == null || conversationId.isBlank()) {
+            return Collections.emptyList();
+        }
+        List<MessageDO> raw;
+        try {
+            raw = conversationService.getMessages(conversationId);
+        } catch (Exception e) {
+            log.warn("Failed to load history for sliding window: conversationId={}, fallback to empty", conversationId, e);
+            return Collections.emptyList();
+        }
+        if (raw == null || raw.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<MessageDO> filtered = new ArrayList<>();
+        for (MessageDO m : raw) {
+            if (m == null || m.getContent() == null || m.getContent().isBlank()) continue;
+            if ("user".equals(m.getRole()) || "assistant".equals(m.getRole())) {
+                filtered.add(m);
+            }
+        }
+        if (filtered.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 从尾部往前累计，直到触达条数或字符预算
+        int maxMessages = HISTORY_MAX_TURNS * 2;
+        int charsUsed = 0;
+        int startIdx = filtered.size();
+        for (int i = filtered.size() - 1; i >= 0 && (filtered.size() - i) <= maxMessages; i--) {
+            int len = filtered.get(i).getContent().length();
+            if (charsUsed + len > HISTORY_CHAR_BUDGET) {
+                break;
+            }
+            charsUsed += len;
+            startIdx = i;
+        }
+
+        // 跳过首部的孤儿 assistant，保证历史以 user 开头
+        while (startIdx < filtered.size() && !"user".equals(filtered.get(startIdx).getRole())) {
+            startIdx++;
+        }
+        if (startIdx >= filtered.size()) {
+            return Collections.emptyList();
+        }
+
+        List<LLMService.Message> window = new ArrayList<>(filtered.size() - startIdx);
+        for (int i = startIdx; i < filtered.size(); i++) {
+            MessageDO m = filtered.get(i);
+            window.add(new LLMService.Message(m.getRole(), m.getContent()));
+        }
+        log.debug("History window loaded: conversationId={}, kept={}, totalChars={}, totalAvailable={}",
+                conversationId, window.size(), charsUsed, filtered.size());
+        return window;
     }
 
     /**
