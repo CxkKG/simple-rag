@@ -162,7 +162,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       // 使用 EventSource 接收流式响应
       const kbId = selectedKnowledgeBase!
       const { webSearchEnabled } = get()
-      const streamPath = ApiService.chat.streamChat(kbId, content, sessionId, 3, webSearchEnabled)
+      const streamPath = ApiService.chat.streamChat(kbId, content, sessionId, 10, webSearchEnabled)
       // 构建完整的 URL（EventSource 不支持 axios 拦截器，需要完整 URL）
       const baseURL = import.meta.env.VITE_API_BASE_URL || window.location.origin + '/api/simple-rag'
       const streamUrl = baseURL + streamPath
@@ -186,25 +186,20 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         const eventSource = new EventSource(streamUrl)
         let accumulatedContent = ''
         let hasError = false
+        // 缓存检索来源，待流式回答结束后统一去重渲染
+        let pendingSources: any[] = []
 
         // 接收会话 ID
         eventSource.addEventListener('conversationId', (event) => {
           console.log('Received conversationId:', event.data)
         })
 
-        // 接收检索结果 —— 将引用来源挂到当前助手消息上
+        // 接收检索结果 —— 暂存到本地，待 end 事件后统一去重并挂到消息上
         eventSource.addEventListener('retrieved', (event) => {
           try {
             const payload = JSON.parse(event.data)
             const sources = Array.isArray(payload?.sources) ? payload.sources : []
-            set((state) => {
-              const newMessages = state.messages.map(msg =>
-                msg.id === currentAssistantMessageId
-                  ? { ...msg, contextSources: sources }
-                  : msg
-              )
-              return { messages: newMessages }
-            })
+            pendingSources = sources
           } catch (err) {
             console.warn('Failed to parse retrieved event:', err)
           }
@@ -229,6 +224,18 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         // 接收完成事件
         eventSource.addEventListener('end', () => {
           console.log('Stream completed')
+          // 引用来源在后端已按 docId / url 聚合，这里直接挂到消息上即可
+          // —— 不能再二次去重，否则会破坏 LLM 输出中 [N] 与 sources[N-1] 的对应关系
+          if (pendingSources.length > 0) {
+            set((state) => {
+              const newMessages = state.messages.map(msg =>
+                msg.id === currentAssistantMessageId
+                  ? { ...msg, contextSources: pendingSources }
+                  : msg
+              )
+              return { messages: newMessages }
+            })
+          }
           eventSource.close()
           resolve()
         })

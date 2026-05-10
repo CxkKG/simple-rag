@@ -18,12 +18,16 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * RAG 智能问答服务
@@ -91,6 +95,9 @@ public class RagService {
             answer = llmService.generate(systemPrompt, retrieval.getPromptContext());
         }
 
+        // 根据回答里的 [N] 角标过滤实际被引用的来源（保持下标顺序，仅打标）
+        markCitedSources(answer, retrieval.getSources());
+
         conversationService.addMessage(conversationId, "user", question, null);
         conversationService.addMessage(conversationId, "assistant", answer, serializeSources(retrieval.getSources()));
 
@@ -122,9 +129,10 @@ public class RagService {
 
         boolean kbHit = isKnowledgeBaseHit(kbResults);
         if (kbHit) {
+            List<VectorSearchService.SearchResult> dedupedKb = dedupKbByDocId(kbResults);
             result.setUsedWebSearch(false);
-            result.setSources(extractContextSources(kbResults));
-            result.setPromptContext(buildKbContext(kbResults, question));
+            result.setSources(extractContextSources(dedupedKb));
+            result.setPromptContext(buildKbContext(dedupedKb, question));
             return result;
         }
 
@@ -142,6 +150,8 @@ public class RagService {
 
         // 3. 联网搜索兜底
         List<WebSearchService.WebSearchResult> webResults = webSearchService.search(question);
+        log.info("Web search returned: question={}, rawCount={}", question,
+                webResults == null ? 0 : webResults.size());
         if (webResults.isEmpty()) {
             // 联网搜索调用失败 / 无配置 → 不影响主流程，给出明确提示
             result.setUsedWebSearch(false);
@@ -152,8 +162,13 @@ public class RagService {
         }
 
         result.setUsedWebSearch(true);
-        result.setSources(extractWebSources(webResults));
-        result.setPromptContext(buildWebContext(webResults, question));
+        List<WebSearchService.WebSearchResult> dedupedWeb = dedupWebByUrl(webResults);
+        List<ContextSource> webSources = extractWebSources(dedupedWeb);
+        log.info("Web search dedup result: rawCount={}, dedupedCount={}, sourcesCount={}, firstUrl={}",
+                webResults.size(), dedupedWeb.size(), webSources.size(),
+                webSources.isEmpty() ? "<empty>" : webSources.get(0).getUrl());
+        result.setSources(webSources);
+        result.setPromptContext(buildWebContext(dedupedWeb, question));
         return result;
     }
 
@@ -166,6 +181,57 @@ public class RagService {
         }
         float topScore = results.get(0).getScore();
         return topScore >= webSearchProperties.getScoreThreshold();
+    }
+
+    /**
+     * 按 docId 聚合知识库检索片段：同一文档只保留最高分的那一片，
+     * 既避免引用列表冗余，又让 LLM 看到的 [N] 编号与 sources 严格对齐。
+     */
+    private List<VectorSearchService.SearchResult> dedupKbByDocId(List<VectorSearchService.SearchResult> results) {
+        if (results == null || results.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Map<String, VectorSearchService.SearchResult> kept = new LinkedHashMap<>();
+        for (VectorSearchService.SearchResult r : results) {
+            if (r == null) continue;
+            String key;
+            if (r.getDocId() != null && !r.getDocId().isBlank()) {
+                key = "doc:" + r.getDocId();
+            } else if (r.getChunkId() != null && !r.getChunkId().isBlank()) {
+                key = "chunk:" + r.getChunkId();
+            } else {
+                // 没有任何稳定标识时不参与合并，保留原条目
+                key = "raw:" + System.identityHashCode(r);
+            }
+            VectorSearchService.SearchResult prev = kept.get(key);
+            if (prev == null || r.getScore() > prev.getScore()) {
+                kept.put(key, r);
+            }
+        }
+        return new ArrayList<>(kept.values());
+    }
+
+    /**
+     * 按 URL 聚合联网搜索结果：同一 URL 只保留首次命中的那条。
+     */
+    private List<WebSearchService.WebSearchResult> dedupWebByUrl(List<WebSearchService.WebSearchResult> results) {
+        if (results == null || results.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Map<String, WebSearchService.WebSearchResult> kept = new LinkedHashMap<>();
+        for (WebSearchService.WebSearchResult r : results) {
+            if (r == null) continue;
+            String key;
+            if (r.getUrl() != null && !r.getUrl().isBlank()) {
+                key = "url:" + r.getUrl();
+            } else if (r.getTitle() != null && !r.getTitle().isBlank()) {
+                key = "title:" + r.getTitle();
+            } else {
+                key = "raw:" + System.identityHashCode(r);
+            }
+            kept.putIfAbsent(key, r);
+        }
+        return new ArrayList<>(kept.values());
     }
 
     private String buildKbContext(List<VectorSearchService.SearchResult> results, String question) {
@@ -354,6 +420,38 @@ public class RagService {
     }
 
     /**
+     * 解析回答文本中出现的 [N] 角标，把对应位置的 source 标记为 cited=true，
+     * 其余的标记为 cited=false。前端用此标记过滤 "参考来源" 面板，
+     * 但保留 sources 数组的原下标顺序，确保正文里的 [N] 仍能正确映射到 sources[N-1]。
+     *
+     * @param answer  LLM 完整输出
+     * @param sources 与 [N] 同序的引用来源列表（下标 0 对应 [1]）
+     */
+    public static void markCitedSources(String answer, List<ContextSource> sources) {
+        if (sources == null || sources.isEmpty()) {
+            return;
+        }
+        Set<Integer> cited = new HashSet<>();
+        if (answer != null && !answer.isBlank()) {
+            Matcher m = CITATION_PATTERN.matcher(answer);
+            while (m.find()) {
+                try {
+                    cited.add(Integer.parseInt(m.group(1)));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        for (int i = 0; i < sources.size(); i++) {
+            ContextSource source = sources.get(i);
+            if (source != null) {
+                source.setCited(cited.contains(i + 1));
+            }
+        }
+    }
+
+    private static final Pattern CITATION_PATTERN = Pattern.compile("\\[(\\d+)]");
+
+    /**
      * 检索结果（共享给 Controller 流式调用）
      */
     @Data
@@ -407,5 +505,13 @@ public class RagService {
         private String docName;
         private String fileUrl;
         private String fileType;
+        /**
+         * 是否真正被本次回答引用（即回答文本中出现了对应的 [N] 标号）。
+         * <p>检索阶段构造 sources 时无法预知 LLM 会引用哪些条目，此字段需要在
+         * 回答生成完成后由 {@link #markCitedSources(String, java.util.List)} 回填。
+         * 前端 "参考来源" 面板据此过滤掉未实际引用的来源；为了保持回答正文中
+         * 已经写入的 [N] 与 sources[N-1] 的下标对齐，array 长度本身不会变。</p>
+         */
+        private boolean cited;
     }
 }

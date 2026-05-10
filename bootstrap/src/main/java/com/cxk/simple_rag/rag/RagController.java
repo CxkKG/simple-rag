@@ -332,6 +332,23 @@ public class RagController {
                     return;
                 }
 
+                // 回答生成完毕后，根据 [N] 角标回填 cited 标记，并把更新后的 sources
+                // 再发一次 retrieved 事件，让前端 "参考来源" 面板只展示真正被引用的条目。
+                // sources 数组下标保持不变，正文里 [N] → sources[N-1] 的映射不会被破坏。
+                if (!retrieval.isFallbackHint()
+                        && retrieval.getSources() != null
+                        && !retrieval.getSources().isEmpty()) {
+                    RagService.markCitedSources(fullAnswer, retrieval.getSources());
+
+                    Map<String, Object> retrievedFinalPayload = new HashMap<>();
+                    retrievedFinalPayload.put("sourceType", sourceType);
+                    retrievedFinalPayload.put("count", retrieval.getSources().size());
+                    retrievedFinalPayload.put("sources", retrieval.getSources());
+                    emitter.send(SseEmitter.event()
+                            .name("retrieved")
+                            .data(retrievedFinalPayload));
+                }
+
                 emitter.send(SseEmitter.event().name("end").data("end"));
 
                 ragService.saveMessage(finalConvId, "user", question);

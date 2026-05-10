@@ -101,6 +101,16 @@ export default function ChatPage() {
     setPreviewFileType(source.fileType)
   }
 
+  const handleCitationClick = (source: ContextSource) => {
+    if (source.type === 'WEB_SEARCH') {
+      if (source.url) window.open(source.url, '_blank', 'noopener,noreferrer')
+      return
+    }
+    if (source.docId) {
+      handleOpenPreview(source)
+    }
+  }
+
   const handleClosePreview = () => {
     setPreviewDocId(null)
   }
@@ -553,61 +563,85 @@ export default function ChatPage() {
                         : 'bg-education-blue-50 text-education-blue-900 rounded-tl-none border border-education-blue-100'
                     }`}>
                       <div className="prose prose-education-blue max-w-none leading-relaxed">
-                        <MarkdownRenderer content={message.content} />
+                        <MarkdownRenderer
+                          content={message.content}
+                          sources={message.role === 'assistant' ? message.contextSources : undefined}
+                          onCitationClick={handleCitationClick}
+                        />
                       </div>
                     </div>
-                    {message.role === 'assistant' && message.contextSources && message.contextSources.length > 0 && (
-                      <div className="mt-2 rounded-xl border border-education-blue-100 bg-white/70 px-3 py-2">
-                        <p className="mb-1.5 text-xs font-medium text-education-blue-700">引用来源</p>
-                        <ul className="space-y-1">
+                    {message.role === 'assistant' && message.contextSources && message.contextSources.length > 0 && message.contextSources.some(s => s.cited !== false) && (
+                      <div className="mt-3 rounded-xl border border-education-blue-100 bg-white/70 px-4 py-3">
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-education-blue-700">
+                          参考来源 · References
+                        </p>
+                        <ol className="space-y-1.5">
                           {message.contextSources.map((src, idx) => {
+                            // 仅展示真正被回答引用的条目；保持原始下标作为 [N] 编号，确保与正文角标一致。
+                            // 旧数据无 cited 字段时按已引用处理（向后兼容）。
+                            if (src.cited === false) return null
                             const key = `${message.id}-src-${idx}`
+                            const num = idx + 1
                             if (src.type === 'KNOWLEDGE_BASE') {
-                              const label = src.docName || src.docId || `知识片段 ${idx + 1}`
+                              const label = src.docName || src.docId || `知识片段 ${num}`
                               return (
-                                <li key={key} className="flex items-center gap-2 text-xs text-education-blue-800">
-                                  <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-education-blue-100 px-1.5 text-[10px] font-semibold text-education-blue-700">[{idx + 1}]</span>
-                                  <FileText className="h-3.5 w-3.5 shrink-0 text-education-blue-500" />
+                                <li key={key} className="flex items-start gap-2 text-xs leading-relaxed text-education-blue-800">
+                                  <span className="mt-[1px] inline-flex h-5 min-w-[22px] items-center justify-center rounded-full bg-education-blue-100 px-1.5 text-[10px] font-semibold text-education-blue-700">
+                                    [{num}]
+                                  </span>
+                                  <FileText className="mt-[2px] h-3.5 w-3.5 shrink-0 text-education-blue-500" />
                                   {src.docId ? (
                                     <button
                                       type="button"
                                       onClick={() => handleOpenPreview(src)}
-                                      className="truncate text-left text-education-blue-700 underline-offset-2 hover:underline"
+                                      className="flex-1 truncate text-left text-education-blue-700 underline-offset-2 hover:underline"
                                       title={label}
                                     >
                                       {label}
+                                      {typeof src.score === 'number' && src.score > 0 && (
+                                        <span className="ml-2 text-[10px] text-education-blue-400">
+                                          相关度 {src.score.toFixed(2)}
+                                        </span>
+                                      )}
                                     </button>
                                   ) : (
-                                    <span className="truncate">{label}</span>
+                                    <span className="flex-1 truncate">{label}</span>
                                   )}
                                 </li>
                               )
                             }
                             if (src.type === 'WEB_SEARCH') {
-                              const label = src.title || src.url || `网页 ${idx + 1}`
+                              const label = src.title || src.url || `网页 ${num}`
                               return (
-                                <li key={key} className="flex items-center gap-2 text-xs text-education-blue-800">
-                                  <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-education-blue-100 px-1.5 text-[10px] font-semibold text-education-blue-700">[{idx + 1}]</span>
-                                  <Globe className="h-3.5 w-3.5 shrink-0 text-education-blue-500" />
+                                <li key={key} className="flex items-start gap-2 text-xs leading-relaxed text-education-blue-800">
+                                  <span className="mt-[1px] inline-flex h-5 min-w-[22px] items-center justify-center rounded-full bg-education-blue-100 px-1.5 text-[10px] font-semibold text-education-blue-700">
+                                    [{num}]
+                                  </span>
+                                  <Globe className="mt-[2px] h-3.5 w-3.5 shrink-0 text-education-blue-500" />
                                   {src.url ? (
                                     <a
                                       href={src.url}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="truncate text-education-blue-700 underline-offset-2 hover:underline"
+                                      className="flex-1 min-w-0 text-education-blue-700 underline-offset-2 hover:underline"
                                       title={label}
                                     >
-                                      {label}
+                                      <span className="block truncate font-medium">{label}</span>
+                                      {src.url && src.url !== label && (
+                                        <span className="block truncate text-[10px] text-education-blue-400">
+                                          {src.url}
+                                        </span>
+                                      )}
                                     </a>
                                   ) : (
-                                    <span className="truncate">{label}</span>
+                                    <span className="flex-1 truncate">{label}</span>
                                   )}
                                 </li>
                               )
                             }
                             return null
                           })}
-                        </ul>
+                        </ol>
                       </div>
                     )}
                   </div>

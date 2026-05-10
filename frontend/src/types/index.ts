@@ -128,6 +128,9 @@ export interface ContextSource {
   url?: string
   // 通用：原文片段
   content?: string
+  // 是否真正被回答引用（回答正文里出现了对应的 [N] 角标）。
+  // 旧数据可能没有此字段，未定义视为已引用以保证向后兼容。
+  cited?: boolean
 }
 
 // 消息类型（用于聊天会话）
