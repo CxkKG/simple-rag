@@ -1,6 +1,7 @@
 package com.cxk.simple_rag.config;
 
 import cn.dev33.satoken.stp.StpUtil;
+import jakarta.servlet.DispatcherType;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,23 +10,41 @@ import jakarta.servlet.http.HttpServletResponse;
 public class SaTokenInterceptor implements HandlerInterceptor {
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    public boolean preHandle(HttpServletRequest request,
+                             HttpServletResponse response,
+                             Object handler) throws Exception {
+
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
+
+        DispatcherType dispatcherType = request.getDispatcherType();
+
+        // SSE / async dispatch / error dispatch 跳过
+        if (dispatcherType == DispatcherType.ASYNC
+                || dispatcherType == DispatcherType.ERROR) {
             return true;
         }
 
         String path = request.getRequestURI();
         String contextPath = request.getContextPath();
-        if (contextPath != null && !contextPath.isEmpty() && path.startsWith(contextPath)) {
+
+        if (contextPath != null
+                && !contextPath.isEmpty()
+                && path.startsWith(contextPath)) {
             path = path.substring(contextPath.length());
         }
 
-        if (path.startsWith("/user/login") || path.startsWith("/user/register")) {
+        // 白名单
+        if (path.startsWith("/user/login")
+                || path.startsWith("/user/register")) {
             return true;
         }
 
+        // 登录校验
         StpUtil.checkLogin();
 
+        // 管理员校验
         if (isAdminPath(path, request.getMethod())) {
             StpUtil.checkRole("admin");
         }
