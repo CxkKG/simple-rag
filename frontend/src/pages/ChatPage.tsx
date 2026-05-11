@@ -505,6 +505,10 @@ export default function ChatPage() {
                   {user.username}
                 </div>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate('/documents')}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  文档管理
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate('/learning-records')}>
                   <BookMarked className="w-4 h-4 mr-2" />
                   学习记录

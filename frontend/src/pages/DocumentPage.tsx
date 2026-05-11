@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { SimpleRagDocument } from '@/types'
+import { SimpleRagDocument, UserRole } from '@/types'
 import { RawFileViewer } from '@/features/document/RawFileViewer'
 import {
   Table,
@@ -69,7 +69,8 @@ export default function DocumentPage() {
   const { documents, isLoading, fetchDocuments, deleteDocument, total, uploadDocument, triggerChunking, updateDocumentInfo } = useDocumentStore()
 
   const navigate = useNavigate()
-  const { user } = useAuthentication()
+  const { user, hasRole } = useAuthentication()
+  const isAdmin = hasRole(UserRole.Admin)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const tableColumns = useResizableColumns([
     { key: 'name', width: 280, minWidth: 220, maxWidth: 520 },
@@ -203,18 +204,22 @@ export default function DocumentPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <input
-                id="upload-file"
-                type="file"
-                className="hidden"
-                onChange={handleUpload}
-                accept=".pdf,.doc,.docx,.md,.txt,.csv,.xlsx"
-                ref={fileInputRef}
-            />
-            <Button onClick={handleButtonClick} className="bg-gradient-to-r from-education-blue-600 to-education-blue-500 hover:from-education-blue-700 hover:to-education-blue-600">
-              <Upload className="w-4 h-4 mr-2" />
-              上传文档
-            </Button>
+            {isAdmin && (
+              <>
+                <input
+                    id="upload-file"
+                    type="file"
+                    className="hidden"
+                    onChange={handleUpload}
+                    accept=".pdf,.doc,.docx,.md,.txt,.csv,.xlsx"
+                    ref={fileInputRef}
+                />
+                <Button onClick={handleButtonClick} className="bg-gradient-to-r from-education-blue-600 to-education-blue-500 hover:from-education-blue-700 hover:to-education-blue-600">
+                  <Upload className="w-4 h-4 mr-2" />
+                  上传文档
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -390,29 +395,33 @@ export default function DocumentPage() {
                                   <Eye className="mr-2 h-4 w-4 text-education-blue-500" />
                                   查看内容
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleOpenEditDialog(doc)}
-                                  className="cursor-pointer rounded-lg px-3 py-2 text-slate-700 focus:bg-education-blue-50 focus:text-education-blue-700"
-                                >
-                                  <Edit className="mr-2 h-4 w-4 text-slate-500" />
-                                  编辑信息
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleTriggerChunking(doc.id)}
-                                  disabled={doc.status === 'success'}
-                                  className="cursor-pointer rounded-lg px-3 py-2 text-slate-700 focus:bg-education-blue-50 focus:text-education-blue-700"
-                                >
-                                  <RefreshCw className="mr-2 h-4 w-4 text-emerald-500" />
-                                  {doc.status === 'success' ? '已解析' : '解析向量'}
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator className="bg-education-blue-50" />
-                                <DropdownMenuItem
-                                    onClick={(e) => handleDelete(doc.id, e as any)}
-                                    className="cursor-pointer rounded-lg px-3 py-2 text-red-600 focus:bg-red-50 focus:text-red-700"
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  删除文档
-                                </DropdownMenuItem>
+                                {isAdmin && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={() => handleOpenEditDialog(doc)}
+                                      className="cursor-pointer rounded-lg px-3 py-2 text-slate-700 focus:bg-education-blue-50 focus:text-education-blue-700"
+                                    >
+                                      <Edit className="mr-2 h-4 w-4 text-slate-500" />
+                                      编辑信息
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => handleTriggerChunking(doc.id)}
+                                      disabled={doc.status === 'success'}
+                                      className="cursor-pointer rounded-lg px-3 py-2 text-slate-700 focus:bg-education-blue-50 focus:text-education-blue-700"
+                                    >
+                                      <RefreshCw className="mr-2 h-4 w-4 text-emerald-500" />
+                                      {doc.status === 'success' ? '已解析' : '解析向量'}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator className="bg-education-blue-50" />
+                                    <DropdownMenuItem
+                                        onClick={(e) => handleDelete(doc.id, e as any)}
+                                        className="cursor-pointer rounded-lg px-3 py-2 text-red-600 focus:bg-red-50 focus:text-red-700"
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      删除文档
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>

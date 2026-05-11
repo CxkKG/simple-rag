@@ -39,6 +39,10 @@ public class SaTokenInterceptor implements HandlerInterceptor {
             if ("GET".equalsIgnoreCase(method)) {
                 return false;
             }
+            // 文档分页查询走 POST /knowledge/document/query，对所有登录用户开放（只读）
+            if ("POST".equalsIgnoreCase(method) && path.equals("/knowledge/document/query")) {
+                return false;
+            }
             return true;
         }
         if (path.startsWith("/dashboard")

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { SimpleRagDocument, KnowledgeBase } from '@/types'
+import { SimpleRagDocument, KnowledgeBase, UserRole } from '@/types'
 import { RawFileViewer } from '@/features/document/RawFileViewer'
 import {
   Table,
@@ -71,7 +71,8 @@ export default function DocumentsPage() {
   const { knowledgeBases, fetchKnowledgeBases } = useKnowledgeBaseStore()
 
   const navigate = useNavigate()
-  const { user } = useAuthentication()
+  const { user, hasRole } = useAuthentication()
+  const isAdmin = hasRole(UserRole.Admin)
   const tableColumns = useResizableColumns([
     { key: 'select', width: 48, minWidth: 44, maxWidth: 70 },
     { key: 'name', width: 260, minWidth: 200, maxWidth: 520 },
@@ -267,14 +268,16 @@ export default function DocumentsPage() {
             <p className="text-sm text-education-blue-600">管理所有知识库中的学习文档</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsUploadModalOpen(true)}
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              上传文档
-            </Button>
-            {selectedIds.length > 0 && (
+            {isAdmin && (
+              <Button
+                variant="outline"
+                onClick={() => setIsUploadModalOpen(true)}
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                上传文档
+              </Button>
+            )}
+            {isAdmin && selectedIds.length > 0 && (
               <Button
                 variant="destructive"
                 onClick={handleBatchDelete}
@@ -384,12 +387,14 @@ export default function DocumentsPage() {
               <TableHeader className="bg-education-blue-50">
                 <TableRow>
                   <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('select')}>
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.length === documents.length && documents.length > 0}
-                      onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="rounded border-slate-300 text-education-blue-600 focus:ring-education-blue-500"
-                    />
+                    {isAdmin && (
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.length === documents.length && documents.length > 0}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="rounded border-slate-300 text-education-blue-600 focus:ring-education-blue-500"
+                      />
+                    )}
                     <span {...tableColumns.getResizeHandleProps('select')} />
                   </TableHead>
                   <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('name')}>文档名称<span {...tableColumns.getResizeHandleProps('name')} /></TableHead>
@@ -427,12 +432,14 @@ export default function DocumentsPage() {
                     documents.map((doc) => (
                         <TableRow key={doc.id} className="h-16 hover:bg-slate-50 transition-colors">
                           <TableCell className="py-2" style={tableColumns.getColumnStyle('select')}>
-                            <input
-                              type="checkbox"
-                              checked={selectedIds.includes(doc.id)}
-                              onChange={() => toggleSelectId(doc.id)}
-                              className="rounded border-slate-300 text-education-blue-600 focus:ring-education-blue-500"
-                            />
+                            {isAdmin && (
+                              <input
+                                type="checkbox"
+                                checked={selectedIds.includes(doc.id)}
+                                onChange={() => toggleSelectId(doc.id)}
+                                className="rounded border-slate-300 text-education-blue-600 focus:ring-education-blue-500"
+                              />
+                            )}
                           </TableCell>
                           <TableCell className="py-2" style={tableColumns.getColumnStyle('name')}>
                             <div className="flex min-w-0 items-center gap-3 font-medium">
@@ -519,29 +526,33 @@ export default function DocumentsPage() {
                                   <Eye className="mr-2 h-4 w-4 text-education-blue-500" />
                                   查看内容
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleEditDocument(doc)}
-                                  className="cursor-pointer rounded-lg px-3 py-2 text-slate-700 focus:bg-education-blue-50 focus:text-education-blue-700"
-                                >
-                                  <Edit className="mr-2 h-4 w-4 text-slate-500" />
-                                  编辑信息
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleChunkDocument(doc.id)}
-                                  disabled={doc.status === 'success'}
-                                  className="cursor-pointer rounded-lg px-3 py-2 text-slate-700 focus:bg-education-blue-50 focus:text-education-blue-700"
-                                >
-                                  <RefreshCw className="mr-2 h-4 w-4 text-emerald-500" />
-                                  {doc.status === 'success' ? '已解析' : '解析向量'}
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator className="bg-education-blue-50" />
-                                <DropdownMenuItem
-                                    onClick={() => handleDeleteDocument(doc.id)}
-                                    className="cursor-pointer rounded-lg px-3 py-2 text-red-600 focus:bg-red-50 focus:text-red-700"
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  删除文档
-                                </DropdownMenuItem>
+                                {isAdmin && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={() => handleEditDocument(doc)}
+                                      className="cursor-pointer rounded-lg px-3 py-2 text-slate-700 focus:bg-education-blue-50 focus:text-education-blue-700"
+                                    >
+                                      <Edit className="mr-2 h-4 w-4 text-slate-500" />
+                                      编辑信息
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => handleChunkDocument(doc.id)}
+                                      disabled={doc.status === 'success'}
+                                      className="cursor-pointer rounded-lg px-3 py-2 text-slate-700 focus:bg-education-blue-50 focus:text-education-blue-700"
+                                    >
+                                      <RefreshCw className="mr-2 h-4 w-4 text-emerald-500" />
+                                      {doc.status === 'success' ? '已解析' : '解析向量'}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator className="bg-education-blue-50" />
+                                    <DropdownMenuItem
+                                        onClick={() => handleDeleteDocument(doc.id)}
+                                        className="cursor-pointer rounded-lg px-3 py-2 text-red-600 focus:bg-red-50 focus:text-red-700"
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      删除文档
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>

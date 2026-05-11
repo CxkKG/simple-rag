@@ -207,21 +207,21 @@ export default function App() {
           <Route
             path="/knowledge-bases/:kbId/documents"
             element={
-              <AdminRoute>
+              <ProtectedRoute>
                 <Layout>
                   <DocumentPage />
                 </Layout>
-              </AdminRoute>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/documents"
             element={
-              <AdminRoute>
+              <ProtectedRoute>
                 <Layout>
                   <DocumentsPage />
                 </Layout>
-              </AdminRoute>
+              </ProtectedRoute>
             }
           />
           <Route
