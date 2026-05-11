@@ -30,7 +30,7 @@ import java.util.function.Consumer;
  * @author wangxin
  */
 @Slf4j
-@Service
+@Service("siliconflow")
 @RequiredArgsConstructor
 public class SiliconflowLLMService implements LLMService {
 

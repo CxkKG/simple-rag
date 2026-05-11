@@ -28,7 +28,7 @@ import java.util.function.Consumer;
  * @author wangxin
  */
 @Slf4j
-@Service
+@Service("ollama")
 @RequiredArgsConstructor
 public class OllamaLLMService implements LLMService {
 
