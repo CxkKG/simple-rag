@@ -16,13 +16,3 @@ logs/
 # 忽略操作系统文件
 .DS_Store
 Thumbs.db
-
-# 忽略前端开发文件 (生产构建不需要)
-frontend/src/
-frontend/public/
-frontend/node_modules/
-frontend/*.config.js
-frontend/*.config.ts
-frontend/tsconfig.json
-frontend/package-lock.json
-frontend/yarn.lock
