@@ -155,21 +155,34 @@ public class WebSearchService {
                     for (int i = 0; i < candidates.size(); i++) {
                         Object item = candidates.get(i);
                         if (item instanceof JSONObject jo) {
+
+                            // ⭐⭐⭐ 新增：优先处理 MCP 文本 DSL
+                            String rawText = jo.getStr("text");
+                            if (rawText != null && rawText.contains("Title:") && rawText.contains("URL:")) {
+                                List<WebSearchResult> parsed1 = parsePlainTextBlocks(rawText);
+                                if (!parsed1.isEmpty()) {
+                                    results.addAll(parsed1);
+                                    continue;
+                                }
+                            }
+
                             String title = firstNonBlank(jo.getStr("title"), jo.getStr("name"));
                             String url = firstNonBlank(jo.getStr("url"), jo.getStr("link"));
                             String snippet = firstNonBlank(
                                     jo.getStr("snippet"),
                                     jo.getStr("description"),
-                                    jo.getStr("content"),
-                                    jo.getStr("text")
+                                    jo.getStr("content")
                             );
-                            if (snippet == null) {
-                                snippet = jo.toString();
+
+                            if (snippet == null && rawText != null) {
+                                snippet = rawText;
                             }
+
                             results.add(new WebSearchResult(
                                     title != null ? title : "",
                                     url != null ? url : "",
-                                    snippet));
+                                    snippet != null ? snippet : ""
+                            ));
                         } else if (item != null) {
                             results.add(new WebSearchResult("", "", item.toString()));
                         }
@@ -184,10 +197,16 @@ public class WebSearchService {
             // Tavily 把 "Title: ...\nURL: ...\nContent: ..." 这样的纯文本塞在 text 里。
             String mcpText = extractMcpText(parsed);
             if (mcpText != null && !mcpText.isBlank()) {
+
+                // ⭐ 强制优先 DSL 模式（避免 JSON 分支污染）
                 List<WebSearchResult> textResults = parsePlainTextBlocks(mcpText);
                 if (!textResults.isEmpty()) {
                     return textResults;
                 }
+
+                // fallback
+                results.add(new WebSearchResult("", "", mcpText));
+                return results;
             }
         } catch (Exception e) {
             log.warn("Failed to parse MCP search response, fallback to plain-text scan: {}", e.getMessage());
