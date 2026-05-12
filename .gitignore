@@ -23,7 +23,6 @@ libs/
 # Environment
 .env
 .env.local
-*.env.*
 
 # Temporary files
 *.tmp
