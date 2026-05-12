@@ -3,8 +3,8 @@ FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
-# 安装 pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# 安装兼容 Node.js 20 的 pnpm 版本 (pnpm 10+ 需要 Node.js 22+)
+RUN npm install -g pnpm@9.15.0
 
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile

@@ -102,27 +102,43 @@ export default function DocumentsPage() {
 
   // 加载文件类型选项
   useEffect(() => {
-    // 使用现有的queryDocuments API获取文档数据，然后提取唯一的fileType
-    const loadFileTypes = async () => {
-      try {
-        // 查询前10个文档来获取文件类型
-        const response = await queryDocuments({
-          pageNum: 1,
-          pageSize: 10
-        })
-        
-        // 提取唯一的fileType
-        const types = Array.from(new Set(response.data.map(doc => doc.fileType)))
-        setFileTypes(types)
-      } catch (error) {
-        console.error('Failed to load file types:', error)
-        // 如果查询失败，使用默认的文件类型
-        setFileTypes(['pdf', 'word', 'excel', 'csv', 'powerpoint', 'markdown', 'text', 'other'])
-      }
+  // 使用现有的queryDocuments API获取文档数据，然后提取唯一的fileType
+  const loadFileTypes = async () => {
+    try {
+      await queryDocuments({
+        pageNum: 1,
+        pageSize: 10,
+      })
+
+      const docs: SimpleRagDocument[] = useDocumentStore.getState().documents
+
+      const types: string[] = Array.from(
+        new Set(
+          docs
+            .map((doc: SimpleRagDocument) => doc.fileType)
+            .filter(Boolean)
+        )
+      )
+
+      setFileTypes(types)
+    } catch (error) {
+      console.error('Failed to load file types:', error)
+
+      setFileTypes([
+        'pdf',
+        'word',
+        'excel',
+        'csv',
+        'powerpoint',
+        'markdown',
+        'text',
+        'other',
+      ])
     }
-    
-    loadFileTypes()
-  }, [queryDocuments])
+  }
+
+  loadFileTypes()
+}, [queryDocuments])
 
   // 查询文档
   useEffect(() => {
