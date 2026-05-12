@@ -160,10 +160,10 @@ export default function UserPage() {
                       </TableCell>
                       <TableCell className="py-2" style={tableColumns.getColumnStyle('role')}>
                         <Badge
-                          variant={user.role === 'admin' ? 'default' : 'secondary'}
+                          variant={user.role === 'admin' ? 'default' : user.role === 'teacher' ? 'outline' : 'secondary'}
                           className={user.role === 'admin' ? 'bg-education-blue-600 hover:bg-education-blue-700' : ''}
                         >
-                          {user.role === 'admin' ? '管理员' : '普通用户'}
+                          {user.role === 'admin' ? '管理员' : user.role === 'teacher' ? '老师' : '学生'}
                         </Badge>
                       </TableCell>
                       <TableCell className="py-2 text-sm text-slate-500" style={tableColumns.getColumnStyle('createdAt')}>

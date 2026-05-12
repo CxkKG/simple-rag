@@ -34,6 +34,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(403).body(response);
     }
 
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<Map<String, Object>> handleSecurityException(SecurityException e) {
+        log.warn("安全异常: {}", e.getMessage());
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 403);
+        response.put("message", e.getMessage());
+        response.put("data", null);
+        return ResponseEntity.status(403).body(response);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(IllegalArgumentException e) {
         log.warn("Illegal argument: {}", e.getMessage());

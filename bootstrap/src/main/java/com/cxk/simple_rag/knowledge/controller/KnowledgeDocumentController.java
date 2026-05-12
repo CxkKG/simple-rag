@@ -5,6 +5,7 @@ import com.cxk.simple_rag.knowledge.dto.QueryDocumentRequest;
 import com.cxk.simple_rag.knowledge.dto.UploadDocumentRequest;
 import com.cxk.simple_rag.knowledge.service.KnowledgeBaseService;
 import com.cxk.simple_rag.knowledge.service.KnowledgeDocumentService;
+import com.cxk.simple_rag.knowledge.util.KnowledgeOwnerChecker;
 import com.cxk.simple_rag.knowledge.vo.KnowledgeDocumentContentVO;
 import com.cxk.simple_rag.knowledge.vo.KnowledgeDocumentVO;
 import com.cxk.simple_rag.storage.RustFsStorageService;
@@ -40,16 +41,19 @@ public class KnowledgeDocumentController {
     private final KnowledgeDocumentService documentService;
     private final KnowledgeBaseService knowledgeBaseService;
     private final RustFsStorageService rustFsStorageService;
+    private final KnowledgeOwnerChecker ownerChecker;
 
     @PostMapping("/upload")
     public ResponseEntity<Map<String, Object>> uploadDocument(
             @RequestParam("kbId") String kbId,
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "docName", required = false) String docName,
-            @RequestParam(value = "createdBy", required = false) String createdBy,
             @RequestParam(value = "processMode", required = false, defaultValue = "chunk") String processMode,
             @RequestParam(value = "chunkStrategy", required = false, defaultValue = "structure_aware") String chunkStrategy,
             @RequestParam(value = "chunkConfig", required = false) String chunkConfig) {
+
+        // 创建人统一从当前登录用户解析，不接受前端传入，避免冒充
+        String createdBy = ownerChecker.currentUsername();
 
         UploadDocumentRequest request = UploadDocumentRequest.builder()
                 .kbId(kbId)

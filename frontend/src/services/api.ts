@@ -25,7 +25,7 @@ service.interceptors.request.use(
   }
 )
 
-// 响应拦截器 — 处理 401
+// 响应拦截器 — 处理 401 和 403
 service.interceptors.response.use(
   (response: AxiosResponse) => {
     const res = response.data
@@ -39,6 +39,10 @@ service.interceptors.response.use(
       localStorage.removeItem(TOKEN_KEY)
       localStorage.removeItem('ra_admin_user')
       window.location.href = '/login'
+    } else if (error.response?.status === 403) {
+      // 403 错误：权限不足，显示错误消息
+      const message = error.response?.data?.message || '权限不足'
+      alert(message)
     }
     return Promise.reject(error)
   }

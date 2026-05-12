@@ -22,7 +22,7 @@ interface UserStore {
 const normalizeUser = (user: any): User => ({
   id: user.id || '',
   username: user.username || '',
-  role: (user.role as UserRole) || UserRole.User,
+  role: (user.role as UserRole) || UserRole.Student,
   avatar: user.avatar,
   createdAt: user.createTime || user.createdAt || new Date().toISOString(),
   updatedAt: user.updateTime || user.updatedAt,

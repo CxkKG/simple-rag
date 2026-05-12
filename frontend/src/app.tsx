@@ -80,6 +80,28 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function AdminOrTeacherRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading, hasRole } = useAuthentication()
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (!hasRole([UserRole.Admin, UserRole.Teacher])) {
+    return <Navigate to="/chat" replace />
+  }
+
+  return <>{children}</>
+}
+
 function DashboardPage() {
   const navigate = useNavigate()
   const [stats, setStats] = useState({
@@ -187,21 +209,21 @@ export default function App() {
           <Route
             path="/dashboard"
             element={
-              <AdminRoute>
+              <AdminOrTeacherRoute>
                 <Layout>
                   <DashboardPage />
                 </Layout>
-              </AdminRoute>
+              </AdminOrTeacherRoute>
             }
           />
           <Route
             path="/knowledge-bases"
             element={
-              <AdminRoute>
+              <AdminOrTeacherRoute>
                 <Layout>
                   <KnowledgeBasePage />
                 </Layout>
-              </AdminRoute>
+              </AdminOrTeacherRoute>
             }
           />
           <Route

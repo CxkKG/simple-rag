@@ -38,7 +38,7 @@ import { Label } from '@/components/ui/label'
 import { formatDate } from '@/lib/utils'
 import { useNavigate } from 'react-router-dom'
 import { useResizableColumns } from '@/hooks/useResizableColumns'
-import type { KnowledgeBase } from '@/types'
+import { KnowledgeBase, UserRole } from '@/types'
 
 interface KnowledgeBaseDialogProps {
   open: boolean
@@ -112,18 +112,20 @@ function KnowledgeBaseDialog({ open, onOpenChange, kb }: KnowledgeBaseDialogProp
               placeholder="请输入知识库名称"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="model" className="text-sm font-medium">
-              Embedding 模型
-            </Label>
-            <Input
-              id="model"
-              value={embeddingModel}
-              onChange={(e) => setEmbeddingModel(e.target.value)}
-              required
-              placeholder="text-embedding-ada-002"
-            />
-          </div>
+          {!kb && (
+            <div className="space-y-2">
+              <Label htmlFor="model" className="text-sm font-medium">
+                Embedding 模型
+              </Label>
+              <Input
+                id="model"
+                value={embeddingModel}
+                onChange={(e) => setEmbeddingModel(e.target.value)}
+                required
+                placeholder="text-embedding-ada-002"
+              />
+            </div>
+          )}
           {!kb && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">
@@ -158,6 +160,7 @@ export function KnowledgeBaseTable() {
   const [deletingKb, setDeletingKb] = useState<KnowledgeBase | null>(null)
 
   const { knowledgeBases, isLoading, total, deleteKnowledgeBase, fetchKnowledgeBases } = useKnowledgeBaseStore()
+  const { user, hasRole } = useAuthentication()
 
   const navigate = useNavigate()
   const tableColumns = useResizableColumns([
@@ -210,6 +213,20 @@ export function KnowledgeBaseTable() {
   }
 
   const totalPages = Math.ceil(total / pageSize)
+
+  // 检查用户是否有权限编辑/删除知识库
+  const canWriteKnowledgeBase = (kb: KnowledgeBase): boolean => {
+    // admin 可以操作所有知识库
+    if (hasRole(UserRole.Admin)) {
+      return true
+    }
+    // teacher 只能操作自己创建的知识库
+    if (hasRole(UserRole.Teacher)) {
+      return kb.createdBy === user?.username
+    }
+    // student 不能操作任何知识库
+    return false
+  }
 
   return (
     <>
@@ -309,22 +326,26 @@ export function KnowledgeBaseTable() {
                               <p className="truncate text-xs font-medium text-slate-500">知识库操作</p>
                               <p className="truncate text-sm font-semibold text-slate-900">{kb.name}</p>
                             </div>
-                            <DropdownMenuSeparator className="bg-education-blue-50" />
-                            <DropdownMenuItem
-                              onClick={(e) => handleEdit(kb, e as any)}
-                              className="cursor-pointer rounded-lg px-3 py-2 text-slate-700 focus:bg-education-blue-50 focus:text-education-blue-700"
-                            >
-                              <Edit className="mr-2 h-4 w-4 text-slate-500" />
-                              编辑信息
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator className="bg-education-blue-50" />
-                            <DropdownMenuItem
-                              onClick={(e) => handleDelete(kb, e as any)}
-                              className="cursor-pointer rounded-lg px-3 py-2 text-red-600 focus:bg-red-50 focus:text-red-700"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              删除知识库
-                            </DropdownMenuItem>
+                            {canWriteKnowledgeBase(kb) && (
+                              <>
+                                <DropdownMenuSeparator className="bg-education-blue-50" />
+                                <DropdownMenuItem
+                                  onClick={(e) => handleEdit(kb, e as any)}
+                                  className="cursor-pointer rounded-lg px-3 py-2 text-slate-700 focus:bg-education-blue-50 focus:text-education-blue-700"
+                                >
+                                  <Edit className="mr-2 h-4 w-4 text-slate-500" />
+                                  编辑信息
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className="bg-education-blue-50" />
+                                <DropdownMenuItem
+                                  onClick={(e) => handleDelete(kb, e as any)}
+                                  className="cursor-pointer rounded-lg px-3 py-2 text-red-600 focus:bg-red-50 focus:text-red-700"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  删除知识库
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

@@ -470,7 +470,7 @@ export default function ChatPage() {
             </div>
           </div>
           <div className="hidden md:flex items-center gap-2">
-            {hasRole(UserRole.Admin) && (
+            {hasRole([UserRole.Admin, UserRole.Teacher]) && (
               <>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/dashboard')}>
                   <ArrowLeft className="w-4 w-4" />

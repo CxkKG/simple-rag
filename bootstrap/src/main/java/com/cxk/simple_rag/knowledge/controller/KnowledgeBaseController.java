@@ -3,6 +3,7 @@ package com.cxk.simple_rag.knowledge.controller;
 import com.cxk.simple_rag.core.embedding.ChunkEmbeddingService;
 import com.cxk.simple_rag.knowledge.service.KnowledgeBaseService;
 import com.cxk.simple_rag.knowledge.service.KnowledgeDocumentService;
+import com.cxk.simple_rag.knowledge.util.KnowledgeOwnerChecker;
 import com.cxk.simple_rag.knowledge.vo.KnowledgeBaseVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ public class KnowledgeBaseController {
     private final KnowledgeBaseService knowledgeBaseService;
     private final KnowledgeDocumentService documentService;
     private final ChunkEmbeddingService chunkEmbeddingService;
+    private final KnowledgeOwnerChecker ownerChecker;
 
     @PostMapping
     public ResponseEntity<Map<String, Object>> createKnowledgeBase(
@@ -34,7 +36,6 @@ public class KnowledgeBaseController {
 
         String name = request.get("name");
         String embeddingModel = request.get("embeddingModel");
-        String createdBy = request.get("createdBy");
 
         if (name == null) {
             throw new IllegalArgumentException("name is required");
@@ -46,8 +47,11 @@ public class KnowledgeBaseController {
             log.info("Using default embedding model: {}", embeddingModel);
         }
 
+        // 创建人统一从当前登录用户解析，不接受前端传入，避免冒充
+        String createdBy = ownerChecker.currentUsername();
+
         KnowledgeBaseVO knowledgeBaseVO = knowledgeBaseService.createKnowledgeBase(
-                name, embeddingModel, createdBy != null ? createdBy : "system");
+                name, embeddingModel, createdBy);
 
         Map<String, Object> response = new HashMap<>();
         response.put("code", 0);

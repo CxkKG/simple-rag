@@ -23,7 +23,7 @@ interface UserDialogProps {
 export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState<UserRole | ''>(UserRole.User)
+  const [role, setRole] = useState<UserRole | ''>(UserRole.Student)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -33,12 +33,12 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
   useEffect(() => {
     if (open && user) {
       setUsername(user.username || '')
-      setRole(user.role || UserRole.User)
+      setRole(user.role || UserRole.Student)
       setPassword('')
     } else if (open) {
       setUsername('')
       setPassword('')
-      setRole(UserRole.User)
+      setRole(UserRole.Student)
     }
   }, [open, user])
 
@@ -102,8 +102,12 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
             <Label className="text-sm font-medium">角色</Label>
             <RadioGroup value={role} onValueChange={(v) => setRole(v as UserRole | '')} className="mt-2">
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value={UserRole.User} id="user" />
-                <Label htmlFor="user">普通用户</Label>
+                <RadioGroupItem value={UserRole.Student} id="student" />
+                <Label htmlFor="student">学生</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value={UserRole.Teacher} id="teacher" />
+                <Label htmlFor="teacher">老师</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value={UserRole.Admin} id="admin" />

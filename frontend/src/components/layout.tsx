@@ -24,13 +24,13 @@ import { useAuthentication } from '@/hooks/useAuthentication'
 import { UserRole } from '@/types'
 import { MessageSquare } from 'lucide-react'
 
-const allMenuItems = [
-  { icon: LayoutDashboard, label: '概览', path: '/dashboard', role: UserRole.Admin },
-  { icon: BookOpen, label: '知识库', path: '/knowledge-bases', role: UserRole.Admin },
-  { icon: FileText, label: '文档', path: '/documents', role: UserRole.Admin },
-  { icon: MessageSquare, label: '问答', path: '/chat', role: undefined },
-  { icon: Users, label: '用户管理', path: '/users', role: UserRole.Admin },
-  { icon: Settings, label: '系统设置', path: '/settings', role: UserRole.Admin },
+const allMenuItems: { icon: any; label: string; path: string; roles?: UserRole[] }[] = [
+  { icon: LayoutDashboard, label: '概览', path: '/dashboard', roles: [UserRole.Admin, UserRole.Teacher] },
+  { icon: BookOpen, label: '知识库', path: '/knowledge-bases', roles: [UserRole.Admin, UserRole.Teacher] },
+  { icon: FileText, label: '文档', path: '/documents', roles: [UserRole.Admin, UserRole.Teacher] },
+  { icon: MessageSquare, label: '问答', path: '/chat' },
+  { icon: Users, label: '用户管理', path: '/users', roles: [UserRole.Admin] },
+  { icon: Settings, label: '系统设置', path: '/settings', roles: [UserRole.Admin] },
 ]
 
 interface SidebarProps {
@@ -44,8 +44,8 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const { user, hasRole, logout } = useAuthentication()
 
   const menuItems = allMenuItems.filter((item) => {
-    if (!item.role) return true
-    return hasRole(item.role)
+    if (!item.roles || item.roles.length === 0) return true
+    return hasRole(item.roles)
   })
 
   const handleNavigation = (path: string) => {
@@ -128,7 +128,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           <div className="flex items-center gap-3 px-2">
             <div className="flex-1 overflow-hidden">
               <p className="text-sm font-medium text-slate-900 truncate">{user?.username || '用户'}</p>
-              <p className="text-xs text-slate-500 truncate">{hasRole(UserRole.Admin) ? '管理员' : '普通用户'}</p>
+              <p className="text-xs text-slate-500 truncate">{hasRole(UserRole.Admin) ? '管理员' : hasRole(UserRole.Teacher) ? '老师' : '学生'}</p>
             </div>
             <Avatar className="h-8 w-8 border border-slate-200">
               <AvatarFallback className="bg-gradient-to-br from-teal-100 to-emerald-100 text-teal-600 text-sm font-medium">

@@ -57,11 +57,15 @@ export function UserTable() {
   }
 
   const getRoleDisplay = (role: UserRole) => {
-    return role === 'admin' ? '管理员' : '普通用户'
+    if (role === 'admin') return '管理员'
+    if (role === 'teacher') return '老师'
+    return '学生'
   }
 
   const getRoleVariant = (role: UserRole) => {
-    return role === 'admin' ? 'default' : 'secondary'
+    if (role === 'admin') return 'default'
+    if (role === 'teacher') return 'outline'
+    return 'secondary'
   }
 
   return (

@@ -14,7 +14,8 @@ export const KNOWLEDGE_CONFIG = {
 // 用户角色
 export enum UserRole {
   Admin = 'admin',
-  User = 'user',
+  Teacher = 'teacher',
+  Student = 'student',
 }
 
 // 文档状态

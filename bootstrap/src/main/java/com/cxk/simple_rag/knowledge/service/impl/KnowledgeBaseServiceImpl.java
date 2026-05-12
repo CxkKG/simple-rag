@@ -7,6 +7,7 @@ import com.cxk.simple_rag.knowledge.entity.KnowledgeBaseDO;
 import com.cxk.simple_rag.knowledge.mapper.KnowledgeBaseMapper;
 import com.cxk.simple_rag.knowledge.service.KnowledgeBaseService;
 import com.cxk.simple_rag.knowledge.service.KnowledgeDocumentService;
+import com.cxk.simple_rag.knowledge.util.KnowledgeOwnerChecker;
 import com.cxk.simple_rag.knowledge.vo.KnowledgeBaseVO;
 import com.cxk.simple_rag.vector.MilvusService;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
     private final KnowledgeBaseMapper knowledgeBaseMapper;
     private final KnowledgeDocumentService knowledgeDocumentService;
     private final MilvusService milvusService;
+    private final KnowledgeOwnerChecker ownerChecker;
 
     @Override
     public KnowledgeBaseVO createKnowledgeBase(String name, String embeddingModel, String createdBy) {
@@ -86,6 +88,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
 
     @Override
     public KnowledgeBaseVO updateKnowledgeBase(String id, String name) {
+        ownerChecker.checkKnowledgeBaseWritable(id);
         KnowledgeBaseDO knowledgeBaseDO = knowledgeBaseMapper.selectById(id);
         if (knowledgeBaseDO == null) {
             throw new IllegalArgumentException("Knowledge base not found: " + id);
@@ -106,6 +109,8 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
         if (StrUtil.isBlank(id)) {
             throw new IllegalArgumentException("Knowledge base id cannot be empty");
         }
+
+        ownerChecker.checkKnowledgeBaseWritable(id);
 
         KnowledgeBaseDO knowledgeBaseDO = knowledgeBaseMapper.selectById(id);
         if (knowledgeBaseDO == null) {

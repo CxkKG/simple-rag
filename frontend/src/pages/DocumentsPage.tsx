@@ -72,7 +72,7 @@ export default function DocumentsPage() {
 
   const navigate = useNavigate()
   const { user, hasRole } = useAuthentication()
-  const isAdmin = hasRole(UserRole.Admin)
+  const isAdmin = hasRole([UserRole.Admin, UserRole.Teacher])
   const tableColumns = useResizableColumns([
     { key: 'select', width: 48, minWidth: 44, maxWidth: 70 },
     { key: 'name', width: 260, minWidth: 200, maxWidth: 520 },
@@ -259,6 +259,37 @@ export default function DocumentsPage() {
     setPageNum(page)
   }
 
+  // 检查用户是否有权限编辑/删除文档
+  const canWriteDocument = (doc: SimpleRagDocument): boolean => {
+    // admin 可以操作所有文档
+    if (hasRole(UserRole.Admin)) {
+      return true
+    }
+    // teacher 只能操作自己创建的文档（通过知识库的所有权间接判断）
+    if (hasRole(UserRole.Teacher)) {
+      // 检查文档所属的知识库是否为当前用户创建
+      const kb = knowledgeBases.find(k => k.id === doc.kbId)
+      return kb?.createdBy === user?.username
+    }
+    // student 不能操作任何文档
+    return false
+  }
+
+  // 检查用户是否有权限在指定知识库中上传文档
+  const canUploadToKnowledgeBase = (kbId: string): boolean => {
+    // admin 可以上传到所有知识库
+    if (hasRole(UserRole.Admin)) {
+      return true
+    }
+    // teacher 只能上传到自己创建的知识库
+    if (hasRole(UserRole.Teacher)) {
+      const kb = knowledgeBases.find(k => k.id === kbId)
+      return kb?.createdBy === user?.username
+    }
+    // student 不能上传到任何知识库
+    return false
+  }
+
   return (
       <div className="space-y-6">
         {/* 头部导航 */}
@@ -268,16 +299,24 @@ export default function DocumentsPage() {
             <p className="text-sm text-education-blue-600">管理所有知识库中的学习文档</p>
           </div>
           <div className="flex items-center gap-2">
-            {isAdmin && (
+            {hasRole([UserRole.Admin, UserRole.Teacher]) && (
               <Button
                 variant="outline"
-                onClick={() => setIsUploadModalOpen(true)}
+                onClick={() => {
+                  // 过滤出用户有权限上传的知识库
+                  const writableKbs = knowledgeBases.filter(kb => canUploadToKnowledgeBase(kb.id))
+                  if (writableKbs.length > 0) {
+                    setIsUploadModalOpen(true)
+                  } else {
+                    alert('权限不足：您没有可以上传文档的知识库')
+                  }
+                }}
               >
                 <Upload className="w-4 h-4 mr-2" />
                 上传文档
               </Button>
             )}
-            {isAdmin && selectedIds.length > 0 && (
+            {hasRole(UserRole.Admin) && selectedIds.length > 0 && (
               <Button
                 variant="destructive"
                 onClick={handleBatchDelete}
@@ -387,7 +426,7 @@ export default function DocumentsPage() {
               <TableHeader className="bg-education-blue-50">
                 <TableRow>
                   <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('select')}>
-                    {isAdmin && (
+                    {hasRole(UserRole.Admin) && (
                       <input
                         type="checkbox"
                         checked={selectedIds.length === documents.length && documents.length > 0}
@@ -432,7 +471,7 @@ export default function DocumentsPage() {
                     documents.map((doc) => (
                         <TableRow key={doc.id} className="h-16 hover:bg-slate-50 transition-colors">
                           <TableCell className="py-2" style={tableColumns.getColumnStyle('select')}>
-                            {isAdmin && (
+                            {hasRole(UserRole.Admin) && (
                               <input
                                 type="checkbox"
                                 checked={selectedIds.includes(doc.id)}
@@ -526,7 +565,7 @@ export default function DocumentsPage() {
                                   <Eye className="mr-2 h-4 w-4 text-education-blue-500" />
                                   查看内容
                                 </DropdownMenuItem>
-                                {isAdmin && (
+                                {canWriteDocument(doc) && (
                                   <>
                                     <DropdownMenuItem
                                       onClick={() => handleEditDocument(doc)}
@@ -609,9 +648,11 @@ export default function DocumentsPage() {
                   className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 >
                   <option value="">请选择知识库</option>
-                  {knowledgeBases.map(kb => (
-                    <option key={kb.id} value={kb.id}>{kb.name}</option>
-                  ))}
+                  {knowledgeBases
+                    .filter(kb => canUploadToKnowledgeBase(kb.id))
+                    .map(kb => (
+                      <option key={kb.id} value={kb.id}>{kb.name}</option>
+                    ))}
                 </select>
               </div>
               <div className="space-y-2">

@@ -36,7 +36,7 @@ public class UserServiceImpl implements UserService {
         UserDO user = new UserDO();
         user.setUsername(request.getUsername());
         user.setPassword(BCrypt.hashpw(request.getPassword()));
-        user.setRole("user");
+        user.setRole("student");
         user.setAvatar(request.getAvatar());
         user.setCreateTime(LocalDateTime.now());
         user.setUpdateTime(LocalDateTime.now());

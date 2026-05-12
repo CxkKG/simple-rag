@@ -25,6 +25,7 @@ import com.cxk.simple_rag.knowledge.mapper.KnowledgeDocumentChunkLogMapper;
 import com.cxk.simple_rag.knowledge.mapper.KnowledgeDocumentMapper;
 import com.cxk.simple_rag.knowledge.mq.KnowledgeDocumentChunkProducer;
 import com.cxk.simple_rag.knowledge.service.KnowledgeDocumentService;
+import com.cxk.simple_rag.knowledge.util.KnowledgeOwnerChecker;
 import com.cxk.simple_rag.knowledge.vo.KnowledgeDocumentContentVO;
 import com.cxk.simple_rag.knowledge.vo.KnowledgeDocumentVO;
 import com.cxk.simple_rag.storage.RustFsStorageService;
@@ -74,6 +75,7 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
     private final KnowledgeDocumentChunkProducer chunkProducer;
     private final AISummaryService aiSummaryService;
     private final UserMapper userMapper;
+    private final KnowledgeOwnerChecker ownerChecker;
 
     private final Map<String, ChunkingStrategy> strategyCache = Map.of(
             "structure_aware", new StructureAwareTextChunker()
@@ -96,6 +98,7 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
             throw new IllegalArgumentException("File cannot be empty");
         }
         getKnowledgeBaseDO(kbId);
+        ownerChecker.checkKnowledgeBaseWritable(kbId);
 
         String fileUrl = rustFsStorageService.uploadFile(file, "documents/" + kbId);
         try {
@@ -134,6 +137,7 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
 
     @Override
     public void triggerChunking(String docId) {
+        ownerChecker.checkDocumentWritable(docId);
         KnowledgeDocumentDO documentDO = documentMapper.selectById(docId);
         if (documentDO == null) {
             throw new IllegalArgumentException("Document not found: " + docId);
@@ -534,6 +538,8 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
             throw new IllegalArgumentException("Document id cannot be empty");
         }
 
+        ownerChecker.checkDocumentWritable(docId);
+
         KnowledgeDocumentDO documentDO = documentMapper.selectById(docId);
         if (documentDO == null) {
             throw new IllegalArgumentException("Document not found: " + docId);
@@ -546,6 +552,7 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
 
     @Override
     public void rebuildVectors(String docId) {
+        ownerChecker.checkDocumentWritable(docId);
         KnowledgeDocumentDO documentDO = documentMapper.selectById(docId);
         if (documentDO == null) {
             throw new IllegalArgumentException("Document not found: " + docId);
@@ -593,6 +600,8 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
         if (StrUtil.isBlank(docId)) {
             throw new IllegalArgumentException("Document id cannot be empty");
         }
+
+        ownerChecker.checkDocumentWritable(docId);
 
         KnowledgeDocumentDO documentDO = documentMapper.selectById(docId);
         if (documentDO == null) {
@@ -690,6 +699,10 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
                 .toList();
         if (validDocIds.isEmpty()) {
             return;
+        }
+
+        for (String docId : validDocIds) {
+            ownerChecker.checkDocumentWritable(docId);
         }
 
         LambdaQueryWrapper<KnowledgeDocumentDO> wrapper = new LambdaQueryWrapper<>();

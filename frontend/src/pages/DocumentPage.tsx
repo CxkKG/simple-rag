@@ -70,7 +70,7 @@ export default function DocumentPage() {
 
   const navigate = useNavigate()
   const { user, hasRole } = useAuthentication()
-  const isAdmin = hasRole(UserRole.Admin)
+  const isAdmin = hasRole([UserRole.Admin, UserRole.Teacher])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const tableColumns = useResizableColumns([
     { key: 'name', width: 280, minWidth: 220, maxWidth: 520 },
