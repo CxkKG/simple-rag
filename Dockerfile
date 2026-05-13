@@ -29,8 +29,14 @@ FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-# 安装必要工具
-RUN apk add --no-cache curl
+# 安装必要工具 + Node.js
+RUN apk add --no-cache curl nodejs npm
+
+# 安装 Tavily MCP
+RUN npm install -g tavily-mcp
+
+# 验证环境
+RUN node -v && npm -v && npx -v
 
 # 复制后端 jar
 COPY --from=backend-builder /app/bootstrap/target/*.jar app.jar
@@ -49,7 +55,7 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
   CMD curl -f http://localhost:9092/api/simple-rag/actuator/health || exit 1
 
 # JVM 参数
-ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC"
+ENV JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC"
 
 # 启动命令
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar --spring.config.additional-location=file:/app/config/"]

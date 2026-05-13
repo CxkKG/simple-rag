@@ -14,8 +14,8 @@ target/
 .vscode/
 
 # Dependencies
-lib/
-libs/
+/lib/
+/libs/
 
 # Logs
 *.log
