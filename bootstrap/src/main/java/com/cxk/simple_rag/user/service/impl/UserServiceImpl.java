@@ -36,7 +36,8 @@ public class UserServiceImpl implements UserService {
         UserDO user = new UserDO();
         user.setUsername(request.getUsername());
         user.setPassword(BCrypt.hashpw(request.getPassword()));
-        user.setRole("student");
+        // 使用请求中的角色，如果没有则默认为 student
+        user.setRole(request.getRole() != null && !request.getRole().isBlank() ? request.getRole() : "student");
         user.setAvatar(request.getAvatar());
         user.setCreateTime(LocalDateTime.now());
         user.setUpdateTime(LocalDateTime.now());

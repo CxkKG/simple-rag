@@ -111,6 +111,8 @@ public class UserController {
         registerRequest.setUsername(username);
         registerRequest.setPassword(password);
         registerRequest.setAvatar(null);
+        // 设置角色参数
+        registerRequest.setRole(role);
 
         UserVO userVO = userService.register(registerRequest);
 

@@ -18,4 +18,6 @@ public class RegisterRequest {
     private String password;
 
     private String avatar;
+
+    private String role;
 }
