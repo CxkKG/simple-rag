@@ -55,7 +55,7 @@ public class AIConfig {
     public static class Siliconflow {
         private String apiKey = "";
         private String model = "deepseek-ai/DeepSeek-V3.2";
-        private String baseUrl = "https://api.siliconflow.cn/v1";
+        private String baseUrl = "https://api.siliconflow.cn/v1/chat/completions";
     }
 
     @Data

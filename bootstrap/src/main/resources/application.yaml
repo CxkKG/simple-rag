@@ -5,15 +5,15 @@ spring:
   # 数据库配置
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/simple_rag
-    username: postgres
-    password: postgres
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:simple_rag}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
 
   # Redis 配置
   data:
     redis:
-      host: 127.0.0.1
-      port: 6379
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
 
   # Jackson 配置
   jackson:
@@ -48,77 +48,86 @@ spring:
                 - "-y"
                 - "tavily-mcp@latest"
               env:
-                TAVILY_API_KEY:
+                TAVILY_API_KEY: ${TAVILY_API_KEY:}
 
 # AI 模型配置
 ai:
   providers:
     bailian:
-      api-key: ${BAILIAN_API_KEY:sk-}
-      model: qwen-plus
-      base-url: https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation
+      api-key: ${BAILIAN_API_KEY:}
+      model: ${BAILIAN_MODEL:qwen-plus}
+      base-url: ${BAILIAN_BASE_URL:https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation}
     siliconflow:
-      api-key: ${SILICONFLOW_API_KEY:sk-}
-      model: deepseek-ai/DeepSeek-V3.2
-      base-url: https://api.siliconflow.cn/v1
+      api-key: ${SILICONFLOW_API_KEY:}
+      model: ${SILICONFLOW_MODEL:deepseek-ai/DeepSeek-V3.2}
+      base-url: ${SILICONFLOW_BASE_URL:https://api.siliconflow.cn/v1/chat/completions}
     ollama:
-      model: deepseek-r1:1.5b
-      base-url: http://localhost:11434
+      model: ${OLLAMA_MODEL:deepseek-r1:1.5b}
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
 
 # Embedding 服务配置
 embedding:
-  provider: siliconflow  # 支持：siliconflow, bailian, ollama
-  siliconflow-api-key: ${SILICONFLOW_API_KEY:sk-}
-  siliconflow-model: BAAI/bge-large-zh-v1.5
-  siliconflow-base-url: https://api.siliconflow.cn/v1/embeddings
-  bailian-api-key: ${BAILIAN_API_KEY:sk-}
-  bailian-model: text-embedding-v4
-  bailian-base-url: https://dashscope.aliyuncs.com/api/v1/services/embeddings/text-embedding/text-embedding
-  ollama-base-url: http://localhost:11434
-  ollama-model: bge-large-zh
+  provider: ${EMBEDDING_PROVIDER:siliconflow}  # 支持：siliconflow, bailian, ollama
+  siliconflow-api-key: ${EMBEDDING_SILICONFLOW_API_KEY:}
+  siliconflow-model: ${EMBEDDING_SILICONFLOW_MODEL:BAAI/bge-large-zh-v1.5}
+  siliconflow-base-url: ${EMBEDDING_SILICONFLOW_BASE_URL:https://api.siliconflow.cn/v1/embeddings}
+  bailian-api-key: ${EMBEDDING_BAILIAN_API_KEY:}
+  bailian-model: ${EMBEDDING_BAILIAN_MODEL:text-embedding-v4}
+  bailian-base-url: ${EMBEDDING_BAILIAN_BASE_URL:https://dashscope.aliyuncs.com/api/v1/services/embeddings/text-embedding/text-embedding}
+  ollama-base-url: ${EMBEDDING_OLLAMA_BASE_URL:http://localhost:11434}
+  ollama-model: ${EMBEDDING_OLLAMA_MODEL:bge-large-zh}
+
+# Reranker 重排序配置
+reranker:
+  enabled: true
+  api-key: ${RERANKER_API_KEY:}
+  model: ${RERANKER_MODEL:BAAI/bge-reranker-v2-m3}
+  base-url: ${RERANKER_BASE_URL:https://api.siliconflow.cn/v1/rerank}
+  top-n: ${RERANKER_TOP_N:4}
+  score-threshold: ${RERANKER_SCORE_THRESHOLD:0.3}
 
 # Milvus 向量数据库配置
 milvus:
-  host: 127.0.0.1
-  port: 19530
-  vector-dimension: 1024
+  host: ${MILVUS_HOST:127.0.0.1}
+  port: ${MILVUS_PORT:19530}
+  vector-dimension: ${MILVUS_VECTOR_DIMENSION:1024}
 
 # RustFS 对象存储配置
 rustfs:
-  endpoint: http://127.0.0.1:9000
-  access-key: rustfsadmin
-  secret-key: rustfsadmin
-  bucket: simple-rag
+  endpoint: ${RUSTFS_ENDPOINT:http://127.0.0.1:9000}
+  access-key: ${RUSTFS_ACCESS_KEY:rustfsadmin}
+  secret-key: ${RUSTFS_SECRET_KEY:rustfsadmin}
+  bucket: ${RUSTFS_BUCKET:simple-rag}
 
 # RocketMQ 配置
 rocketmq:
-  name-server: 127.0.0.1:9876
+  name-server: ${ROCKETMQ_NAME_SERVER:127.0.0.1:9876}
 
   producer:
-    group: simple-rag-producer
+    group: ${ROCKETMQ_PRODUCER_GROUP:simple-rag-producer}
     send-message-timeout: 3000
 
-  consumer-group: simple-rag-consumer  # ← 必填，只能用字母/数字/下划线/中划线
-  consumer-tag: '*'                    # 可选，默认 '*'
+  consumer-group: ${ROCKETMQ_CONSUMER_GROUP:simple-rag-consumer}  # ← 必填，只能用字母/数字/下划线/中划线
+  consumer-tag: ${ROCKETMQ_CONSUMER_TAG:*}                    # 可选，默认 '*'
 
-  chunk-topic: knowledge-chunk-topic
+  chunk-topic: ${ROCKETMQ_CHUNK_TOPIC:knowledge-chunk-topic}
 
 # SA-Token 配置
 sa-token:
-  token-name: satoken
-  timeout: 86400
-  active-timeout: 1800
-  is-concurrent: true
-  is-share: true
-  token-style: uuid
-  is-read-cookie: false
-  is-read-header: true
+  token-name: ${SA_TOKEN_NAME:satoken}
+  timeout: ${SA_TOKEN_TIMEOUT:86400}
+  active-timeout: ${SA_TOKEN_ACTIVE_TIMEOUT:1800}
+  is-concurrent: ${SA_TOKEN_CONCURRENT:true}
+  is-share: ${SA_TOKEN_SHARE:true}
+  token-style: ${SA_TOKEN_STYLE:uuid}
+  is-read-cookie: ${SA_TOKEN_READ_COOKIE:false}
+  is-read-header: ${SA_TOKEN_READ_HEADER:true}
 
 # 服务器配置
 server:
-  port: 9092
+  port: ${SERVER_PORT:9092}
   servlet:
-    context-path: /api/simple-rag
+    context-path: ${SERVER_CONTEXT_PATH:/api/simple-rag}
 
 # MyBatis Plus 配置
 mybatis-plus:
@@ -141,11 +150,11 @@ logging:
 # 联网搜索（兜底降级）配置
 web-search:
   # 是否允许在 RagService 中触发联网搜索（前端开关 + 此处全局开关共同决定）
-  enabled: true
+  enabled: ${WEB_SEARCH_ENABLED:true}
   # 向量检索 top1 分数低于该阈值视为"未找到合适回答"，触发兜底
-  score-threshold: 0.02
+  score-threshold: ${WEB_SEARCH_SCORE_THRESHOLD:0.02}
   # 联网搜索返回的最大结果条数
-  top-k: 5
+  top-k: ${WEB_SEARCH_TOP_K:5}
   # MCP Server 暴露的搜索工具名（按优先级匹配，匹配到的第一个会被使用）
   # 常见值：brave_web_search / tavily-search / web_search
   tool-name-keywords:

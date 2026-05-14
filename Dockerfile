@@ -36,7 +36,7 @@ RUN apk add --no-cache curl nodejs npm
 RUN npm install -g tavily-mcp
 
 # 验证环境
-RUN node -v && npm -v && npx -v
+RUN node -v && npm -v && npx -v && which tavily-mcp
 
 # 复制后端 jar
 COPY --from=backend-builder /app/bootstrap/target/*.jar app.jar

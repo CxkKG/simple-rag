@@ -29,8 +29,21 @@ vim .env
 
 **必须修改的内容**:
 ```bash
-BAILIAN_API_KEY=你的阿里云百炼API-Key
-SILICONFLOW_API_KEY=你的SiliconFlow API-Key
+# 数据库配置
+DB_PASSWORD=your_password_here
+
+# AI 模型配置
+BAILIAN_API_KEY=your_bailian_api_key_here
+SILICONFLOW_API_KEY=your_siliconflow_api_key_here
+
+# Embedding 服务配置
+EMBEDDING_SILICONFLOW_API_KEY=your_siliconflow_api_key_here
+
+# Reranker 配置
+RERANKER_API_KEY=your_siliconflow_api_key_here
+
+# MCP 搜索工具配置
+TAVILY_API_KEY=your_tavily_api_key_here
 ```
 
 ## 步骤 3: 一键部署

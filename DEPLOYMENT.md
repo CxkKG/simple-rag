@@ -53,9 +53,21 @@ vim .env
 
 **必须修改的配置**:
 ```bash
+# 数据库配置
+DB_PASSWORD=your_password_here
+
 # AI 服务 API Key (必须替换为真实值)
-BAILIAN_API_KEY=你的阿里云百炼API-Key
-SILICONFLOW_API_KEY=你的SiliconFlow API-Key
+BAILIAN_API_KEY=your_bailian_api_key_here
+SILICONFLOW_API_KEY=your_siliconflow_api_key_here
+
+# Embedding 服务 API Key
+EMBEDDING_SILICONFLOW_API_KEY=your_siliconflow_api_key_here
+
+# Reranker 服务 API Key
+RERANKER_API_KEY=your_siliconflow_api_key_here
+
+# Tavily 搜索 API Key
+TAVILY_API_KEY=your_tavily_api_key_here
 ```
 
 #### 3. 构建并启动服务

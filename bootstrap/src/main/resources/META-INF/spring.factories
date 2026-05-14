@@ -1,0 +1,3 @@
+# Register EnvironmentPostProcessor to load .env file early in Spring Boot startup
+org.springframework.boot.env.EnvironmentPostProcessor=\
+com.cxk.simple_rag.config.EnvConfig

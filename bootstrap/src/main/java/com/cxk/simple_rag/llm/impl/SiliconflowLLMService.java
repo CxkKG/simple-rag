@@ -55,7 +55,7 @@ public class SiliconflowLLMService implements LLMService {
         request.put("temperature", 0.7);
         request.put("stream", false);
 
-        String url = config.getBaseUrl() + "/chat/completions";
+        String url = config.getBaseUrl();
         String body = JSONUtil.toJsonStr(request);
 
         log.debug("Sending request to SiliconFlow: model={}, url={}", config.getModel(), url);
@@ -94,7 +94,7 @@ public class SiliconflowLLMService implements LLMService {
         request.put("top_p", 0.9);
         request.put("stream", true); // 启用流式模式
 
-        String url = config.getBaseUrl() + "/chat/completions";
+        String url = config.getBaseUrl();
         String body = JSONUtil.toJsonStr(request);
 
         log.debug("Sending stream request to SiliconFlow: model={}, url={}", config.getModel(), url);
