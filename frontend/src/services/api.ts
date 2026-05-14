@@ -385,6 +385,75 @@ export class ApiService {
         url: '/system/config/embedding',
         data,
       }),
+
+    // Reranker 配置
+    getRerankerConfig: () =>
+      request<{
+        data: {
+          enabled: boolean
+          apiKey: string
+          model: string
+          baseUrl: string
+          topN: number
+          scoreThreshold: number
+        }
+      }>({
+        method: 'get',
+        url: '/system/config/reranker',
+      }),
+
+    updateRerankerConfig: (data: {
+      enabled: boolean
+      apiKey: string
+      model: string
+      baseUrl: string
+      topN: number
+      scoreThreshold: number
+    }) =>
+      request<{
+        data: {
+          enabled: boolean
+          apiKey: string
+          model: string
+          baseUrl: string
+          topN: number
+          scoreThreshold: number
+        }
+      }>({
+        method: 'put',
+        url: '/system/config/reranker',
+        data,
+      }),
+
+    // 联网搜索配置
+    getWebSearchConfig: () =>
+      request<{
+        data: {
+          enabled: boolean
+          scoreThreshold: number
+          topK: number
+        }
+      }>({
+        method: 'get',
+        url: '/system/config/web-search',
+      }),
+
+    updateWebSearchConfig: (data: {
+      enabled: boolean
+      scoreThreshold: number
+      topK: number
+    }) =>
+      request<{
+        data: {
+          enabled: boolean
+          scoreThreshold: number
+          topK: number
+        }
+      }>({
+        method: 'put',
+        url: '/system/config/web-search',
+        data,
+      }),
   }
 
   // 仪表板 API

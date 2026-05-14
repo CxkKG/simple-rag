@@ -1,5 +1,7 @@
 package com.cxk.simple_rag.rag;
 
+import com.cxk.simple_rag.core.rerank.RerankerService;
+import com.cxk.simple_rag.config.RerankerConfig;
 import com.cxk.simple_rag.conversation.service.ConversationService;
 import com.cxk.simple_rag.conversation.entity.MessageDO;
 import com.cxk.simple_rag.knowledge.entity.KnowledgeDocumentDO;
@@ -52,6 +54,8 @@ public class RagService {
     private static final int HISTORY_CHAR_BUDGET = 6000;
 
     private final VectorSearchService vectorSearchService;
+    private final RerankerService rerankerService;
+    private final RerankerConfig rerankerConfig;
     private final ConversationService conversationService;
     private final LLMService llmService;
     private final WebSearchService webSearchService;
@@ -127,7 +131,7 @@ public class RagService {
     public RetrievalResult prepareRetrievalContext(String kbId, String question, int topK, boolean webSearch) {
         RetrievalResult result = new RetrievalResult();
 
-        // 1. 知识库向量检索（保持原有逻辑不变）
+        // 1. 知识库向量检索
         List<VectorSearchService.SearchResult> kbResults;
         try {
             kbResults = vectorSearchService.search(kbId, question, topK);
@@ -136,7 +140,14 @@ public class RagService {
             kbResults = Collections.emptyList();
         }
 
+        // 2. 重排序（启用且有结果时先重排序，使后续命中判断基于更准确的相关性分数）
+        if (!kbResults.isEmpty()) {
+            kbResults = rerankerService.rerank(question, kbResults);
+        }
+
+        // 3. 命中判断 —— 根据是否经过重排序选择对应阈值
         boolean kbHit = isKnowledgeBaseHit(kbResults);
+
         if (kbHit) {
             List<VectorSearchService.SearchResult> dedupedKb = dedupKbByDocId(kbResults);
             result.setUsedWebSearch(false);
@@ -145,9 +156,12 @@ public class RagService {
             return result;
         }
 
-        // 2. 知识库未命中（空或低分） → 兜底
-        log.info("Knowledge base miss: kbId={}, question={}, results={}, threshold={}",
-                kbId, question, kbResults.size(), webSearchProperties.getScoreThreshold());
+        // 4. 知识库未命中（空或低分） → 兜底
+        float usedThreshold = rerankerConfig.isEnabled() && !kbResults.isEmpty()
+                ? rerankerConfig.getScoreThreshold() : webSearchProperties.getScoreThreshold();
+        log.info("Knowledge base miss: kbId={}, question={}, results={}, reranked={}, threshold={}",
+                kbId, question, kbResults.size(), rerankerConfig.isEnabled() && !kbResults.isEmpty(),
+                usedThreshold);
 
         if (!webSearch || !webSearchProperties.isEnabled()) {
             result.setUsedWebSearch(false);
@@ -157,7 +171,7 @@ public class RagService {
             return result;
         }
 
-        // 3. 联网搜索兜底
+        // 5. 联网搜索兜底
         List<WebSearchService.WebSearchResult> webResults = webSearchService.search(question);
         log.info("Web search returned: question={}, rawCount={}", question,
                 webResults == null ? 0 : webResults.size());
@@ -183,13 +197,17 @@ public class RagService {
 
     /**
      * 判定知识库是否"命中" —— 命中要求：结果非空且 top1 分数 >= 阈值。
+     * 重排序启用时使用重排序分数阈值，否则使用向量相似度阈值。
      */
     private boolean isKnowledgeBaseHit(List<VectorSearchService.SearchResult> results) {
         if (results == null || results.isEmpty()) {
             return false;
         }
         float topScore = results.get(0).getScore();
-        return topScore >= webSearchProperties.getScoreThreshold();
+        float threshold = rerankerConfig.isEnabled() && !results.isEmpty()
+                ? rerankerConfig.getScoreThreshold()
+                : webSearchProperties.getScoreThreshold();
+        return topScore >= threshold;
     }
 
     /**

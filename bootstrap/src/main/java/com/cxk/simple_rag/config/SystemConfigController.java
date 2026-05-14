@@ -21,6 +21,8 @@ public class SystemConfigController {
 
     private final AIConfig aiConfig;
     private final EmbeddingConfig embeddingConfig;
+    private final RerankerConfig rerankerConfig;
+    private final com.cxk.simple_rag.websearch.WebSearchProperties webSearchProperties;
 
     /**
      * 获取 AI 配置
@@ -143,6 +145,96 @@ public class SystemConfigController {
         embeddingConfig.setOllamaModel(dto.getOllamaModel());
 
         log.info("Embedding config updated: provider={}", dto.getProvider());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "success");
+        response.put("data", dto);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 获取 Reranker 配置
+     */
+    @GetMapping("/reranker")
+    public ResponseEntity<Map<String, Object>> getRerankerConfig() {
+        RerankerConfigDTO dto = new RerankerConfigDTO();
+        dto.setEnabled(rerankerConfig.isEnabled());
+        dto.setApiKey(rerankerConfig.getApiKey());
+        dto.setModel(rerankerConfig.getModel());
+        dto.setBaseUrl(rerankerConfig.getBaseUrl());
+        dto.setTopN(rerankerConfig.getTopN());
+        dto.setScoreThreshold(rerankerConfig.getScoreThreshold());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "success");
+        response.put("data", dto);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 更新 Reranker 配置
+     * 注意：这里只更新内存中的配置，不会持久化到 application.yaml
+     */
+    @PutMapping("/reranker")
+    public ResponseEntity<Map<String, Object>> updateRerankerConfig(@RequestBody RerankerConfigDTO dto) {
+        rerankerConfig.setEnabled(dto.isEnabled());
+        if (dto.getApiKey() != null) {
+            rerankerConfig.setApiKey(dto.getApiKey());
+        }
+        if (dto.getModel() != null) {
+            rerankerConfig.setModel(dto.getModel());
+        }
+        if (dto.getBaseUrl() != null) {
+            rerankerConfig.setBaseUrl(dto.getBaseUrl());
+        }
+        rerankerConfig.setTopN(dto.getTopN());
+        rerankerConfig.setScoreThreshold(dto.getScoreThreshold());
+
+        log.info("Reranker config updated: enabled={}, model={}, topN={}, scoreThreshold={}",
+                dto.isEnabled(), dto.getModel(), dto.getTopN(), dto.getScoreThreshold());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "success");
+        response.put("data", dto);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 获取联网搜索配置
+     */
+    @GetMapping("/web-search")
+    public ResponseEntity<Map<String, Object>> getWebSearchConfig() {
+        WebSearchConfigDTO dto = new WebSearchConfigDTO();
+        dto.setEnabled(webSearchProperties.isEnabled());
+        dto.setScoreThreshold(webSearchProperties.getScoreThreshold());
+        dto.setTopK(webSearchProperties.getTopK());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "success");
+        response.put("data", dto);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 更新联网搜索配置
+     * 注意：这里只更新内存中的配置，不会持久化到 application.yaml
+     */
+    @PutMapping("/web-search")
+    public ResponseEntity<Map<String, Object>> updateWebSearchConfig(@RequestBody WebSearchConfigDTO dto) {
+        webSearchProperties.setEnabled(dto.isEnabled());
+        webSearchProperties.setScoreThreshold(dto.getScoreThreshold());
+        webSearchProperties.setTopK(dto.getTopK());
+
+        log.info("WebSearch config updated: enabled={}, scoreThreshold={}, topK={}",
+                dto.isEnabled(), dto.getScoreThreshold(), dto.getTopK());
 
         Map<String, Object> response = new HashMap<>();
         response.put("code", 0);

@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Brain, Cpu, Save, RefreshCw } from 'lucide-react'
+import { Brain, Cpu, Save, RefreshCw, Globe, ArrowUpDown } from 'lucide-react'
 import { ApiService } from '@/services/api'
 
 interface AIConfig {
@@ -33,12 +33,31 @@ interface EmbeddingConfig {
   ollamaModel: string
 }
 
+interface WebSearchConfig {
+  enabled: boolean
+  scoreThreshold: number
+  topK: number
+}
+
+interface RerankerConfig {
+  enabled: boolean
+  apiKey: string
+  model: string
+  baseUrl: string
+  topN: number
+  scoreThreshold: number
+}
+
 export function SystemSettings() {
   const [aiConfig, setAIConfig] = useState<AIConfig | null>(null)
   const [embeddingConfig, setEmbeddingConfig] = useState<EmbeddingConfig | null>(null)
+  const [webSearchConfig, setWebSearchConfig] = useState<WebSearchConfig | null>(null)
+  const [rerankerConfig, setRerankerConfig] = useState<RerankerConfig | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isSavingAI, setIsSavingAI] = useState(false)
   const [isSavingEmbedding, setIsSavingEmbedding] = useState(false)
+  const [isSavingWebSearch, setIsSavingWebSearch] = useState(false)
+  const [isSavingReranker, setIsSavingReranker] = useState(false)
 
   // 加载配置
   useEffect(() => {
@@ -48,12 +67,16 @@ export function SystemSettings() {
   const loadConfigs = async () => {
     setIsLoading(true)
     try {
-      const [aiRes, embeddingRes] = await Promise.all([
+      const [aiRes, embeddingRes, webSearchRes, rerankerRes] = await Promise.all([
         ApiService.system.getAIConfig(),
         ApiService.system.getEmbeddingConfig(),
+        ApiService.system.getWebSearchConfig(),
+        ApiService.system.getRerankerConfig(),
       ])
       setAIConfig(aiRes.data)
       setEmbeddingConfig(embeddingRes.data)
+      setWebSearchConfig(webSearchRes.data)
+      setRerankerConfig(rerankerRes.data)
     } catch (error) {
       console.error('Failed to load configs:', error)
       alert('加载配置失败')
@@ -65,7 +88,7 @@ export function SystemSettings() {
   // 保存 AI 配置
   const handleSaveAI = async () => {
     if (!aiConfig) return
-    
+
     setIsSavingAI(true)
     try {
       await ApiService.system.updateAIConfig(aiConfig)
@@ -81,7 +104,7 @@ export function SystemSettings() {
   // 保存 Embedding 配置
   const handleSaveEmbedding = async () => {
     if (!embeddingConfig) return
-    
+
     setIsSavingEmbedding(true)
     try {
       await ApiService.system.updateEmbeddingConfig(embeddingConfig)
@@ -91,6 +114,38 @@ export function SystemSettings() {
       alert('保存配置失败')
     } finally {
       setIsSavingEmbedding(false)
+    }
+  }
+
+  // 保存联网搜索配置
+  const handleSaveWebSearch = async () => {
+    if (!webSearchConfig) return
+
+    setIsSavingWebSearch(true)
+    try {
+      await ApiService.system.updateWebSearchConfig(webSearchConfig)
+      alert('联网搜索配置保存成功（注意：仅保存到内存，重启后失效）')
+    } catch (error) {
+      console.error('Failed to save web search config:', error)
+      alert('保存联网搜索配置失败')
+    } finally {
+      setIsSavingWebSearch(false)
+    }
+  }
+
+  // 保存 Reranker 配置
+  const handleSaveReranker = async () => {
+    if (!rerankerConfig) return
+
+    setIsSavingReranker(true)
+    try {
+      await ApiService.system.updateRerankerConfig(rerankerConfig)
+      alert('Reranker 配置保存成功（注意：仅保存到内存，重启后失效）')
+    } catch (error) {
+      console.error('Failed to save reranker config:', error)
+      alert('保存 Reranker 配置失败')
+    } finally {
+      setIsSavingReranker(false)
     }
   }
 
@@ -138,7 +193,7 @@ export function SystemSettings() {
     <div className="max-w-6xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-education-blue-900">系统设置</h2>
-        <p className="text-sm text-education-blue-600 mt-1">配置 AI 模型和 Embedding 模型参数</p>
+        <p className="text-sm text-education-blue-600 mt-1">配置 AI 模型、Embedding 模型、联网搜索和重排序参数</p>
       </div>
 
       {/* AI 模型配置 */}
@@ -405,6 +460,229 @@ export function SystemSettings() {
                   onChange={(e) => updateEmbeddingField('ollamaModel', e.target.value)}
                   placeholder="bge-large-zh"
                 />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 联网搜索配置 */}
+      <Card className="border-0 shadow-lg shadow-education-blue-200/50">
+        <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm">
+                <Globe className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div>
+                <CardTitle className="text-lg font-semibold text-emerald-900">联网搜索配置</CardTitle>
+                <CardDescription className="text-emerald-600">
+                  配置联网搜索兜底策略和相关性阈值
+                </CardDescription>
+              </div>
+            </div>
+            <Button onClick={handleSaveWebSearch} disabled={isSavingWebSearch}>
+              <Save className="h-4 w-4 mr-2" />
+              {isSavingWebSearch ? '保存中...' : '保存配置'}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6 space-y-6">
+          <div className="grid gap-6 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label>启用联网搜索</Label>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={webSearchConfig?.enabled ?? true}
+                onClick={() => {
+                  if (!webSearchConfig) return
+                  setWebSearchConfig({ ...webSearchConfig, enabled: !webSearchConfig.enabled })
+                }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  webSearchConfig?.enabled ? 'bg-emerald-500' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    webSearchConfig?.enabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <p className="text-xs text-muted-foreground">
+                开启后，知识库检索未命中时可自动联网搜索
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>分数阈值 (scoreThreshold)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                max="1"
+                value={webSearchConfig?.scoreThreshold ?? 0.02}
+                onChange={(e) => {
+                  if (!webSearchConfig) return
+                  setWebSearchConfig({ ...webSearchConfig, scoreThreshold: parseFloat(e.target.value) || 0 })
+                }}
+                placeholder="0.02"
+              />
+              <p className="text-xs text-muted-foreground">
+                向量检索 top1 分数低于此值视为未命中，触发联网兜底（范围 0~1）
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>返回结果最大条数 (topK)</Label>
+              <Input
+                type="number"
+                min="1"
+                max="20"
+                value={webSearchConfig?.topK ?? 5}
+                onChange={(e) => {
+                  if (!webSearchConfig) return
+                  setWebSearchConfig({ ...webSearchConfig, topK: parseInt(e.target.value) || 1 })
+                }}
+                placeholder="5"
+              />
+              <p className="text-xs text-muted-foreground">
+                联网搜索返回的最大结果条数
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Reranker 重排序配置 */}
+      <Card className="border-0 shadow-lg shadow-education-blue-200/50">
+        <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm">
+                <ArrowUpDown className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <CardTitle className="text-lg font-semibold text-amber-900">Reranker 重排序配置</CardTitle>
+                <CardDescription className="text-amber-600">
+                  配置检索结果重排序模型，提升文档相关性排序精度
+                </CardDescription>
+              </div>
+            </div>
+            <Button onClick={handleSaveReranker} disabled={isSavingReranker}>
+              <Save className="h-4 w-4 mr-2" />
+              {isSavingReranker ? '保存中...' : '保存配置'}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6 space-y-6">
+          {/* 启用开关 */}
+          <div className="space-y-2">
+            <Label>启用重排序</Label>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={rerankerConfig?.enabled ?? false}
+              onClick={() => {
+                if (!rerankerConfig) return
+                setRerankerConfig({ ...rerankerConfig, enabled: !rerankerConfig.enabled })
+              }}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                rerankerConfig?.enabled ? 'bg-amber-500' : 'bg-gray-300'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  rerankerConfig?.enabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+            <p className="text-xs text-muted-foreground">
+              开启后，向量检索结果会经过重排序模型二次排序，提高相关性
+            </p>
+          </div>
+
+          {/* API 配置 */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-education-blue-800 border-b pb-2">
+              API 配置
+            </h3>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label>API Key</Label>
+                <Input
+                  type="password"
+                  value={maskApiKey(rerankerConfig?.apiKey || '')}
+                  onChange={(e) => {
+                    if (!rerankerConfig) return
+                    setRerankerConfig({ ...rerankerConfig, apiKey: e.target.value })
+                  }}
+                  placeholder="sk-..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>模型名称</Label>
+                <Input
+                  value={rerankerConfig?.model || ''}
+                  onChange={(e) => {
+                    if (!rerankerConfig) return
+                    setRerankerConfig({ ...rerankerConfig, model: e.target.value })
+                  }}
+                  placeholder="BAAI/bge-reranker-v2-m3"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>API 地址</Label>
+                <Input
+                  value={rerankerConfig?.baseUrl || ''}
+                  onChange={(e) => {
+                    if (!rerankerConfig) return
+                    setRerankerConfig({ ...rerankerConfig, baseUrl: e.target.value })
+                  }}
+                  placeholder="https://api.siliconflow.cn/v1/rerank"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 参数配置 */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-education-blue-800 border-b pb-2">
+              参数配置
+            </h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>返回结果数 (topN)</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={rerankerConfig?.topN ?? 4}
+                  onChange={(e) => {
+                    if (!rerankerConfig) return
+                    setRerankerConfig({ ...rerankerConfig, topN: parseInt(e.target.value) || 1 })
+                  }}
+                  placeholder="4"
+                />
+                <p className="text-xs text-muted-foreground">
+                  重排序后保留的 top-N 结果数量，0 表示保留全部仅排序
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>相关性分数阈值 (scoreThreshold)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="1"
+                  value={rerankerConfig?.scoreThreshold ?? 0.3}
+                  onChange={(e) => {
+                    if (!rerankerConfig) return
+                    setRerankerConfig({ ...rerankerConfig, scoreThreshold: parseFloat(e.target.value) || 0 })
+                  }}
+                  placeholder="0.3"
+                />
+                <p className="text-xs text-muted-foreground">
+                  重排序后 top1 分数低于此值视为未命中，触发联网兜底（范围 0~1）
+                </p>
               </div>
             </div>
           </div>
