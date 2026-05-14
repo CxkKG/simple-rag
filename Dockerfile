@@ -19,6 +19,9 @@ WORKDIR /app
 
 COPY pom.xml ./
 COPY bootstrap/pom.xml bootstrap/
+
+COPY --from=frontend-builder /app/frontend/dist bootstrap/src/main/resources/static/
+
 RUN mvn dependency:go-offline -B
 
 COPY bootstrap/src bootstrap/src
@@ -40,9 +43,6 @@ RUN node -v && npm -v && npx -v && which tavily-mcp
 
 # 复制后端 jar
 COPY --from=backend-builder /app/bootstrap/target/*.jar app.jar
-
-# 复制前端构建产物
-COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
 # 创建配置目录
 RUN mkdir -p /app/config
