@@ -92,7 +92,7 @@ export default function DocumentsPage() {
     { value: 'pending', label: '待处理' },
     { value: 'running', label: '处理中' },
     { value: 'success', label: '已完成' },
-    { value: 'failed', label: '失败' },
+    { value: 'failed', label: '异常' },
   ]
 
   // 获取知识库列表
@@ -307,46 +307,46 @@ export default function DocumentsPage() {
   }
 
   return (
-      <div className="space-y-6">
-        {/* 头部导航 */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-bold text-education-blue-900">文档管理</h2>
-            <p className="text-sm text-education-blue-600">管理所有知识库中的学习文档</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {hasRole([UserRole.Admin, UserRole.Teacher]) && (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  // 过滤出用户有权限上传的知识库
-                  const writableKbs = knowledgeBases.filter(kb => canUploadToKnowledgeBase(kb.id))
-                  if (writableKbs.length > 0) {
-                    setIsUploadModalOpen(true)
-                  } else {
-                    alert('权限不足：您没有可以上传文档的知识库')
-                  }
-                }}
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                上传文档
-              </Button>
-            )}
-            {hasRole(UserRole.Admin) && selectedIds.length > 0 && (
-              <Button
-                variant="destructive"
-                onClick={handleBatchDelete}
-                disabled={isLoading}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                删除选中 ({selectedIds.length})
-              </Button>
-            )}
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-education-blue-900">文档管理</h2>
+          <p className="text-muted-foreground">管理所有知识库中的学习文档</p>
         </div>
+        <div className="flex items-center gap-2">
+          {hasRole([UserRole.Admin, UserRole.Teacher]) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const writableKbs = knowledgeBases.filter(kb => canUploadToKnowledgeBase(kb.id))
+                if (writableKbs.length > 0) {
+                  setIsUploadModalOpen(true)
+                } else {
+                  alert('权限不足：您没有可以上传文档的知识库')
+                }
+              }}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              上传文档
+            </Button>
+          )}
+          {hasRole(UserRole.Admin) && selectedIds.length > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleBatchDelete}
+              disabled={isLoading}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              删除选中 ({selectedIds.length})
+            </Button>
+          )}
+        </div>
+      </div>
 
-        {/* 查询条件 */}
-        <div className="rounded-xl border border-education-blue-100 bg-white shadow-sm p-6">
+      {/* 查询条件 */}
+      <div className="rounded-xl border border-education-blue-100 bg-white shadow-sm p-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label htmlFor="search" className="text-sm font-medium">
@@ -397,7 +397,7 @@ export default function DocumentsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="kbId" className="text-sm font-medium">
-                所属知识库
+                所属课程知识库
               </Label>
               <select
                 id="kbId"
@@ -405,7 +405,7 @@ export default function DocumentsPage() {
                 onChange={(e) => setSelectedKbId(e.target.value)}
                 className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
-                <option value="">所有知识库</option>
+                <option value="">所有课程知识库</option>
                 {knowledgeBases.map(kb => (
                   <option key={kb.id} value={kb.id}>{kb.name}</option>
                 ))}
@@ -453,7 +453,7 @@ export default function DocumentsPage() {
                     <span {...tableColumns.getResizeHandleProps('select')} />
                   </TableHead>
                   <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('name')}>文档名称<span {...tableColumns.getResizeHandleProps('name')} /></TableHead>
-                  <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('kb')}>所属知识库<span {...tableColumns.getResizeHandleProps('kb')} /></TableHead>
+                  <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('kb')}>所属课程知识库<span {...tableColumns.getResizeHandleProps('kb')} /></TableHead>
                   <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('type')}>文件类型<span {...tableColumns.getResizeHandleProps('type')} /></TableHead>
                   <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('size')}>文件大小<span {...tableColumns.getResizeHandleProps('size')} /></TableHead>
                   <TableHead className="relative group text-education-blue-800" style={tableColumns.getColumnStyle('summary')}>摘要<span {...tableColumns.getResizeHandleProps('summary')} /></TableHead>
@@ -505,8 +505,8 @@ export default function DocumentsPage() {
                             </div>
                           </TableCell>
                           <TableCell className="py-2" style={tableColumns.getColumnStyle('kb')}>
-                            <Badge variant="outline" className="max-w-full truncate text-xs bg-education-blue-100 text-education-blue-700 border-education-blue-200" title={doc.kbName || '未知知识库'}>
-                              {doc.kbName || '未知知识库'}
+                            <Badge variant="outline" className="max-w-full truncate text-xs bg-education-blue-100 text-education-blue-700 border-education-blue-200" title={doc.kbName || '未知课程知识库'}>
+                              {doc.kbName || '未知课程知识库'}
                             </Badge>
                           </TableCell>
                           <TableCell className="py-2" style={tableColumns.getColumnStyle('type')}>
@@ -544,7 +544,7 @@ export default function DocumentsPage() {
                               {doc.status === 'success'
                                   ? '已完成'
                                   : doc.status === 'failed'
-                                      ? '失败'
+                                      ? '异常'
                                       : doc.status === 'pending'
                                           ? '待处理'
                                           : '处理中'}
@@ -655,7 +655,7 @@ export default function DocumentsPage() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="uploadKbId" className="text-sm font-medium">
-                  选择知识库
+                  选择课程知识库
                 </Label>
                 <select
                   id="uploadKbId"
@@ -663,7 +663,7 @@ export default function DocumentsPage() {
                   onChange={(e) => setSelectedKbId(e.target.value)}
                   className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 >
-                  <option value="">请选择知识库</option>
+                  <option value="">请选择课程知识库</option>
                   {knowledgeBases
                     .filter(kb => canUploadToKnowledgeBase(kb.id))
                     .map(kb => (
@@ -779,7 +779,7 @@ export default function DocumentsPage() {
                     <Label className="text-xs font-medium text-slate-500">状态</Label>
                     <div className="mt-2">
                       <Badge variant={selectedDoc.status === 'success' ? 'default' : selectedDoc.status === 'failed' ? 'error' : selectedDoc.status === 'pending' ? 'pending' : 'processing'}>
-                        {selectedDoc.status === 'success' ? '已完成' : selectedDoc.status === 'failed' ? '失败' : selectedDoc.status === 'pending' ? '待处理' : '处理中'}
+                        {selectedDoc.status === 'success' ? '已完成' : selectedDoc.status === 'failed' ? '异常' : selectedDoc.status === 'pending' ? '待处理' : '处理中'}
                       </Badge>
                     </div>
                   </div>

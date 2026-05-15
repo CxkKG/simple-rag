@@ -37,6 +37,7 @@ import {
   Edit3,
   Check,
   UserCog,
+  LayoutDashboard,
 } from 'lucide-react'
 import { formatTimeString, formatSessionTime } from '@/lib/utils'
 import {
@@ -182,7 +183,7 @@ export default function ChatPage() {
           console.warn('Failed to generate session title for new session:', err)
         }
       } else if (!currentSessionId && !selectedKnowledgeBase) {
-        alert('请先选择知识库')
+        alert('请先选择课程知识库')
         return
       }
 
@@ -425,24 +426,27 @@ export default function ChatPage() {
             <MoreVertical className="h-5 w-5" />
           </Button>
 
-          {/* 桌面端：显示知识库选择和菜单按钮 */}
+          {/* 桌面端：显示课程知识库选择和菜单按钮 */}
           <div className="hidden md:flex items-center gap-3 w-full">
             <Button variant="ghost" size="icon" onClick={() => setIsSessionsOpen(!isSessionsOpen)} className="h-8 w-8">
               <MoreVertical className="h-5 w-5" />
             </Button>
             <div className="flex-1 max-w-md">
               <div className="relative">
-              <Button
-                variant="outline"
-                onClick={() => setIsKBSelectOpen(!isKBSelectOpen)}
-                className="h-9 bg-education-blue-50 hover:bg-education-blue-100"
-              >
-                {selectedKnowledgeBase
-                  ? knowledgeBases.find(kb => kb.id === selectedKnowledgeBase)?.name || '未知知识库'
-                  : '选择课程资源库'}
-                <ChevronDown className="w-4 h-4 ml-2 text-education-blue-400" />
-              </Button>
-              {isKBSelectOpen && (
+                <button
+                  type="button"
+                  onClick={() => setIsKBSelectOpen(!isKBSelectOpen)}
+                  className="flex items-center gap-1.5 w-auto h-8 px-2.5 rounded-lg border border-education-blue-300 bg-white hover:bg-education-blue-50 transition-colors text-left"
+                >
+                  <span className="text-sm font-medium text-slate-600 shrink-0">课程知识库：</span>
+                  <span className="text-sm text-slate-900 max-w-48 truncate">
+                    {selectedKnowledgeBase
+                      ? knowledgeBases.find(kb => kb.id === selectedKnowledgeBase)?.name || '未知知识库'
+                      : '请选择'}
+                  </span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform ${isKBSelectOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {isKBSelectOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setIsKBSelectOpen(false)} />
                   <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-education-blue-100 z-20 max-h-80 overflow-y-auto">
@@ -461,7 +465,7 @@ export default function ChatPage() {
                     ))}
                     {knowledgeBases.length === 0 && (
                       <div className="px-4 py-3 text-center text-sm text-education-blue-500">
-                        暂无课程资源库，请先创建资源库
+                        暂无课程知识库，请先创建知识库
                       </div>
                     )}
                   </div>
@@ -471,41 +475,31 @@ export default function ChatPage() {
             </div>
           </div>
           <div className="hidden md:flex items-center gap-2">
-            {hasRole([UserRole.Admin, UserRole.Teacher]) && (
-              <>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/dashboard')}>
-                  <ArrowLeft className="w-4 w-4" />
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Settings className="w-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={() => navigate('/dashboard')}>
-                      <ArrowLeft className="w-4 h-4 mr-2" />
-                      进入后台管理
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </>
-            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 rounded-full p-0">
+                <div className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="bg-gradient-to-br from-indigo-100 to-violet-100 text-indigo-600 text-sm font-medium">
                       {user.username.substring(0, 1).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                </Button>
+                  <div className="hidden sm:block text-left">
+                    <p className="text-sm font-medium text-slate-900 leading-tight">{user.username}</p>
+                    <p className="text-xs text-slate-500">{hasRole(UserRole.Admin) ? '管理员' : hasRole(UserRole.Teacher) ? '老师' : '学生'}</p>
+                  </div>
+                </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48 bg-white border border-education-blue-100 shadow-lg">
                 <div className="px-2 py-1.5 text-sm font-medium">
                   {user.username}
                 </div>
                 <DropdownMenuSeparator />
+                {hasRole([UserRole.Admin, UserRole.Teacher]) && (
+                  <DropdownMenuItem onClick={() => navigate('/dashboard')}>
+                    <LayoutDashboard className="w-4 h-4 mr-2" />
+                    进入后台管理
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => navigate('/documents')}>
                   <FileText className="w-4 h-4 mr-2" />
                   文档管理
@@ -545,7 +539,7 @@ export default function ChatPage() {
                 </div>
                 <h2 className="text-2xl font-semibold text-education-blue-900 mb-2">开始新的对话</h2>
                 <p className="text-education-blue-600 max-w-md mx-auto">
-                  选择一个课程资源库，开始向 AI 提问吧。我会根据资源库中的内容为您提供答案。
+                  选择一个课程知识库，开始向 AI 提问吧。我会根据知识库中的内容为您提供答案。
                 </p>
               </div>
             ) : (
@@ -690,7 +684,7 @@ export default function ChatPage() {
               </label>
               {webSearchEnabled && (
                 <span className="text-xs text-education-blue-500">
-                  知识库未命中时将自动调用联网搜索
+                  课程知识库未命中时将自动调用联网搜索
                 </span>
               )}
             </div>

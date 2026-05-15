@@ -132,7 +132,7 @@ function DashboardPage() {
           onClick={() => navigate('/knowledge-bases')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-education-blue-800">课程资源库</CardTitle>
+            <CardTitle className="text-sm font-medium text-education-blue-800">课程知识库</CardTitle>
             <BookOpen className="h-4 w-4 text-education-blue-500" />
           </CardHeader>
           <CardContent>
@@ -145,7 +145,7 @@ function DashboardPage() {
           onClick={() => navigate('/documents')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-education-green-800">学习文档</CardTitle>
+            <CardTitle className="text-sm font-medium text-education-green-800">文档管理</CardTitle>
             <FileText className="h-4 w-4 text-education-green-500" />
           </CardHeader>
           <CardContent>
@@ -158,12 +158,12 @@ function DashboardPage() {
           onClick={() => navigate('/users')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-education-orange-800">学习用户</CardTitle>
+            <CardTitle className="text-sm font-medium text-education-orange-800">用户管理</CardTitle>
             <Users className="h-4 w-4 text-education-orange-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-education-orange-900">{stats.userCount}</div>
-            <p className="text-xs text-education-orange-600">位学习者（点击跳转）</p>
+            <p className="text-xs text-education-orange-600">位用户（点击跳转）</p>
           </CardContent>
         </Card>
       </div>
@@ -263,9 +263,7 @@ export default function App() {
             path="/user-settings"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <UserSettingsPage />
-                </Layout>
+                <UserSettingsPage />
               </ProtectedRoute>
             }
           />

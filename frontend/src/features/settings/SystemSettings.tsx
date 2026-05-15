@@ -190,14 +190,15 @@ export function SystemSettings() {
   }
 
   return (
-    <div className="max-w-6xl space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-education-blue-900">系统设置</h2>
-        <p className="text-sm text-education-blue-600 mt-1">配置 AI 模型、Embedding 模型、联网搜索和重排序参数</p>
-      </div>
+    <div className="flex justify-center">
+      <div className="w-full max-w-5xl space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-education-blue-900">系统设置</h2>
+          <p className="text-sm text-education-blue-600 mt-1">配置 AI 模型、Embedding 模型、联网搜索和重排序参数</p>
+        </div>
 
       {/* AI 模型配置 */}
-      <Card className="border-0 shadow-lg shadow-education-blue-200/50">
+      <Card id="ai" className="border-0 shadow-lg shadow-education-blue-200/50 scroll-mt-20">
         <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -336,7 +337,7 @@ export function SystemSettings() {
       </Card>
 
       {/* Embedding 模型配置 */}
-      <Card className="border-0 shadow-lg shadow-education-blue-200/50">
+      <Card id="embedding" className="border-0 shadow-lg shadow-education-blue-200/50 scroll-mt-20">
         <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -467,7 +468,7 @@ export function SystemSettings() {
       </Card>
 
       {/* 联网搜索配置 */}
-      <Card className="border-0 shadow-lg shadow-education-blue-200/50">
+      <Card id="websearch" className="border-0 shadow-lg shadow-education-blue-200/50 scroll-mt-20">
         <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -553,7 +554,7 @@ export function SystemSettings() {
       </Card>
 
       {/* Reranker 重排序配置 */}
-      <Card className="border-0 shadow-lg shadow-education-blue-200/50">
+      <Card id="reranker" className="border-0 shadow-lg shadow-education-blue-200/50 scroll-mt-20">
         <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -688,6 +689,7 @@ export function SystemSettings() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   )
 }

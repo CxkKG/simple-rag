@@ -200,7 +200,7 @@ export default function DocumentPage() {
             </Button>
             <div>
               <h2 className="text-2xl font-bold text-education-blue-900">课程文档</h2>
-              <p className="text-sm text-education-blue-600">管理课程资源库中的学习文档</p>
+              <p className="text-sm text-education-blue-600">管理课程知识库中的学习文档</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -223,7 +223,7 @@ export default function DocumentPage() {
           </div>
         </div>
 
-        {/* 知识库信息卡片 */}
+        {/* 课程知识库信息卡片 */}
         {kb && (
             <div className="rounded-xl border border-education-blue-100 bg-education-blue-50/50 p-6 shadow-sm">
               <div className="flex items-start justify-between">
@@ -354,7 +354,7 @@ export default function DocumentPage() {
                               {doc.status === 'success'
                                   ? '已完成'
                                   : doc.status === 'failed'
-                                      ? '失败'
+                                      ? '异常'
                                       : doc.status === 'pending'
                                           ? '待处理'
                                           : '处理中'}

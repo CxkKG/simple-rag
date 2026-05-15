@@ -78,7 +78,7 @@ export function KnowledgeBaseDialog({ open, onOpenChange, kb }: KnowledgeBaseDia
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{kb ? '编辑知识库' : '创建知识库'}</DialogTitle>
+          <DialogTitle>{kb ? '编辑课程知识库' : '创建课程知识库'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
@@ -89,14 +89,14 @@ export function KnowledgeBaseDialog({ open, onOpenChange, kb }: KnowledgeBaseDia
           )}
           <div className="space-y-2">
             <Label htmlFor="name" className="text-sm font-medium">
-              知识库名称
+              课程知识库名称
             </Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              placeholder="请输入知识库名称"
+              placeholder="请输入课程知识库名称"
             />
           </div>
           {!kb && (

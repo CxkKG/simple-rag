@@ -20,12 +20,12 @@ export default function KnowledgeBasePage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-education-blue-900">课程资源库管理</h2>
-          <p className="text-muted-foreground">管理您的课程资源库和学习文档</p>
+          <h2 className="text-2xl font-bold text-education-blue-900">课程知识库管理</h2>
+          <p className="text-muted-foreground">管理您的课程知识库和学习文档</p>
         </div>
         <Button onClick={() => setIsDialogOpen(true)} className="bg-gradient-to-r from-education-blue-600 to-education-blue-500 hover:from-education-blue-700 hover:to-education-blue-600">
           <Plus className="w-4 h-4 mr-2" />
-          创建课程资源库
+          创建课程知识库
         </Button>
       </div>
 

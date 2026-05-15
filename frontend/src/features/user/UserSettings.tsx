@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { KeyRound, Mail, Save, Loader2 } from 'lucide-react'
+import { StandalonePage } from '@/components/StandalonePage'
 
 export function UserSettings() {
   const { user } = useAuthStore()
@@ -129,11 +130,12 @@ export function UserSettings() {
   }
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-education-blue-900">账号设置</h2>
-        <p className="text-sm text-education-blue-600 mt-1">管理您的密码和邮箱</p>
-      </div>
+    <StandalonePage
+      title="账号设置"
+      description="管理您的密码和邮箱"
+      icon={<KeyRound className="w-5 h-5 text-education-blue-600" />}
+    >
+      <div className="mx-auto max-w-3xl space-y-6">
 
       {/* 修改密码 */}
       <Card className="border-0 shadow-lg shadow-education-blue-200/50">
@@ -321,6 +323,7 @@ export function UserSettings() {
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </StandalonePage>
   )
 }
