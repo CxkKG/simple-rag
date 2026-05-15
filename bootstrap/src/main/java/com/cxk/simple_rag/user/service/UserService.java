@@ -1,7 +1,12 @@
 package com.cxk.simple_rag.user.service;
 
+import com.cxk.simple_rag.user.dto.ChangeEmailRequest;
+import com.cxk.simple_rag.user.dto.ChangePasswordRequest;
+import com.cxk.simple_rag.user.dto.EmailRegisterRequest;
 import com.cxk.simple_rag.user.dto.LoginRequest;
 import com.cxk.simple_rag.user.dto.RegisterRequest;
+import com.cxk.simple_rag.user.dto.ResetPasswordRequest;
+import com.cxk.simple_rag.user.dto.SendCodeRequest;
 import com.cxk.simple_rag.user.vo.UserVO;
 
 import java.util.List;
@@ -14,6 +19,16 @@ import java.util.List;
 public interface UserService {
 
     UserVO register(RegisterRequest request);
+
+    UserVO registerByEmail(EmailRegisterRequest request);
+
+    void sendVerifyCode(SendCodeRequest request);
+
+    void resetPassword(ResetPasswordRequest request);
+
+    void changePassword(ChangePasswordRequest request);
+
+    void changeEmail(ChangeEmailRequest request);
 
     UserVO login(LoginRequest request);
 

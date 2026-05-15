@@ -36,6 +36,7 @@ import {
   Globe,
   Edit3,
   Check,
+  UserCog,
 } from 'lucide-react'
 import { formatTimeString, formatSessionTime } from '@/lib/utils'
 import {
@@ -518,6 +519,10 @@ export default function ChatPage() {
                   复习提醒
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate('/user-settings')}>
+                  <UserCog className="w-4 h-4 mr-2" />
+                  账号设置
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={async () => {
                   await logout()
                   navigate('/login')

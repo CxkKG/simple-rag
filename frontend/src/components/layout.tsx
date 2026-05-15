@@ -8,6 +8,7 @@ import {
   X,
   FileText,
   LogOut,
+  UserCog,
 } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
@@ -180,6 +181,10 @@ export function Header({ setIsOpen }: HeaderProps) {
               {user?.username || '用户'}
             </div>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate('/user-settings')}>
+              <UserCog className="w-4 h-4 mr-2" />
+              账号设置
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="w-4 h-4 mr-2" />
               退出登录

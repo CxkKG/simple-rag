@@ -38,7 +38,10 @@ public class SaTokenInterceptor implements HandlerInterceptor {
 
         // 白名单
         if (path.startsWith("/user/login")
-                || path.startsWith("/user/register")) {
+                || path.startsWith("/user/register")
+                || path.startsWith("/user/email/register")
+                || path.startsWith("/user/email/send-code")
+                || path.startsWith("/user/email/reset-password")) {
             return true;
         }
 

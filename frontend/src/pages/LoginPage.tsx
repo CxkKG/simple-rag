@@ -125,11 +125,16 @@ export default function LoginPage() {
                 )}
               </Button>
             </form>
-            <div className="mt-4 text-center text-sm text-education-blue-500">
-              还没有账号？{' '}
-              <Link to="/register" className="text-education-blue-700 font-medium hover:text-education-blue-800">
-                注册新账号
+            <div className="mt-4 flex justify-between text-sm text-education-blue-500">
+              <Link to="/forgot-password" className="text-education-blue-700 font-medium hover:text-education-blue-800">
+                忘记密码？
               </Link>
+              <span>
+                还没有账号？{' '}
+                <Link to="/register" className="text-education-blue-700 font-medium hover:text-education-blue-800">
+                  注册新账号
+                </Link>
+              </span>
             </div>
           </CardContent>
         </Card>

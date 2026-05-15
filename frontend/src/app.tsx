@@ -6,11 +6,13 @@ import { ReviewReminderPopup } from '@/components/ReviewReminderPopup'
 import KnowledgeBasePage from '@/pages/KnowledgeBasePage'
 import UserPage from '@/pages/UserPage'
 import SystemSettingsPage from '@/pages/SystemSettingsPage'
+import UserSettingsPage from '@/pages/UserSettingsPage'
 import DocumentPage from '@/pages/DocumentPage'
 import DocumentsPage from '@/pages/DocumentsPage'
 import ChatPage from '@/pages/ChatPage'
 import LoginPage from '@/pages/LoginPage'
 import RegisterPage from '@/pages/RegisterPage'
+import ForgotPasswordPage from '@/pages/ForgotPasswordPage'
 import LearningRecordsPage from '@/pages/LearningRecordsPage'
 import ReviewRemindersPage from '@/pages/ReviewRemindersPage'
 import { Layout } from '@/components/layout'
@@ -182,6 +184,7 @@ export default function App() {
           <Route path="/" element={<Navigate to="/chat" replace />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route
             path="/chat"
             element={
@@ -254,6 +257,16 @@ export default function App() {
                   <UserPage />
                 </Layout>
               </AdminRoute>
+            }
+          />
+          <Route
+            path="/user-settings"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <UserSettingsPage />
+                </Layout>
+              </ProtectedRoute>
             }
           />
           <Route

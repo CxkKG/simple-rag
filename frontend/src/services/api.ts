@@ -69,6 +69,47 @@ export class ApiService {
         data,
       }),
 
+    registerByEmail: (data: { email: string; password: string; code: string; username?: string }) =>
+      request<{ data: User & { token: string } }>({
+        method: 'post',
+        url: '/user/email/register',
+        data,
+      }),
+
+    sendVerifyCode: (data: { email: string; type: string }) =>
+      request<{ data: null }>({
+        method: 'post',
+        url: '/user/email/send-code',
+        data,
+      }),
+
+    resetPassword: (data: { email: string; code: string; newPassword: string }) =>
+      request<{ data: null }>({
+        method: 'post',
+        url: '/user/email/reset-password',
+        data,
+      }),
+
+    changePassword: (data: { oldPassword?: string; code?: string; newPassword: string }) =>
+      request<{ data: null }>({
+        method: 'post',
+        url: '/user/email/change-password',
+        data,
+      }),
+
+    changeEmail: (data: { newEmail: string; code: string }) =>
+      request<{ data: null }>({
+        method: 'post',
+        url: '/user/email/change-email',
+        data,
+      }),
+
+    sendChangePasswordCode: () =>
+      request<{ data: null; message: string }>({
+        method: 'post',
+        url: '/user/email/send-change-code',
+      }),
+
     logout: () =>
       request<{ data: null }>({
         method: 'post',

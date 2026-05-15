@@ -1,7 +1,12 @@
 package com.cxk.simple_rag.user.controller;
 
+import com.cxk.simple_rag.user.dto.ChangeEmailRequest;
+import com.cxk.simple_rag.user.dto.ChangePasswordRequest;
+import com.cxk.simple_rag.user.dto.EmailRegisterRequest;
 import com.cxk.simple_rag.user.dto.LoginRequest;
 import com.cxk.simple_rag.user.dto.RegisterRequest;
+import com.cxk.simple_rag.user.dto.ResetPasswordRequest;
+import com.cxk.simple_rag.user.dto.SendCodeRequest;
 import com.cxk.simple_rag.user.service.UserService;
 import com.cxk.simple_rag.user.vo.UserVO;
 import jakarta.validation.Valid;
@@ -30,6 +35,98 @@ public class UserController {
         response.put("data", userVO);
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/email/register")
+    public ResponseEntity<Map<String, Object>> registerByEmail(@Valid @RequestBody EmailRegisterRequest request) {
+        UserVO userVO = userService.registerByEmail(request);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "注册成功");
+        response.put("data", userVO);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/email/send-code")
+    public ResponseEntity<Map<String, Object>> sendVerifyCode(@Valid @RequestBody SendCodeRequest request) {
+        userService.sendVerifyCode(request);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "验证码已发送");
+        response.put("data", null);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/email/reset-password")
+    public ResponseEntity<Map<String, Object>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        userService.resetPassword(request);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "密码重置成功");
+        response.put("data", null);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/email/change-password")
+    public ResponseEntity<Map<String, Object>> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        userService.changePassword(request);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "密码修改成功");
+        response.put("data", null);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/email/send-change-code")
+    public ResponseEntity<Map<String, Object>> sendChangePasswordCode() {
+        var currentUser = userService.getCurrentUser();
+        if (currentUser == null || currentUser.getEmail() == null || currentUser.getEmail().isBlank()) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("code", 400);
+            errorResponse.put("message", "当前账号未绑定邮箱，无法使用验证码修改密码");
+            errorResponse.put("data", null);
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+
+        SendCodeRequest sendCodeRequest = new SendCodeRequest();
+        sendCodeRequest.setEmail(currentUser.getEmail());
+        sendCodeRequest.setType("change_password");
+        userService.sendVerifyCode(sendCodeRequest);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "验证码已发送至 " + maskEmail(currentUser.getEmail()));
+        response.put("data", null);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/email/change-email")
+    public ResponseEntity<Map<String, Object>> changeEmail(@Valid @RequestBody ChangeEmailRequest request) {
+        userService.changeEmail(request);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "邮箱更换成功");
+        response.put("data", null);
+
+        return ResponseEntity.ok(response);
+    }
+
+    private String maskEmail(String email) {
+        if (email == null || !email.contains("@")) return email;
+        String local = email.split("@")[0];
+        String domain = email.split("@")[1];
+        if (local.length() <= 2) return local + "***@" + domain;
+        return local.charAt(0) + "***" + local.charAt(local.length() - 1) + "@" + domain;
     }
 
     @PostMapping("/login")

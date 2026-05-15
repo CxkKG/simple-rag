@@ -786,3 +786,5 @@ COMMENT ON COLUMN t_review_reminder.source_record_id IS '来源学习记录ID';
 COMMENT ON COLUMN t_review_reminder.create_time IS '创建时间';
 COMMENT ON COLUMN t_review_reminder.update_time IS '更新时间';
 COMMENT ON COLUMN t_review_reminder.deleted IS '是否删除 0：正常 1：删除';
+
+ALTER TABLE t_user ADD COLUMN email VARCHAR(255);

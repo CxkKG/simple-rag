@@ -1,25 +1,22 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useAuthStore } from '@/stores/auth'
 import { ApiService } from '@/services/api'
-import { UserRole } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { BookOpen, Loader2 } from 'lucide-react'
 
-export default function RegisterPage() {
+export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
-  const [password, setPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [username, setUsername] = useState('')
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [countdown, setCountdown] = useState(0)
 
-  const { login } = useAuthStore()
   const navigate = useNavigate()
 
   const handleSendCode = async () => {
@@ -27,9 +24,10 @@ export default function RegisterPage() {
       setError('请输入邮箱地址')
       return
     }
+    setError('')
 
     try {
-      await ApiService.auth.sendVerifyCode({ email, type: 'register' })
+      await ApiService.auth.sendVerifyCode({ email, type: 'reset_password' })
       setCountdown(60)
       const timer = setInterval(() => {
         setCountdown((prev) => {
@@ -49,20 +47,17 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setSuccess('')
 
-    if (!email) {
-      setError('请输入邮箱地址')
+    if (!email || !code || !newPassword) {
+      setError('请填写所有必填项')
       return
     }
-    if (!code) {
-      setError('请输入验证码')
-      return
-    }
-    if (password !== confirmPassword) {
+    if (newPassword !== confirmPassword) {
       setError('两次输入的密码不一致')
       return
     }
-    if (password.length < 6) {
+    if (newPassword.length < 6) {
       setError('密码长度不能少于6位')
       return
     }
@@ -70,25 +65,11 @@ export default function RegisterPage() {
     setIsLoading(true)
 
     try {
-      const res = await ApiService.auth.registerByEmail({
-        email,
-        password,
-        code,
-        username: username || undefined,
-      })
-      const userData = res.data as any
-      const user = {
-        id: userData.id,
-        username: userData.username,
-        role: userData.role as UserRole,
-        avatar: userData.avatar,
-        createdAt: userData.createTime,
-        updatedAt: userData.updateTime,
-      }
-      login(user, userData.token)
-      navigate('/chat')
+      await ApiService.auth.resetPassword({ email, code, newPassword })
+      setSuccess('密码重置成功，即将跳转到登录页')
+      setTimeout(() => navigate('/login'), 2000)
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || '注册失败，请稍后重试'
+      const msg = err?.response?.data?.message || err?.message || '重置密码失败'
       setError(msg)
     } finally {
       setIsLoading(false)
@@ -107,7 +88,7 @@ export default function RegisterPage() {
               智能课程学习助手
             </h1>
             <p className="mt-2 text-sm text-education-blue-600">
-              注册新账号，开始学习之旅
+              通过邮箱验证码重置密码
             </p>
           </div>
         </div>
@@ -115,10 +96,10 @@ export default function RegisterPage() {
         <Card className="border-0 shadow-xl shadow-education-blue-200/50">
           <CardHeader className="space-y-1">
             <CardTitle className="text-xl font-semibold text-education-blue-900">
-              注册账号
+              忘记密码
             </CardTitle>
             <CardDescription className="text-education-blue-600">
-              使用邮箱注册，验证后即可开始使用
+              输入注册邮箱，获取验证码后重置密码
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -127,6 +108,12 @@ export default function RegisterPage() {
                 <div className="rounded-lg bg-red-50 border border-red-200 p-3 flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-red-500" />
                   <p className="text-sm text-red-600">{error}</p>
+                </div>
+              )}
+              {success && (
+                <div className="rounded-lg bg-green-50 border border-green-200 p-3 flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-green-500" />
+                  <p className="text-sm text-green-600">{success}</p>
                 </div>
               )}
               <div className="space-y-3">
@@ -141,7 +128,7 @@ export default function RegisterPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      placeholder="请输入邮箱地址"
+                      placeholder="请输入注册邮箱"
                       disabled={isLoading}
                       className="h-11 transition-all duration-200 focus-visible:ring-education-blue-500"
                     />
@@ -173,37 +160,23 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="username" className="text-sm font-medium text-education-blue-700">
-                    用户名 <span className="text-muted-foreground font-normal">(选填)</span>
+                  <Label htmlFor="newPassword" className="text-sm font-medium text-education-blue-700">
+                    新密码
                   </Label>
                   <Input
-                    id="username"
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="不填则使用邮箱前缀"
-                    disabled={isLoading}
-                    className="h-11 transition-all duration-200 focus-visible:ring-education-blue-500"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="password" className="text-sm font-medium text-education-blue-700">
-                    密码
-                  </Label>
-                  <Input
-                    id="password"
+                    id="newPassword"
                     type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
                     required
-                    placeholder="请输入密码（至少6位）"
+                    placeholder="请输入新密码（至少6位）"
                     disabled={isLoading}
                     className="h-11 transition-all duration-200 focus-visible:ring-education-blue-500"
                   />
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="confirmPassword" className="text-sm font-medium text-education-blue-700">
-                    确认密码
+                    确认新密码
                   </Label>
                   <Input
                     id="confirmPassword"
@@ -211,7 +184,7 @@ export default function RegisterPage() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
-                    placeholder="请再次输入密码"
+                    placeholder="请再次输入新密码"
                     disabled={isLoading}
                     className="h-11 transition-all duration-200 focus-visible:ring-education-blue-500"
                   />
@@ -225,15 +198,14 @@ export default function RegisterPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    注册中...
+                    重置中...
                   </>
                 ) : (
-                  '注 册'
+                  '重置密码'
                 )}
               </Button>
             </form>
             <div className="mt-4 text-center text-sm text-education-blue-500">
-              已有账号？{' '}
               <Link to="/login" className="text-education-blue-700 font-medium hover:text-education-blue-800">
                 返回登录
               </Link>
