@@ -121,6 +121,17 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/email/lookup")
+    public ResponseEntity<Map<String, Object>> lookupUsername(@RequestParam("email") String email) {
+        String username = userService.lookupUsernameByEmail(email);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 0);
+        response.put("message", "success");
+        response.put("data", username);
+        return ResponseEntity.ok(response);
+    }
+
     private String maskEmail(String email) {
         if (email == null || !email.contains("@")) return email;
         String local = email.split("@")[0];

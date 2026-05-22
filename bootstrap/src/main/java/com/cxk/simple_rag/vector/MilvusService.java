@@ -152,7 +152,7 @@ public class MilvusService {
 
             CreateIndexReq createIndexReq = CreateIndexReq.builder()
                     .collectionName(collectionName)
-                    .indexParams(Collections.singletonList(indexParam))  // ✅ 关键
+                    .indexParams(Collections.singletonList(indexParam))  // 关键
                     .build();
 
             milvusClient.createIndex(createIndexReq);

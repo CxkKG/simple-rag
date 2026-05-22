@@ -140,11 +140,15 @@ public class UserServiceImpl implements UserService {
 
         LambdaQueryWrapper<UserDO> query = new LambdaQueryWrapper<>();
         query.eq(UserDO::getEmail, request.getEmail());
+        if (request.getUsername() != null && !request.getUsername().isBlank()) {
+            query.eq(UserDO::getUsername, request.getUsername());
+        }
         query.eq(UserDO::getDeleted, 0);
         UserDO user = userMapper.selectOne(query);
 
         if (user == null) {
-            throw new IllegalArgumentException("该邮箱未注册");
+            throw new IllegalArgumentException(request.getUsername() != null && !request.getUsername().isBlank()
+                ? "账号与邮箱不匹配" : "该邮箱未注册");
         }
 
         user.setPassword(BCrypt.hashpw(request.getNewPassword()));
@@ -319,6 +323,19 @@ public class UserServiceImpl implements UserService {
         user.setId(userId);
         user.setDeleted(1);
         userMapper.deleteById(userId);
+    }
+
+    @Override
+    public String lookupUsernameByEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return null;
+        }
+        LambdaQueryWrapper<UserDO> query = new LambdaQueryWrapper<>();
+        query.eq(UserDO::getEmail, email.trim());
+        query.eq(UserDO::getDeleted, 0);
+        query.select(UserDO::getUsername);
+        UserDO user = userMapper.selectOne(query);
+        return user == null ? null : user.getUsername();
     }
 
     private UserVO convertToVO(UserDO user, String token) {

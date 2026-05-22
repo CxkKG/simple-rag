@@ -83,7 +83,14 @@ export class ApiService {
         data,
       }),
 
-    resetPassword: (data: { email: string; code: string; newPassword: string }) =>
+    lookupUsername: (email: string) =>
+      request<{ data: string | null }>({
+        method: 'get',
+        url: '/user/email/lookup',
+        params: { email },
+      }),
+
+    resetPassword: (data: { username: string; email: string; code: string; newPassword: string }) =>
       request<{ data: null }>({
         method: 'post',
         url: '/user/email/reset-password',

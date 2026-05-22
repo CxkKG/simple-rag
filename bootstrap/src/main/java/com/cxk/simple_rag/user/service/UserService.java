@@ -47,4 +47,6 @@ public interface UserService {
     UserVO updateUser(String userId, String username, String password, String role);
 
     void deleteUser(String userId);
+
+    String lookupUsernameByEmail(String email);
 }

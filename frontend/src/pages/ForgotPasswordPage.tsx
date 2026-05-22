@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { ApiService } from '@/services/api'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { BookOpen, Loader2 } from 'lucide-react'
 
 export default function ForgotPasswordPage() {
+  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -18,6 +19,29 @@ export default function ForgotPasswordPage() {
   const [countdown, setCountdown] = useState(0)
 
   const navigate = useNavigate()
+  const lookupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // 邮箱输入时自动查询用户名
+  useEffect(() => {
+    if (lookupTimerRef.current) clearTimeout(lookupTimerRef.current)
+    if (!email || !email.includes('@')) {
+      setUsername('')
+      return
+    }
+    lookupTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await ApiService.auth.lookupUsername(email.trim())
+        if (res.data) {
+          setUsername(res.data)
+        } else {
+          setUsername('')
+        }
+      } catch {
+        setUsername('')
+      }
+    }, 600)
+    return () => { if (lookupTimerRef.current) clearTimeout(lookupTimerRef.current) }
+  }, [email])
 
   const handleSendCode = async () => {
     if (!email) {
@@ -65,7 +89,7 @@ export default function ForgotPasswordPage() {
     setIsLoading(true)
 
     try {
-      await ApiService.auth.resetPassword({ email, code, newPassword })
+      await ApiService.auth.resetPassword({ username: username || undefined, email, code, newPassword })
       setSuccess('密码重置成功，即将跳转到登录页')
       setTimeout(() => navigate('/login'), 2000)
     } catch (err: any) {
@@ -157,6 +181,20 @@ export default function ForgotPasswordPage() {
                     disabled={isLoading}
                     className="h-11 transition-all duration-200 focus-visible:ring-education-blue-500"
                     maxLength={6}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="username" className="text-sm font-medium text-education-blue-700">
+                    用户名（选填）
+                  </Label>
+                  <Input
+                    id="username"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="填写后可验证账号与邮箱匹配"
+                    disabled={isLoading}
+                    className="h-11 transition-all duration-200 focus-visible:ring-education-blue-500"
                   />
                 </div>
                 <div className="space-y-1">

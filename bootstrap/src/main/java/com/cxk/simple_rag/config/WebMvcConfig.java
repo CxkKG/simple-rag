@@ -28,6 +28,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/user/email/register",
                         "/user/email/send-code",
                         "/user/email/reset-password",
+                        "/user/email/lookup",
                         "/error",
                         "/doc.html",
                         "/webjars/**",
