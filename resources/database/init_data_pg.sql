@@ -1,5 +1,3 @@
--- PostgreSQL Initial Data for Ragent
-
 -- 初始管理员账号 (密码：123456, 使用 BCrypt 加密)
 -- 注意：实际生产环境中应该通过注册接口创建用户，密码会自动加密
 INSERT INTO t_user (id, username, password, role, avatar, create_time, update_time, deleted)
